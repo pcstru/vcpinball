@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinball Physics Lab</title>
+    <link rel="stylesheet" href="app/tuning/lab.css">
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        window.Pin = {
+            version: "1.0.0",
+            elements: {
+                registry: {},
+                register: function register(type, module) {
+                    this.registry[type] = module;
+                }
+            }
+        };
+    </script>
+
+    <script src="app/table.js"></script>
+    <script src="app/geometry.js"></script>
+    <script src="app/physics.js"></script>
+    <script src="app/elements/index.js"></script>
+    <script src="app/elements/path.js"></script>
+    <script src="app/elements/flipper.js"></script>
+    <script src="app/elements/drain.js"></script>
+    <script src="app/render.js"></script>
+    <script src="app/physicsHarness.js"></script>
+    <script src="app/tuning/lab.js"></script>
+</body>
+</html>

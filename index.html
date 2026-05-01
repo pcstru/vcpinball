@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generic Pinball: Design + Play</title>
+    <link rel="stylesheet" href="app/editor/editor.css">
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        window.Pin = {
+            version: "1.0.0",
+            elements: {
+                registry: {},
+                register: function register(type, module) {
+                    this.registry[type] = module;
+                }
+            }
+        };
+    </script>
+
+    <script src="lib/lz-string.min.js"></script>
+    <script src="app/table.js"></script>
+    <script src="app/presets.js"></script>
+    <script src="app/geometry.js"></script>
+    <script src="app/physics.js"></script>
+    <script src="app/events.js"></script>
+    <script src="app/ruleGraph.js"></script>
+    <script src="app/rules.js"></script>
+    <script src="app/ballLifecycle.js"></script>
+    <script src="app/audio.js"></script>
+    <script src="app/storage.js"></script>
+
+    <script src="app/elements/index.js"></script>
+    <script src="app/elements/path.js"></script>
+    <script src="app/elements/flipper.js"></script>
+    <script src="app/elements/bumper.js"></script>
+    <script src="app/elements/dropTarget.js"></script>
+    <script src="app/elements/spinner.js"></script>
+    <script src="app/elements/lane.js"></script>
+    <script src="app/elements/launcher.js"></script>
+    <script src="app/elements/gate.js"></script>
+    <script src="app/elements/valve.js"></script>
+    <script src="app/elements/kicker.js"></script>
+    <script src="app/elements/ramp.js"></script>
+    <script src="app/elements/scoreZone.js"></script>
+    <script src="app/elements/light.js"></script>
+    <script src="app/elements/drain.js"></script>
+    <script src="app/elements/trough.js"></script>
+
+    <script src="app/render.js"></script>
+
+    <script src="app/editor/tools.js"></script>
+    <script src="app/editor/model.js"></script>
+    <script src="app/editor/assistant.js"></script>
+    <script src="app/editor/panels.js"></script>
+    <script src="app/editor/hitTest.js"></script>
+    <script src="app/editor/actions.js"></script>
+    <script src="app/editor/session.js"></script>
+    <script src="app/editor/rulesLogic.js"></script>
+    <script src="app/editor/editor.js"></script>
+
+    <script src="app/main.js"></script>
+</body>
+</html>

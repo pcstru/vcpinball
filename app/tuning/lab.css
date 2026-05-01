@@ -1,0 +1,235 @@
+html, body {
+    margin: 0;
+    height: 100%;
+    background: #0a0d15;
+    color: #e5ecff;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    overflow: hidden;
+}
+
+#app {
+    height: 100%;
+}
+
+.lab-shell {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr) 320px;
+    height: 100vh;
+}
+
+.lab-panel {
+    background: #101522;
+    border-right: 1px solid rgba(120, 140, 190, 0.18);
+    padding: 16px;
+    overflow: auto;
+}
+
+.lab-panel.right {
+    border-right: 0;
+    border-left: 1px solid rgba(120, 140, 190, 0.18);
+}
+
+.lab-panel h1,
+.lab-panel h2,
+.lab-panel h3 {
+    margin: 0 0 10px;
+    font-weight: 600;
+}
+
+.lab-panel h1 {
+    font-size: 20px;
+}
+
+.lab-panel h2 {
+    font-size: 15px;
+    color: #9fc1ff;
+    margin-top: 18px;
+}
+
+.lab-panel p,
+.lab-panel .small {
+    margin: 0 0 10px;
+    color: #aeb9d8;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.lab-select,
+.lab-number {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0b101b;
+    color: #eef4ff;
+    border: 1px solid rgba(120, 140, 190, 0.28);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+}
+
+.lab-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.lab-actions button,
+.lab-copy {
+    background: #1a2740;
+    color: #eef4ff;
+    border: 1px solid rgba(120, 140, 190, 0.3);
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.lab-actions button:hover,
+.lab-copy:hover {
+    background: #243556;
+}
+
+.lab-actions button.active {
+    border-color: #9fc1ff;
+    background: #2c4471;
+}
+
+.lab-canvas-wrap {
+    min-width: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 14px;
+    background: #080b12;
+}
+
+.lab-stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(120, 140, 190, 0.16);
+    border-radius: 8px;
+    background: #05070d;
+    overflow: auto;
+}
+
+.lab-canvas {
+    width: min(100%, calc((100vh - 44px) * 0.568));
+    height: min(calc(100vw - 680px), calc(100vh - 44px));
+    max-height: 100%;
+    aspect-ratio: 500 / 880;
+    background: #05070d;
+    display: block;
+}
+
+.lab-group {
+    border: 1px solid rgba(120, 140, 190, 0.18);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+    background: rgba(6, 10, 18, 0.6);
+}
+
+.lab-slider {
+    display: grid;
+    grid-template-columns: 1fr 84px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.lab-slider:last-child {
+    margin-bottom: 0;
+}
+
+.lab-slider label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 4px;
+    color: #d9e4ff;
+}
+
+.lab-slider .value {
+    color: #7fc8ff;
+    margin-left: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-slider input[type="range"] {
+    width: 100%;
+}
+
+.lab-slider .lab-number {
+    margin: 22px 0 0;
+}
+
+.lab-metric-list {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-metric-list .label {
+    color: #9fb1d6;
+}
+
+.lab-metric-list .value {
+    color: #eef4ff;
+}
+
+.lab-export {
+    width: 100%;
+    min-height: 180px;
+    box-sizing: border-box;
+    background: #0b101b;
+    color: #dfe9ff;
+    border: 1px solid rgba(120, 140, 190, 0.28);
+    border-radius: 8px;
+    padding: 10px;
+    resize: vertical;
+    font: 12px Consolas, monospace;
+}
+
+@media (max-width: 1200px) {
+    .lab-shell {
+        grid-template-columns: 280px minmax(0, 1fr) 280px;
+    }
+
+    .lab-canvas {
+        width: min(100%, calc((100vh - 44px) * 0.568));
+        height: auto;
+    }
+}
+
+@media (max-width: 980px) {
+    body {
+        overflow: auto;
+    }
+
+    .lab-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .lab-panel,
+    .lab-panel.right {
+        border: 0;
+        border-bottom: 1px solid rgba(120, 140, 190, 0.18);
+    }
+
+    .lab-canvas-wrap {
+        min-height: 60vh;
+    }
+
+    .lab-canvas {
+        width: min(100%, 500px);
+        height: auto;
+    }
+}

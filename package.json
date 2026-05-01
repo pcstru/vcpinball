@@ -1,0 +1,9 @@
+{
+  "name": "pinball-static",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static browser pinball game and table editor.",
+  "scripts": {
+    "test": "node tests/run-all.js"
+  }
+}

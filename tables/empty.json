@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "name": "Empty Table",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 8,
+    "gravity": 0.35,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.empty.high"
+  },
+  "rulesEngine": {
+    "switchMap": [],
+    "sequenceRules": [],
+    "logicGraphs": []
+  },
+  "launcher": {
+    "x": 439,
+    "y": 710,
+    "dir": { "x": 0, "y": -1 },
+    "maxPower": 42
+  },
+  "levels": [
+    { "level": 0, "name": "Playfield", "parentLevel": null, "elevation": 0, "editorVisible": true },
+    { "level": 1, "name": "Upper Level", "parentLevel": 0, "elevation": 48, "editorVisible": true }
+  ],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": true,
+      "anchors": [
+        { "x": 10, "y": 150, "outHandle": { "x": 0, "y": -58 } },
+        { "x": 82, "y": 72, "inHandle": { "x": -34, "y": 0 }, "outHandle": { "x": 48, "y": -22 } },
+        { "x": 250, "y": 28, "inHandle": { "x": -62, "y": 0 }, "outHandle": { "x": 62, "y": 0 } },
+        { "x": 418, "y": 72, "inHandle": { "x": -48, "y": -22 }, "outHandle": { "x": 34, "y": 0 } },
+        { "x": 490, "y": 150, "inHandle": { "x": 0, "y": -58 } },
+        { "x": 490, "y": 220 },
+        { "x": 490, "y": 870 },
+        { "x": 10, "y": 870 },
+        { "x": 10, "y": 220 }
+      ]
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 439,
+      "top": 555,
+      "bottom": 735,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": { "x": 135, "y": 685 },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": { "x": 365, "y": 685 },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466"
+    }
+  ]
+}

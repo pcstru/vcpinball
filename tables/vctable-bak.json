@@ -1,0 +1,1335 @@
+{
+  "version": 1,
+  "name": "Caro",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 14,
+    "gravity": 0.35,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "rulesEngine": {
+    "switchMap": [],
+    "sequenceRules": [
+      {
+        "id": "rule_lane_left_lit",
+        "name": "Light Left Lane",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "lane_ok1se3"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "leftLaneLit",
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "lane_left_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_lane_left",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rule_lane_right_lit",
+        "name": "Light Right Lane",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "lane_2qchpu"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "rightLaneLit",
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "lane_right_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_lane_right",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rule_activate_bonus_from_left",
+        "name": "Activate Bonus From Left",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "lane_ok1se3"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "bonusReady",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "lane_right_lit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_timer",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_bonus_go",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rule_activate_bonus_from_right",
+        "name": "Activate Bonus From Right",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "lane_2qchpu"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "bonusReady",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "lane_left_lit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_timer",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_bonus_go",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rule_bonus_timer_tick",
+        "name": "Bonus Timer Tick",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.bonusSecond"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "bonusTimerTicked",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "addVariableProperty",
+            "variableId": "bonus_timer",
+            "property": "value",
+            "value": 1
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rule_bonus_flash_tick",
+        "name": "Flash Bonus Arrow",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.flash"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "bonusArrowFlashed",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "toggleVariableProperty",
+            "variableId": "bonus_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "lamp_bonus_go",
+            "variableId": "bonus_flash",
+            "property": "value"
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rule_bonus_timeout",
+        "name": "Expire Bonus",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.bonusSecond"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "bonusExpired",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "bonus_timer",
+            "property": "value",
+            "operator": "gte",
+            "value": 10
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "lane_left_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "lane_right_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_timer",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_lane_left",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_lane_right",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_bonus_go",
+            "value": false
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rule_bonus_collect",
+        "name": "Collect Trough Bonus",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "trough_vyoa7t"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 100,
+        "awardEvent": "troughBonusAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "lane_left_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "lane_right_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_ready",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_timer",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "bonus_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_lane_left",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_lane_right",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_bonus_go",
+            "value": false
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      }
+    ],
+    "logicGraphs": [],
+    "triggers": [
+      {
+        "id": "bonus_second_timer",
+        "type": "interval",
+        "everySeconds": 1,
+        "switchId": "tick.bonusSecond",
+        "enabled": true
+      },
+      {
+        "id": "bonus_flash_timer",
+        "type": "interval",
+        "everySeconds": 0.5,
+        "switchId": "tick.flash",
+        "enabled": true
+      }
+    ],
+    "variables": [
+      {
+        "id": "lane_left_lit",
+        "name": "Lane Left Lit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "lane_right_lit",
+        "name": "Lane Right Lit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "bonus_ready",
+        "name": "Bonus Ready",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "bonus_timer",
+        "name": "Bonus Timer",
+        "properties": {
+          "value": 0
+        }
+      },
+      {
+        "id": "bonus_flash",
+        "name": "Bonus Flash",
+        "properties": {
+          "value": false
+        }
+      }
+    ]
+  },
+  "launcher": {
+    "x": 460,
+    "y": 832.5141242937854,
+    "dir": {
+      "x": 0,
+      "y": -1
+    },
+    "maxPower": 42,
+    "valve": false,
+    "top": 677.5141242937854,
+    "bottom": 857.5141242937854,
+    "width": 38,
+    "maxRetract": 65,
+    "springStrength": 1
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "images": [
+    {
+      "id": "image_kyczbi",
+      "src": "tables/vctable.png",
+      "mode": "both",
+      "opacity": 0.65,
+      "fit": "contain",
+      "scale": 1,
+      "offsetX": -4,
+      "offsetY": -15
+    }
+  ],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 150,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 68.33041340277657,
+          "y": 50.99253194190764,
+          "inHandle": {
+            "x": -34,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 48,
+            "y": -22
+          }
+        },
+        {
+          "x": 240,
+          "y": 0,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 420,
+          "y": 50,
+          "inHandle": {
+            "x": -48,
+            "y": -22
+          },
+          "outHandle": {
+            "x": 34,
+            "y": 0
+          }
+        },
+        {
+          "x": 490,
+          "y": 150,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 490,
+          "y": 220
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 220
+        }
+      ]
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 460,
+      "top": 677.5141242937854,
+      "bottom": 857.5141242937854,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "valve": false
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 100,
+        "y": 740
+      },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 44,
+      "flipAccel": 420,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "tipStrikeBoost": 0.68,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "tipRestitution": 0.28,
+      "tipFriction": 0.04,
+      "thickness": 10,
+      "color": "#00ddff"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 340,
+        "y": 740
+      },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 44,
+      "flipAccel": 420,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "tipStrikeBoost": 0.68,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "tipRestitution": 0.28,
+      "tipFriction": 0.04,
+      "thickness": 10,
+      "color": "#ff4466"
+    },
+    {
+      "id": "path_qvli16",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 220,
+          "y": 840
+        },
+        {
+          "x": 220,
+          "y": 830
+        }
+      ]
+    },
+    {
+      "id": "path_nlz3h6",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 430,
+          "y": 860
+        },
+        {
+          "x": 430,
+          "y": 670
+        },
+        {
+          "x": 427.54550859778846,
+          "y": 512.5408188649918
+        },
+        {
+          "x": 410.0793924134825,
+          "y": 528.9036972758767,
+          "outHandle": {
+            "x": -1.6455956620019947,
+            "y": 15.722647099069832
+          },
+          "inHandle": {
+            "x": 1.6455956620019947,
+            "y": -15.722647099069832
+          }
+        },
+        {
+          "x": 410,
+          "y": 720
+        },
+        {
+          "x": 350,
+          "y": 720
+        },
+        {
+          "x": 360,
+          "y": 730
+        },
+        {
+          "x": 360,
+          "y": 750
+        },
+        {
+          "x": 410,
+          "y": 750
+        },
+        {
+          "x": 410,
+          "y": 840
+        },
+        {
+          "x": 380,
+          "y": 870
+        }
+      ]
+    },
+    {
+      "id": "path_9tmpri",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 80,
+          "y": 750
+        },
+        {
+          "x": 80,
+          "y": 730
+        },
+        {
+          "x": 90,
+          "y": 720
+        },
+        {
+          "x": 50,
+          "y": 700
+        },
+        {
+          "x": 10,
+          "y": 680
+        }
+      ]
+    },
+    {
+      "id": "drain_q24srw",
+      "type": "drain",
+      "level": 0,
+      "x": 220,
+      "y": 860,
+      "w": 150,
+      "h": 24
+    },
+    {
+      "id": "bumper_x6lwoq",
+      "type": "bumper",
+      "x": 90,
+      "y": 130,
+      "radius": 24,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 20,
+      "level": 0
+    },
+    {
+      "id": "bumper_tand2w",
+      "type": "bumper",
+      "x": 400,
+      "y": 130,
+      "radius": 22.360679774997898,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 20,
+      "level": 0
+    },
+    {
+      "id": "path_9z7xgd",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 245.53365857077586,
+          "y": 227.15477650602747
+        },
+        {
+          "x": 245.53365857077586,
+          "y": 297.1547765060275
+        }
+      ]
+    },
+    {
+      "id": "path_ikonbi",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.055,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 17.770368396682038,
+          "y": 232.96522300881037
+        },
+        {
+          "x": 17.770368396682038,
+          "y": 272.96522300881037
+        }
+      ],
+      "color": "#d71d1d"
+    },
+    {
+      "id": "bumper_f6m5qx",
+      "type": "bumper",
+      "x": 240,
+      "y": 160,
+      "radius": 40,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 30,
+      "level": 0,
+      "color": "#223996"
+    },
+    {
+      "id": "kicker_4qoijy",
+      "type": "kicker",
+      "level": 0,
+      "radius": 14,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 25,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 32.761838855525056,
+          "y": 661.6385613671238
+        },
+        {
+          "x": 34.79639002731315,
+          "y": 532.3993679151529
+        },
+        {
+          "x": 85.66016932201505,
+          "y": 688.09697892422
+        }
+      ]
+    },
+    {
+      "id": "kicker_ty7h9u",
+      "type": "kicker",
+      "level": 0,
+      "radius": 14,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 25,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 348.1172704826767,
+          "y": 695.220399035746
+        },
+        {
+          "x": 387.9654488282119,
+          "y": 543.8942113329779
+        },
+        {
+          "x": 383.7219159889679,
+          "y": 689.1146103687239
+        }
+      ]
+    },
+    {
+      "id": "gate_qtabzo",
+      "type": "gate",
+      "level": 0,
+      "x": 486.95036066623226,
+      "y": 485.0396770003451,
+      "length": 56.5886907879807,
+      "angle": 2.732511621782149,
+      "locked": false,
+      "direction": "forward",
+      "twoWay": false,
+      "swingStartAngle": 2.670353755551324,
+      "swingEndAngle": 4.712388980384691,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 12,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff"
+    },
+    {
+      "id": "path_zob63h",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 300.5090244628987,
+          "y": 223.83024044002389
+        },
+        {
+          "x": 300.5090244628987,
+          "y": 313.8302404400239
+        }
+      ]
+    },
+    {
+      "id": "path_xg97zf",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 192.23317071461202,
+          "y": 223.83024044002383
+        },
+        {
+          "x": 192.23317071461202,
+          "y": 313.83024044002383
+        }
+      ]
+    },
+    {
+      "id": "lane_ok1se3",
+      "type": "lane",
+      "level": 0,
+      "x": 218.883414642694,
+      "y": 268.27175246202506,
+      "w": 40,
+      "h": 20,
+      "score": 10,
+      "angle": 1.5707963267948966
+    },
+    {
+      "id": "lane_2qchpu",
+      "type": "lane",
+      "level": 0,
+      "x": 273.85878053481684,
+      "y": 268.27175246202506,
+      "w": 40,
+      "h": 20,
+      "score": 10,
+      "angle": 1.5707963267948966
+    },
+    {
+      "id": "path_tj7fi3",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 9.926509679050687,
+          "y": 306.13687638649395,
+          "outHandle": {
+            "x": 19.711176098355914,
+            "y": 73.05771749329455
+          },
+          "inHandle": {
+            "x": -19.711176098355914,
+            "y": -73.05771749329455
+          }
+        },
+        {
+          "x": 70.3329654095951,
+          "y": 401.05711144457155,
+          "outHandle": {
+            "x": 0,
+            "y": 24.878037228891117
+          },
+          "inHandle": {
+            "x": 0,
+            "y": -24.878037228891117
+          }
+        },
+        {
+          "x": 17.864951375904546,
+          "y": 421.11033796427046,
+          "outHandle": {
+            "x": 33.91273302682377,
+            "y": 0.7538799160270173
+          },
+          "inHandle": {
+            "x": -33.91273302682377,
+            "y": -0.7538799160270173
+          }
+        }
+      ]
+    },
+    {
+      "id": "trough_vyoa7t",
+      "type": "trough",
+      "level": 0,
+      "x": 43.01446515793992,
+      "y": 294.92240167946,
+      "radius": 20,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 1,
+      "ejectAngle": -1.3258176636680326,
+      "color": "#88aaff",
+      "pitColor": "#08101f"
+    },
+    {
+      "id": "boxLight_3zrpim",
+      "type": "boxLight",
+      "level": 0,
+      "x": 71.50723257896993,
+      "y": 333.968960671784,
+      "w": 57.0015098619637,
+      "h": 27.40123853873134,
+      "angle": -0.695663389068951,
+      "cornerRadius": 10,
+      "lampId": "",
+      "text": "BONUS",
+      "label": "",
+      "color": "#8fe36a"
+    },
+    {
+      "id": "bumper_apk3fq",
+      "type": "bumper",
+      "x": 240,
+      "y": 450,
+      "radius": 40,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 30,
+      "level": 0
+    },
+    {
+      "id": "kicker_l497f3",
+      "type": "kicker",
+      "level": 0,
+      "radius": 4,
+      "bandThickness": 2.4,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 15,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 312.60124532185864,
+          "y": 313.55503630125617
+        },
+        {
+          "x": 313.22935464955117,
+          "y": 230.8941791589132
+        },
+        {
+          "x": 321.31198034332357,
+          "y": 263.74133245998985
+        }
+      ]
+    },
+    {
+      "id": "path_eaqlr2",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 244.97536589212288,
+          "y": 317.7132644840263
+        },
+        {
+          "x": 254.9753658921229,
+          "y": 337.7132644840263
+        },
+        {
+          "x": 234.97536589212288,
+          "y": 337.7132644840263
+        },
+        {
+          "x": 244.97536589212288,
+          "y": 317.7132644840263
+        }
+      ]
+    },
+    {
+      "id": "kicker_vi3id0",
+      "type": "kicker",
+      "level": 0,
+      "radius": 7.911102953735067,
+      "bandThickness": 2.4,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 15,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 178.18844024208076,
+          "y": 313.51262784414456
+        },
+        {
+          "x": 178.325121964041,
+          "y": 231.62268033001794
+        },
+        {
+          "x": 168.325121964041,
+          "y": 281.62268033001794
+        }
+      ]
+    },
+    {
+      "id": "scoreZone_nc7cte",
+      "type": "scoreZone",
+      "level": 0,
+      "x": 251.34204907928083,
+      "y": 367.221229546414,
+      "radius": 10.434814590038249,
+      "restitution": 0.55,
+      "score": 50
+    },
+    {
+      "id": "light_iazilt",
+      "type": "light",
+      "level": 0,
+      "x": 219.12563356928257,
+      "y": 305.604149452047,
+      "radius": 6.851693085833498,
+      "lampId": "lamp_lane_left",
+      "text": "",
+      "label": "",
+      "color": "#ffee55"
+    },
+    {
+      "id": "light_oab68o",
+      "type": "light",
+      "level": 0,
+      "x": 272.65268651907644,
+      "y": 304.1545873514511,
+      "radius": 6.620589280739647,
+      "lampId": "lamp_lane_right",
+      "text": "",
+      "label": "",
+      "color": "#ffee55"
+    },
+    {
+      "id": "kicker_p6vfao",
+      "type": "kicker",
+      "level": 0,
+      "radius": 4,
+      "bandThickness": 2.4,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 15,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 129.7289087963199,
+          "y": 213.84118802549045
+        },
+        {
+          "x": 136.54791097199413,
+          "y": 185.19136024295486
+        },
+        {
+          "x": 99.04339900578586,
+          "y": 204.29124543131192
+        }
+      ]
+    },
+    {
+      "id": "path_a0sams",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 13.058127408737183,
+          "y": 226.91085084233413
+        },
+        {
+          "x": 32.65215093534651,
+          "y": 199.01729394933508
+        },
+        {
+          "x": 10.043662250797313,
+          "y": 171.12373705633604
+        }
+      ]
+    },
+    {
+      "id": "path_qb9gpj",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 91.50723257896996,
+          "y": 261.906882015352,
+          "inHandle": {
+            "x": -45.14396630530277,
+            "y": -40.39196042968234
+          },
+          "outHandle": {
+            "x": 45.14396630530277,
+            "y": 40.39196042968234
+          }
+        },
+        {
+          "x": 130.62226856839294,
+          "y": 376.1790742156805,
+          "outHandle": {
+            "x": -2.8831174368478116,
+            "y": 71.67011822674965
+          },
+          "inHandle": {
+            "x": 2.8831174368478116,
+            "y": -71.67011822674965
+          }
+        }
+      ]
+    },
+    {
+      "id": "arrowLight_55ase8",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 102.87907089874176,
+      "y": 382.70026544343705,
+      "w": 48.11207029118247,
+      "h": 34.66096748830564,
+      "angle": 4.132001065499139,
+      "lampId": "lamp_bonus_go",
+      "text": "GO",
+      "label": "",
+      "color": "#66ddff"
+    },
+    {
+      "id": "bumper_t6td9r",
+      "type": "bumper",
+      "x": 394.2202571071909,
+      "y": 511.1442113329777,
+      "radius": 10,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 20,
+      "level": 0
+    },
+    {
+      "id": "gate_54o07q",
+      "type": "gate",
+      "level": 0,
+      "x": 43.95639527762105,
+      "y": 205.80221319357813,
+      "length": 64,
+      "angle": 0.8247681029696444,
+      "locked": false,
+      "direction": "forward",
+      "twoWay": false,
+      "swingStartAngle": -0.2,
+      "swingEndAngle": 0.85,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff"
+    }
+  ]
+}
