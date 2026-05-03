@@ -1,4 +1,18 @@
 (function initBallLifecycle(Pin) {
+    function resetLauncherState(world) {
+        if (!world || !Pin.physics || !Pin.elements || !Pin.elements.getState) return;
+        const launcher = Pin.physics.getLauncherConfig(world);
+        if (!launcher || !launcher.element) return;
+        const state = Pin.elements.getState(world, launcher.element, { position: 0, velocity: 0, charge: 0, releasing: false, maxRetract: launcher.maxRetract });
+        state.releasing = false;
+        state.charging = false;
+        state.position = 0;
+        state.velocity = 0;
+        state.charge = 0;
+        state.strikeVelocity = 0;
+        state.maxRetract = launcher.maxRetract;
+    }
+
     function makeLaunchBall(world) {
         const launcher = Pin.physics.getLauncherConfig(world);
         const playfield = (world && world.table && world.table.playfield) || {};
@@ -33,6 +47,8 @@
         }
 
         world.currentBall += drained;
+        world.launchCharging = false;
+        resetLauncherState(world);
         world.balls.push(makeLaunchBall(world));
         world.state = "ready";
         return { drained: drained, served: 1, gameOver: false };

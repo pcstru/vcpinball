@@ -20,11 +20,8 @@
         returnSpeed: 18,
         returnAccel: 160,
         strikeBoost: 0.52,
-        tipStrikeBoost: 0.68,
         surfaceRestitution: 0.28,
         surfaceFriction: 0.08,
-        tipRestitution: 0.38,
-        tipFriction: 0.04,
         thickness: 10
     }, (Pin.table && Pin.table.DEFAULT_FLIPPER_TUNING) || {});
     const TUNING_FIELDS = [
@@ -33,11 +30,8 @@
         { key: "returnSpeed", label: "Return Speed", min: 4, max: 40, step: 1 },
         { key: "returnAccel", label: "Return Accel", min: 20, max: 600, step: 5 },
         { key: "strikeBoost", label: "Strike Boost", min: 0, max: 6, step: 0.05 },
-        { key: "tipStrikeBoost", label: "Tip Strike Boost", min: 0, max: 6, step: 0.05 },
         { key: "surfaceRestitution", label: "Surface Restitution", min: 0, max: 2, step: 0.01 },
-        { key: "surfaceFriction", label: "Surface Friction", min: 0, max: 4, step: 0.05 },
-        { key: "tipRestitution", label: "Tip Restitution", min: 0, max: 2, step: 0.01 },
-        { key: "tipFriction", label: "Tip Friction", min: 0, max: 4, step: 0.05 }
+        { key: "surfaceFriction", label: "Surface Friction", min: 0, max: 4, step: 0.05 }
     ];
     const SCENARIOS = [
         {
@@ -642,13 +636,10 @@
                     flipAccel: round(this.tuning.flipAccel, 3),
                     returnSpeed: round(this.tuning.returnSpeed, 3),
                     returnAccel: round(this.tuning.returnAccel, 3),
-                strikeBoost: round(this.tuning.strikeBoost, 3),
-                tipStrikeBoost: round(this.tuning.tipStrikeBoost, 3),
-                surfaceRestitution: round(this.tuning.surfaceRestitution, 3),
-                surfaceFriction: round(this.tuning.surfaceFriction, 3),
-                tipRestitution: round(this.tuning.tipRestitution, 3),
-                tipFriction: round(this.tuning.tipFriction, 3)
-            },
+                    strikeBoost: round(this.tuning.strikeBoost, 3),
+                    surfaceRestitution: round(this.tuning.surfaceRestitution, 3),
+                    surfaceFriction: round(this.tuning.surfaceFriction, 3)
+                },
                 inputs: clone(this.inputs)
             };
         };

@@ -29,19 +29,58 @@
         keys.forEach(function clear(key) { delete perfState[key]; });
     }
 
+    function decodePart(value) {
+        if (value == null) return "";
+        try {
+            return decodeURIComponent(String(value));
+        } catch (err) {
+            return String(value);
+        }
+    }
+
+    function parseHashKv(hash) {
+        const parts = hash.split("&");
+        const kv = {};
+        parts.slice(1).forEach(function each(part) {
+            if (!part) return;
+            const chunks = part.split("=");
+            const key = chunks[0];
+            if (!key) return;
+            kv[key] = decodePart(chunks.slice(1).join("="));
+        });
+        return kv;
+    }
+
+    function parseQueryKv() {
+        const kv = {};
+        let params = null;
+        try {
+            params = new URLSearchParams(location.search || "");
+        } catch (err) {
+            return kv;
+        }
+        params.forEach(function each(value, key) {
+            kv[key] = value;
+        });
+        return kv;
+    }
+
     function parseHash() {
         const hash = (location.hash || "#play").replace(/^#/, "");
         const parts = hash.split("&");
         const mode = parts[0] || "play";
-        const kv = {};
-        parts.slice(1).forEach(function each(part) {
-            const chunks = part.split("=");
-            kv[chunks[0]] = chunks.slice(1).join("=");
-        });
-        return { mode: mode, kv: kv };
+        const hashKv = parseHashKv(hash);
+        const queryKv = parseQueryKv();
+        return {
+            mode: mode,
+            kv: Object.assign({}, hashKv, queryKv),
+            hashKv: hashKv,
+            queryKv: queryKv
+        };
     }
 
-    function createWorld(table) {
+    function createWorld(table, options) {
+        options = options || {};
         const world = {
             table: table,
             balls: [],
@@ -54,6 +93,7 @@
             state: "ready",
             launchCharging: false,
             launchStart: 0,
+            tableAssetBaseHref: typeof options.tableAssetBaseHref === "string" ? options.tableAssetBaseHref : "",
             controls: {
                 left: false,
                 right: false
@@ -97,11 +137,29 @@
         perfEnd("refreshRuntime", startedAt);
     }
 
-    function mountPlay(root, table) {
+    function mountPlay(root, table, options) {
+        options = options || {};
         if (typeof root._pinballCleanup === "function") root._pinballCleanup();
         root.innerHTML = "";
         const wrap = document.createElement("div");
         wrap.className = "play-mode";
+        const topNav = document.createElement("div");
+        topNav.className = "play-top-nav";
+        const navPlay = document.createElement("button");
+        navPlay.type = "button";
+        navPlay.className = "play-top-nav-button active";
+        navPlay.textContent = "Play";
+        const navDesign = document.createElement("button");
+        navDesign.type = "button";
+        navDesign.className = "play-top-nav-button";
+        navDesign.textContent = "Design";
+        const navLogic = document.createElement("button");
+        navLogic.type = "button";
+        navLogic.className = "play-top-nav-button";
+        navLogic.textContent = "Logic";
+        topNav.appendChild(navPlay);
+        topNav.appendChild(navDesign);
+        topNav.appendChild(navLogic);
         const inner = document.createElement("div");
         inner.className = "play-canvas-wrap";
         const canvas = document.createElement("canvas");
@@ -145,11 +203,14 @@
             "Use <strong>Test Play</strong> in the editor toolbar to return to play with your current table.</p>";
         tableStack.appendChild(inner);
         tableStack.appendChild(controls);
+        wrap.appendChild(topNav);
         wrap.appendChild(tableStack);
         wrap.appendChild(help);
         root.appendChild(wrap);
         const ctx = canvas.getContext("2d");
-        const world = createWorld(table);
+        const world = createWorld(table, {
+            tableAssetBaseHref: typeof options.tableAssetBaseHref === "string" ? options.tableAssetBaseHref : ""
+        });
         let playedGameOverSound = false;
         let frameRaf = 0;
         let fitRaf = 0;
@@ -188,7 +249,10 @@
 
         function launchBall() {
             const ball = world.balls.find(function findBall(b) { return b.inLaunchLane; }) || world.balls[0];
-            if (!ball) return;
+            if (!ball) {
+                world.launchCharging = false;
+                return;
+            }
             Pin.physics.releaseLauncher(world);
             if (Pin.audio) Pin.audio.launch();
             world.launchCharging = false;
@@ -316,6 +380,14 @@
             if (e.code === "Space" && world.launchCharging) launchBall();
         }
 
+        function onOpenDesign() {
+            location.hash = "#design&t=" + Pin.storage.url.encode(world.table);
+        }
+
+        function onOpenLogic() {
+            location.hash = "#logic&t=" + Pin.storage.url.encode(world.table);
+        }
+
         let last = performance.now();
         let accumulator = 0;
         const fixedDt = 1 / 120;
@@ -396,6 +468,8 @@
         launchButton.addEventListener("pointerup", onLaunchButtonUp);
         launchButton.addEventListener("pointercancel", onLaunchButtonUp);
         launchButton.addEventListener("lostpointercapture", onLaunchButtonUp);
+        navDesign.addEventListener("click", onOpenDesign);
+        navLogic.addEventListener("click", onOpenLogic);
         root._pinballCleanup = function cleanupPlay() {
             running = false;
             if (frameRaf) {
@@ -425,6 +499,8 @@
             launchButton.removeEventListener("pointerup", onLaunchButtonUp);
             launchButton.removeEventListener("pointercancel", onLaunchButtonUp);
             launchButton.removeEventListener("lostpointercapture", onLaunchButtonUp);
+            navDesign.removeEventListener("click", onOpenDesign);
+            navLogic.removeEventListener("click", onOpenLogic);
             world.controls.left = false;
             world.controls.right = false;
             world.launchCharging = false;
@@ -433,19 +509,112 @@
         frameRaf = requestAnimationFrame(frame);
     }
 
+    function isAbsoluteUrl(value) {
+        return /^[a-z][a-z0-9+.-]*:/i.test(value || "");
+    }
+
+    function normalizeTableRef(rawRef) {
+        if (!rawRef) return "";
+        let ref = String(rawRef).trim();
+        if (
+            (ref[0] === "\"" && ref[ref.length - 1] === "\"") ||
+            (ref[0] === "'" && ref[ref.length - 1] === "'")
+        ) {
+            ref = ref.slice(1, -1).trim();
+        }
+        if (!ref) return "";
+        if (!/^[a-z][a-z0-9+.-]*:/i.test(ref) && ref[0] !== "/" && ref.indexOf("/") < 0) {
+            ref = "tables/" + ref;
+        }
+        return ref;
+    }
+
+    function toSameOriginJsonUrl(rawRef) {
+        const ref = normalizeTableRef(rawRef);
+        if (!ref) return null;
+        if (isAbsoluteUrl(ref)) {
+            try {
+                const absolute = new URL(ref);
+                if (absolute.origin !== location.origin) return null;
+                if (!/\.json$/i.test(absolute.pathname)) return null;
+                return absolute;
+            } catch (err) {
+                return null;
+            }
+        }
+        try {
+            const resolved = new URL(ref, location.href);
+            if (resolved.origin !== location.origin) return null;
+            if (!/\.json$/i.test(resolved.pathname)) return null;
+            return resolved;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function tableBaseHref(url) {
+        const href = String(url && url.href ? url.href : "");
+        const index = href.lastIndexOf("/");
+        if (index < 0) return "";
+        return href.slice(0, index + 1);
+    }
+
+    function loadTableFromRef(rawRef) {
+        const url = toSameOriginJsonUrl(rawRef);
+        if (!url) return Promise.reject(new Error("Invalid table reference: " + rawRef));
+        return fetch(url.href).then(function parseResponse(response) {
+            if (!response.ok) throw new Error("Failed to load table: " + url.href);
+            return response.json();
+        }).then(function buildResult(table) {
+            return {
+                table: table,
+                tableAssetBaseHref: tableBaseHref(url)
+            };
+        });
+    }
+
     function loadInitialTable(parsed) {
         if (parsed.kv.t) {
-            try { return Pin.storage.url.decode(parsed.kv.t); } catch (e) {}
+            try {
+                return Promise.resolve({
+                    table: Pin.storage.url.decode(parsed.kv.t),
+                    tableAssetBaseHref: ""
+                });
+            } catch (e) {}
+        }
+        if (parsed.mode !== "design" && parsed.kv.table) {
+            return loadTableFromRef(parsed.kv.table).catch(function fallbackTableRef(err) {
+                console.warn("Ignoring invalid table URL parameter.", err);
+                return null;
+            }).then(function afterTableRef(result) {
+                if (result) return result;
+                const fromLocal = Pin.storage.local.load(localStorage.getItem("pin.lastSlot") || "autosave");
+                if (fromLocal) return { table: fromLocal, tableAssetBaseHref: "" };
+                return fetch("tables/DefTable.json")
+                    .then(function parseResponse(response) {
+                        if (!response.ok) throw new Error("Failed to load tables/DefTable.json");
+                        return response.json();
+                    })
+                    .then(function asResult(table) {
+                        return { table: table, tableAssetBaseHref: "" };
+                    })
+                    .catch(function fallback() {
+                        return { table: Pin.table.cloneTable(Pin.presets.cyberpin || Pin.table.createEmptyTable()), tableAssetBaseHref: "" };
+                    });
+            });
         }
         const fromLocal = Pin.storage.local.load(localStorage.getItem("pin.lastSlot") || "autosave");
-        if (fromLocal) return Promise.resolve(fromLocal);
+        if (fromLocal) return Promise.resolve({ table: fromLocal, tableAssetBaseHref: "" });
         return fetch("tables/DefTable.json")
             .then(function parseResponse(response) {
                 if (!response.ok) throw new Error("Failed to load tables/DefTable.json");
                 return response.json();
             })
+            .then(function asResult(table) {
+                return { table: table, tableAssetBaseHref: "" };
+            })
             .catch(function fallback() {
-                return Pin.table.cloneTable(Pin.presets.cyberpin || Pin.table.createEmptyTable());
+                return { table: Pin.table.cloneTable(Pin.presets.cyberpin || Pin.table.createEmptyTable()), tableAssetBaseHref: "" };
             });
     }
 
@@ -454,15 +623,30 @@
         const token = ++bootToken;
         if (typeof root._pinballCleanup === "function") root._pinballCleanup();
         const parsed = parseHash();
-        Promise.resolve(loadInitialTable(parsed)).then(function mountLoadedTable(table) {
+        Promise.resolve(loadInitialTable(parsed)).then(function mountLoadedTable(loaded) {
             if (token !== bootToken) return;
+            const table = loaded && loaded.table ? loaded.table : loaded;
             const normalizedTable = Pin.table.normalizeTable(table);
             const validation = Pin.table.validateTable(normalizedTable);
             const safeTable = validation.ok ? normalizedTable : Pin.table.createEmptyTable();
             if (parsed.mode === "design") {
                 Pin.editor.mountEditor(root, { table: safeTable, selected: null, undo: [] });
+            } else if (parsed.mode === "logic") {
+                if (Pin.logicStudio && Pin.logicStudio.mount) {
+                    Pin.logicStudio.mount(root, { table: safeTable });
+                } else {
+                    Pin.editor.mountEditor(root, { table: safeTable, selected: null, undo: [] });
+                }
+            } else if (parsed.mode === "logicstudio") {
+                if (Pin.logicStudio && Pin.logicStudio.mountLegacy) {
+                    Pin.logicStudio.mountLegacy(root, { table: safeTable });
+                } else if (Pin.logicStudio && Pin.logicStudio.mount) {
+                    Pin.logicStudio.mount(root, { table: safeTable });
+                } else {
+                    Pin.editor.mountEditor(root, { table: safeTable, selected: null, undo: [] });
+                }
             } else {
-                mountPlay(root, safeTable);
+                mountPlay(root, safeTable, { tableAssetBaseHref: loaded && loaded.tableAssetBaseHref ? loaded.tableAssetBaseHref : "" });
             }
         });
     }

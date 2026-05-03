@@ -541,6 +541,95 @@ function testHeldFlipperTrapMatrixStaysStable() {
     });
 }
 
+function simulateInactiveFlipperSlide(Pin, side, contactT, ticks) {
+    const flipper = side === "right" ? {
+        id: "rf",
+        type: "flipper",
+        side: "right",
+        control: "right",
+        pivot: { x: 300, y: 360 },
+        length: 95,
+        restAngle: 2.98,
+        activeAngle: 4.08,
+        flipSpeed: 24,
+        flipAccel: 220,
+        returnSpeed: 18,
+        returnAccel: 160,
+        surfaceRestitution: 0.28,
+        surfaceFriction: 0.08,
+        thickness: 10
+    } : {
+        id: "lf",
+        type: "flipper",
+        side: "left",
+        control: "left",
+        pivot: { x: 200, y: 360 },
+        length: 95,
+        restAngle: 0.55,
+        activeAngle: -0.55,
+        flipSpeed: 24,
+        flipAccel: 220,
+        returnSpeed: 18,
+        returnAccel: 160,
+        surfaceRestitution: 0.28,
+        surfaceFriction: 0.08,
+        thickness: 10
+    };
+    const table = baseTable([flipper]);
+    table.playfield.gravity = 0.35;
+    table.playfield.friction = 0.999;
+    table.playfield.maxSpeed = 100;
+    const world = {
+        table,
+        balls: [],
+        controls: { left: false, right: false },
+        elementState: {},
+        staticSegments: [],
+        staticCircles: [],
+        staticBroadPhase: Pin.physics.buildBroadPhase([], [], table.playfield),
+        dynamicSegments: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        runtimeRamps: [],
+        lastPhysicsDt: 1 / 120
+    };
+    const runtime = Pin.elements.compileElements(table, world, { static: false });
+    world.dynamicSegments = runtime.segments;
+    const blade = runtime.segments[runtime.segments.length - 1];
+    const angle = Math.atan2(blade.y2 - blade.y1, blade.x2 - blade.x1);
+    const lift = { x: Math.sin(angle), y: -Math.cos(angle) };
+    const tangent = { x: Math.cos(angle), y: Math.sin(angle) };
+    const contactX = blade.x1 + (blade.x2 - blade.x1) * contactT;
+    const contactY = blade.y1 + (blade.y2 - blade.y1) * contactT;
+    const ball = {
+        x: contactX - lift.x * 7.9 + tangent.x * 0.3,
+        y: contactY - lift.y * 7.9 + tangent.y * 0.3,
+        radius: 8,
+        vx: 0,
+        vy: 0,
+        level: 0
+    };
+    world.balls = [ball];
+    const start = Pin.physics.closestPointOnSegment(ball.x, ball.y, blade.x1, blade.y1, blade.x2, blade.y2);
+    for (let i = 0; i < ticks; i++) {
+        Pin.physics.stepWorld(world, 1 / 120);
+    }
+    const end = Pin.physics.closestPointOnSegment(ball.x, ball.y, blade.x1, blade.y1, blade.x2, blade.y2);
+    return { startT: start.t, endT: end.t, vx: ball.vx, vy: ball.vy };
+}
+
+function testInactiveFlipperSlidesDownLeftBlade() {
+    const Pin = loadPin();
+    const result = simulateInactiveFlipperSlide(Pin, "left", 0.72, 180);
+    assert(result.endT - result.startT > 0.08, "inactive left flipper contact should continue sliding toward the tip");
+}
+
+function testInactiveFlipperSlidesDownRightBlade() {
+    const Pin = loadPin();
+    const result = simulateInactiveFlipperSlide(Pin, "right", 0.72, 180);
+    assert(result.endT - result.startT > 0.08, "inactive right flipper contact should continue sliding toward the tip");
+}
+
 /*
  * Flipper surface friction should materially affect active contact behavior.
  * Why: the lab exposes this as a user-tunable material property, and the
@@ -560,39 +649,29 @@ function testFlipperSurfaceFrictionAffectsMovingCatch() {
     assert(highFriction.peakUpward - lowFriction.peakUpward > 4, "higher flipper surface friction should materially change moving flipper contact response");
 }
 
-/*
- * Tip-specific flipper material values should alter a tip contact differently
- * from the blade body.
- * Why: the designer now exposes separate tip properties, so they must feed the
- * same runtime path and create a measurable change in tip contact response.
- */
-function testFlipperTipMaterialAffectsTipContact() {
+function testLegacyTipMaterialFieldsRemainCompatible() {
     const Pin = loadPin();
-    const softTip = Pin.physicsHarness.runScenario("movingCatch", {
+    const baseline = Pin.physicsHarness.runScenario("movingCatch", {
         tuning: {
             strikeBoost: 0.52,
-            tipStrikeBoost: 0.35,
             surfaceRestitution: 0.28,
-            surfaceFriction: 0.08,
-            tipRestitution: 0.08,
-            tipFriction: 0.02
+            surfaceFriction: 0.08
         },
         inputs: { contactT: 0.92, initialVy: 3.5, initialVx: 0, engageTick: 6 }
     }).metrics;
-    const livelyTip = Pin.physicsHarness.runScenario("movingCatch", {
+    const legacyTipOverride = Pin.physicsHarness.runScenario("movingCatch", {
         tuning: {
             strikeBoost: 0.52,
-            tipStrikeBoost: 1.0,
             surfaceRestitution: 0.28,
             surfaceFriction: 0.08,
+            tipStrikeBoost: 1.0,
             tipRestitution: 1.2,
             tipFriction: 0.32
         },
         inputs: { contactT: 0.92, initialVy: 3.5, initialVx: 0, engageTick: 6 }
     }).metrics;
-
-    const delta = Math.abs(softTip.peakUpward - livelyTip.peakUpward) + Math.abs((softTip.tailAvg || 0) - (livelyTip.tailAvg || 0));
-    assert(delta > 2, "tip material properties should materially affect tip contact response");
+    assert(Number.isFinite(legacyTipOverride.peakUpward), "legacy tip overrides should still run through moving-catch simulation");
+    assert(Math.abs(legacyTipOverride.peakUpward - baseline.peakUpward) > 0.1, "legacy tip fields should still be accepted as compatibility inputs");
 }
 
 function testMovingFlipperCatchStaysPlayable() {
@@ -834,30 +913,50 @@ function testSpinnerAngularStateAdvancesInCompile() {
     assert(runtime.segments[0].x1 !== runtime.segments[0].x2, "spinner should still compile a physical blade segment");
 }
 
-function testGateOneWayAndTwoWayAngularMechanism() {
+function testGateArcControlledAngularMechanism() {
     const Pin = loadPin();
-    const oneWayGate = { id: "gate1", type: "gate", x1: 100, y1: 100, x2: 160, y2: 100, maxAngle: 0.85 };
-    const twoWayGate = { id: "gate2", type: "gate", x1: 100, y1: 140, x2: 160, y2: 140, twoWay: true, maxAngle: 0.85 };
-    const table = baseTable([oneWayGate, twoWayGate]);
+    const oneWayGate = {
+        id: "gate1",
+        type: "gate",
+        x1: 100,
+        y1: 100,
+        x2: 160,
+        y2: 100,
+        angle: 0,
+        swingStartAngle: 0,
+        swingEndAngle: 0.85
+    };
+    const twoWayArcGate = {
+        id: "gate2",
+        type: "gate",
+        x1: 100,
+        y1: 140,
+        x2: 160,
+        y2: 140,
+        swingStartAngle: -0.85,
+        swingEndAngle: 0.85
+    };
+    const table = baseTable([oneWayGate, twoWayArcGate]);
     const world = { table, events: [], elementState: {}, lastPhysicsDt: 1 / 120, physicsTick: 12 };
     const runtime = Pin.elements.compileElements(table, world, { static: false });
     const oneWay = runtime.segments[0];
-    const twoWay = runtime.segments[1];
+    const twoWayArc = runtime.segments[1];
     const passBall = { x: 120, y: 96, radius: 5, vx: 0, vy: 10, level: 0 };
     const blockedBall = { x: 120, y: 104, radius: 5, vx: 0, vy: -10, level: 0 };
 
-    assert.strictEqual(oneWay.oneWay(passBall, world), true, "one-way gate should pass from the permitted side");
-    assert(Math.abs(world.elementState["gate:gate1"].angularVelocity) > 0, "one-way gate should gain angular velocity when passed");
-    const afterPassVelocity = world.elementState["gate:gate1"].angularVelocity;
     assert.strictEqual(oneWay.oneWay(blockedBall, world), false, "one-way gate should block from the wrong side");
     const beforeBlockedVy = blockedBall.vy;
     oneWay.onHit(blockedBall, { nx: 0, ny: 1 }, world);
     assert(Math.abs(blockedBall.vy) < Math.abs(beforeBlockedVy), "blocked gate hit should damp the ball");
     assert.strictEqual(world.elementState["gate:gate1"].angularVelocity, 0, "blocked gate hit should not open the mechanical stop");
+    assert.strictEqual(oneWay.oneWay(passBall, world), true, "one-way gate should pass from the permitted side");
+    assert(Math.abs(world.elementState["gate:gate1"].angularVelocity) > 0, "one-way gate should gain angular velocity when passed");
 
-    const twoWayBall = { x: 120, y: 144, radius: 5, vx: 0, vy: -10, level: 0 };
-    assert.strictEqual(twoWay.oneWay(twoWayBall, world), true, "two-way gate should pass from either side");
-    assert(Math.abs(world.elementState["gate:gate2"].angularVelocity) > 0, "two-way gate should gain angular velocity");
+    const twoWayPassFromTop = { x: 120, y: 136, radius: 5, vx: 0, vy: -10, level: 0 };
+    const twoWayPassFromBottom = { x: 120, y: 144, radius: 5, vx: 0, vy: 10, level: 0 };
+    assert.strictEqual(twoWayArc.oneWay(twoWayPassFromTop, world), true, "arc-defined gate should pass from top side when arc allows negative swing");
+    assert.strictEqual(twoWayArc.oneWay(twoWayPassFromBottom, world), true, "arc-defined gate should pass from bottom side when arc allows positive swing");
+    assert(Math.abs(world.elementState["gate:gate2"].angularVelocity) > 0, "arc-defined gate should gain angular velocity");
 
     Pin.elements.compileElements(table, world, { static: false });
     assert(Math.abs(world.elementState["gate:gate2"].angle) > 0.01, "gate compile should visibly advance angular state");
@@ -903,7 +1002,6 @@ function testLockedGateActsAsWall() {
         y: 100,
         length: 60,
         angle: 0,
-        twoWay: true,
         locked: true
     };
     const table = baseTable([gate]);
@@ -1030,19 +1128,20 @@ function testLauncherSpringStateServesBall() {
 
     const ball = world.balls[0];
     assert.strictEqual(ball.inLaunchLane, false, "plunger release should serve the ball out of the launch lane");
+    assert.strictEqual(ball.vx, 0, "launcher spring should not add lateral velocity");
     assert(ball.vy < -14, "served ball should receive upward velocity from plunger state");
     assert.strictEqual(charged.releasing, false, "plunger should clear releasing state after serving");
     assert.strictEqual(world.events.filter(function released(event) { return event.type === "plungerReleased"; }).length, 1, "plunger release should emit an event");
 }
 
 /*
- * Launcher release should not depend on the optional top valve.
- * Why: the launcher's core job is to serve staged balls; an open shooter lane
- * should not add hidden positional recapture rules that can cancel release.
+ * Launcher release should ignore old inline valve fields.
+ * Why: valves are now explicit gate/table mechanisms, not hidden colliders
+ * inside the shooter lane.
  */
-function testLauncherWithoutValveStillServesBall() {
+function testLauncherIgnoresLegacyValveField() {
     const Pin = loadPin();
-    const launcher = { id: "launchLane", type: "launcher", x: 439, top: 195, bottom: 735, width: 38, maxPower: 42, maxRetract: 65, pullSpeed: 120, returnSpeed: 220, springStrength: 1, valve: "false" };
+    const launcher = { id: "launchLane", type: "launcher", x: 439, top: 195, bottom: 735, width: 38, maxPower: 42, maxRetract: 65, pullSpeed: 120, returnSpeed: 220, springStrength: 1, valve: true };
     const table = baseTable([launcher]);
     const world = {
         table,
@@ -1061,6 +1160,10 @@ function testLauncherWithoutValveStillServesBall() {
         lastPhysicsDt: 1 / 120
     };
 
+    const runtime = Pin.elements.compileElements(table, world, { static: false });
+    assert.strictEqual(runtime.segments.length, 3, "launcher should compile only lane walls and spring base");
+    assert.strictEqual(runtime.segments.some(function hasOneWay(segment) { return !!segment.oneWay; }), false, "launcher should not create an inline one-way valve");
+
     for (let i = 0; i < 30; i++) {
         Pin.elements.compileElements(table, world, { static: false });
     }
@@ -1069,9 +1172,10 @@ function testLauncherWithoutValveStillServesBall() {
     Pin.physics.stepWorld(world, 1 / 120);
 
     const ball = world.balls[0];
-    assert.strictEqual(Pin.physics.getLauncherConfig(world).valve, false, "string false valve should be treated as disabled");
-    assert.strictEqual(ball.inLaunchLane, false, "open shooter lane should still release the ball");
-    assert(ball.vy < -14, "released ball should still receive launch velocity with valve disabled");
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(Pin.physics.getLauncherConfig(world), "valve"), false, "launcher config should not expose inline valve state");
+    assert.strictEqual(ball.inLaunchLane, false, "launcher should release the ball while ignoring legacy valve fields");
+    assert.strictEqual(ball.vx, 0, "launcher should not add lateral velocity when old valve fields are present");
+    assert(ball.vy < -14, "released ball should still receive launch velocity");
 }
 
 function testReturnedBallRestagesInLauncher() {
@@ -1145,6 +1249,61 @@ function testDrainTroughLifecycleServesNextBall() {
     assert.strictEqual(world.ballsRemaining, 2, "lifecycle should decrement remaining balls");
     assert.strictEqual(world.currentBall, 2, "lifecycle should advance current ball");
     assert.strictEqual(world.balls[0].inLaunchLane, true, "next ball should be served into launch lane");
+}
+
+function testSecondServedBallLaunchesAfterDrain() {
+    const Pin = loadPin();
+    const table = baseTable([
+        { id: "launchLane", type: "launcher", x: 439, top: 195, bottom: 735, width: 38, maxPower: 42, maxRetract: 65, pullSpeed: 120, returnSpeed: 220, springStrength: 1 },
+        { id: "drain1", type: "drain", x: 250, y: 840, w: 160, h: 24 }
+    ]);
+    table.rules = { balls: 3 };
+    const world = {
+        table,
+        balls: [{ id: "b1", x: 439, y: 710, radius: 8, vx: 0, vy: 0, level: 0, inLaunchLane: true }],
+        controls: {},
+        events: [],
+        score: 0,
+        elementState: {},
+        currentBall: 1,
+        ballsRemaining: 3,
+        state: "ready",
+        staticSegments: [],
+        staticCircles: [],
+        staticBroadPhase: Pin.physics.buildBroadPhase([], [], table.playfield),
+        dynamicSegments: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        runtimeRamps: [],
+        launchCharging: true,
+        lastPhysicsDt: 1 / 120
+    };
+
+    for (let i = 0; i < 30; i++) Pin.elements.compileElements(table, world, { static: false });
+    world.launchCharging = false;
+    Pin.physics.releaseLauncher(world);
+    Pin.physics.stepWorld(world, 1 / 120);
+    assert.strictEqual(world.balls[0].inLaunchLane, false, "first ball should launch");
+
+    world.balls[0].drained = true;
+    const lifecycle = Pin.ballLifecycle.update(world);
+    assert.strictEqual(lifecycle.served, 1, "lifecycle should serve the second ball");
+    assert.strictEqual(world.balls[0].inLaunchLane, true, "second ball should be staged");
+
+    world.launchCharging = true;
+    for (let i = 0; i < 12; i++) Pin.elements.compileElements(table, world, { static: false });
+    world.launchCharging = false;
+    Pin.physics.releaseLauncher(world);
+    Pin.physics.stepWorld(world, 1 / 120);
+    assert.strictEqual(world.balls[0].inLaunchLane, false, "second served ball should also launch");
+    assert.strictEqual(world.balls[0].vx, 0, "second launch should leave the shooter lane without a lateral kick");
+
+    for (let i = 0; i < 60; i++) {
+        const runtime = Pin.elements.compileElements(table, world, { static: false });
+        world.dynamicSegments = runtime.segments;
+        Pin.physics.stepWorld(world, 1 / 120);
+    }
+    assert(world.balls[0].y < 195, "second launched ball should clear the top of the narrow shooter lane");
 }
 
 /*
@@ -1666,27 +1825,27 @@ function testDefTableLaneBonusRule() {
     const world = { table, score: 0, events: [], ruleState: {}, lampState: {}, physicsTick: 1 };
 
     Pin.events.processRules(world, 0);
-    assert.strictEqual(world.lampState.lamp_lane_left.on, false, "left lane lamp should start off");
-    assert.strictEqual(world.lampState.lamp_lane_middle.on, false, "middle lane lamp should start off");
-    assert.strictEqual(world.lampState.lamp_lane_right.on, false, "right lane lamp should start off");
+    assert(!world.lampState.lamp_lane_left || world.lampState.lamp_lane_left.on === false, "left lane lamp should start off");
+    assert(!world.lampState.lamp_lane_right || world.lampState.lamp_lane_right.on === false, "right lane lamp should start off");
+    assert(!world.lampState.lamp_bonus_go || world.lampState.lamp_bonus_go.on === false, "bonus lamp should start off");
 
-    Pin.events.emit(world, { type: "switchClosed", sourceId: "lane_wcohsa" });
+    Pin.events.emit(world, { type: "switchClosed", sourceId: "lane_ok1se3" });
     Pin.events.processRules(world, 0.1);
     assert.strictEqual(world.lampState.lamp_lane_left.on, true, "left lane should light its lamp");
+    assert(!world.lampState.lamp_bonus_go || world.lampState.lamp_bonus_go.on === false, "bonus lamp should stay off until both lanes are lit");
 
-    Pin.events.emit(world, { type: "switchClosed", sourceId: "lane_2m7sow" });
-    Pin.events.processRules(world, 0.1);
-    assert.strictEqual(world.lampState.lamp_lane_middle.on, true, "middle lane should light its lamp");
-
-    Pin.events.emit(world, { type: "switchClosed", sourceId: "lane_sa2lu2" });
+    Pin.events.emit(world, { type: "switchClosed", sourceId: "lane_2qchpu" });
     Pin.events.processRules(world, 0.1);
     assert.strictEqual(world.lampState.lamp_lane_right.on, true, "right lane should light its lamp");
+    assert.strictEqual(world.lampState.lamp_bonus_go.on, true, "lighting both lanes should activate the trough bonus lamp");
 
-    Pin.events.emit(world, { type: "switchClosed", sourceId: "bumper_m11qpo" });
+    const scoreBeforeCollect = world.score;
+    Pin.events.emit(world, { type: "switchClosed", sourceId: "trough_vyoa7t" });
     Pin.events.processRules(world, 0.1);
-    Pin.events.emit(world, { type: "switchClosed", sourceId: "bumper_m11qpo" });
-    Pin.events.processRules(world, 0.1);
-    assert.strictEqual(world.score, 2000, "red bumper should score 1000 for each hit during the timed bonus");
+    assert.strictEqual(world.score - scoreBeforeCollect, 100, "trough should award the lit bonus");
+    assert.strictEqual(world.lampState.lamp_lane_left.on, false, "collecting the bonus should clear the left lane lamp");
+    assert.strictEqual(world.lampState.lamp_lane_right.on, false, "collecting the bonus should clear the right lane lamp");
+    assert.strictEqual(world.lampState.lamp_bonus_go.on, false, "collecting the bonus should clear the bonus lamp");
 }
 
 testFastBallHitsWall();
@@ -1703,8 +1862,10 @@ testFlipperOverlapResolvesToPlayableSide();
 testHeldFlipperTrapSettlesInElbow();
 testHeldFlipperTrapRollsIntoElbow();
 testHeldFlipperTrapMatrixStaysStable();
+testInactiveFlipperSlidesDownLeftBlade();
+testInactiveFlipperSlidesDownRightBlade();
 testFlipperSurfaceFrictionAffectsMovingCatch();
-testFlipperTipMaterialAffectsTipContact();
+testLegacyTipMaterialFieldsRemainCompatible();
 testMovingFlipperCatchStaysPlayable();
 testStepConsumesCollisionTime();
 testPhysicsFrictionIsTimeScaledAcrossSubsteps();
@@ -1714,7 +1875,7 @@ testScoreElementsEmitEventsOnly();
 testBaseScoreElementsEmitEventsOnly();
 testCompositeKickerBandHitsKickAndScore();
 testSpinnerAngularStateAdvancesInCompile();
-testGateOneWayAndTwoWayAngularMechanism();
+testGateArcControlledAngularMechanism();
 testGateAsymmetricSwingLimits();
 testLockedGateActsAsWall();
 testRuleActionLocksGateProperty();
@@ -1723,9 +1884,10 @@ testLaneCompilesAsNonBlockingSensor();
 testSensorEnterExitEventsDoNotBlockBall();
 testLaunchBallUsesTableBallRadius();
 testLauncherSpringStateServesBall();
-testLauncherWithoutValveStillServesBall();
+testLauncherIgnoresLegacyValveField();
 testReturnedBallRestagesInLauncher();
 testDrainTroughLifecycleServesNextBall();
+testSecondServedBallLaunchesAfterDrain();
 testTroughCapturesAndReleasesBall();
 testTroughReactivationDelayPreventsImmediateRecapture();
 testDrainLifecycleGameOver();

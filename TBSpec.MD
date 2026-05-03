@@ -77,6 +77,12 @@ Notes:
 - Keep `images` present even if empty.
 - Keep the legacy top-level `launcher` object present, even though live tuning is driven by the launcher element.
 
+Logic authoring notes:
+
+- The standalone Logic Studio route (`#logic` / `#logicstudio`) edits rule data only.
+- `logicGraphs` is an editor/authoring layer and should still compile back to runtime-safe `sequenceRules`.
+- Runtime should not require graph metadata; tables remain valid with empty `logicGraphs`.
+
 ## Minimum Playable Table
 
 A table should include at least:
@@ -525,6 +531,8 @@ Rules:
 - Property actions should target an existing element ID and include `property`. Use them sparingly for gameplay state such as locking a gate after a sequence completes.
 - Variable actions should reference a variable from `rulesEngine.variables`; variables are runtime-only and invisible on the table.
 - Lamp actions should reference a `lampId` from a `light`, `arrowLight`, or `boxLight`.
+- For per-object staged progress (for example one switch/object lighting several stage lamps), prefer one ordered rule with repeated step IDs and aligned `stepLampIds` instead of several one-step stage rules. This avoids multi-stage advancement from a single hit frame.
+- Keep lamp references canonical: if a light has `lampId`, actions should target that `lampId` (not the light element `id`).
 
 ### `triggers`
 
@@ -698,6 +706,37 @@ Do not invent:
 - SVG or image references that do not exist
 
 If unsure, use a simpler supported mechanism.
+
+## Assistant Patch Contract
+
+When producing an editor assistant patch instead of full table JSON, use only
+the supported operations:
+
+- `addSequenceRule`
+- `updateSequenceRule`
+- `deleteSequenceRule`
+- `addSwitchMap`
+- `updateSwitchMap`
+- `deleteSwitchMap`
+- `addVariable`
+- `updateVariable`
+- `deleteVariable`
+- `addTrigger`
+- `updateTrigger`
+- `deleteTrigger`
+- `addElements`
+- `alignHorizontal`
+- `distributeHorizontal`
+- `matchWidth`
+- `matchHeight`
+- `patchElements`
+
+Rules:
+
+- Use `addElements` when the request needs new inserts, lamps, arrows, or other supported table objects.
+- Every `addElements` entry must be a complete element object with a stable `id`, supported `type`, and the concrete fields that type needs.
+- Use `patchElements` only for edits to existing elements.
+- For score edits, patch `score`, never `baseScore`.
 
 ## Example: Minimal Valid Table Skeleton
 

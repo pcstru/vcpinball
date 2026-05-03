@@ -1,0 +1,933 @@
+{
+  "version": 1,
+  "name": "HITL Sequence Column Layout",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 12,
+    "gravity": 0.35,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.hitl.sequence_columns.highscore"
+  },
+  "rulesEngine": {
+    "switchMap": [],
+    "sequenceRules": [
+      {
+        "id": "seq_intake_quality",
+        "name": "Intake Quality",
+        "enabled": true,
+        "ordered": false,
+        "steps": [
+          "targetSignal",
+          "targetContext",
+          "targetPriority"
+        ],
+        "stepLampIds": [
+          "lamp_signal",
+          "lamp_context",
+          "lamp_priority"
+        ],
+        "windowSeconds": 20,
+        "awardPoints": 2500,
+        "awardEvent": "intakeQualityComplete",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "intake_done",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "intake_done",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_intake_done",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_ai_assist",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "aiAssist",
+            "value": 1500
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "seq_human_review",
+        "name": "Human Review",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "targetReview",
+          "targetChallenge",
+          "targetApprove"
+        ],
+        "stepLampIds": [
+          "lamp_review",
+          "lamp_challenge",
+          "lamp_approve"
+        ],
+        "windowSeconds": 18,
+        "awardPoints": 5000,
+        "awardEvent": "humanReviewComplete",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "review_done",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "review_done",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_review_done",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_human_confirmed",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_return_loop",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "returnLoop",
+            "value": 2500
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "seq_continuous_loop",
+        "name": "Continuous Improvement Loop",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "targetEscalate",
+          "targetAutomate",
+          "returnLoop"
+        ],
+        "stepLampIds": [
+          "lamp_escalate",
+          "lamp_automate",
+          "lamp_return_loop"
+        ],
+        "targetSwitchId": "returnLoop",
+        "targetLampId": "lamp_loop_complete",
+        "windowSeconds": 12,
+        "awardPoints": 10000,
+        "awardEvent": "continuousLoopComplete",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "intake_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "review_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "loop_done",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "loop_done",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_loop_done",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_loop_complete",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_systems_learning",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "aiAssist",
+            "value": 3000
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "returnLoop",
+            "value": 5000
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "seq_drain_reset",
+        "name": "Drain Reset",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "drain1"
+        ],
+        "stepLampIds": [],
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "intake_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "review_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "loop_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "aiAssist",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "returnLoop",
+            "value": 500
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_intake_done",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_review_done",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_loop_done",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_ai_assist",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_human_confirmed",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_return_loop",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_loop_complete",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "lamp_systems_learning",
+            "value": false
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      }
+    ],
+    "logicGraphs": [],
+    "triggers": [],
+    "variables": [
+      {
+        "id": "intake_done",
+        "name": "Intake Done",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "review_done",
+        "name": "Review Done",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "loop_done",
+        "name": "Loop Done",
+        "properties": {
+          "value": false
+        }
+      }
+    ]
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    }
+  ],
+  "images": [],
+  "launcher": {
+    "x": 455,
+    "y": 760,
+    "dir": {
+      "x": 0,
+      "y": -1
+    },
+    "maxPower": 42
+  },
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": true,
+      "thickness": 8,
+      "restitution": 0.55,
+      "anchors": [
+        {
+          "x": 22,
+          "y": 160,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 95,
+          "y": 60,
+          "inHandle": {
+            "x": -44,
+            "y": 10
+          },
+          "outHandle": {
+            "x": 52,
+            "y": -12
+          }
+        },
+        {
+          "x": 250,
+          "y": 32,
+          "inHandle": {
+            "x": -70,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 70,
+            "y": 0
+          }
+        },
+        {
+          "x": 405,
+          "y": 60,
+          "inHandle": {
+            "x": -52,
+            "y": -12
+          },
+          "outHandle": {
+            "x": 44,
+            "y": 10
+          }
+        },
+        {
+          "x": 478,
+          "y": 160,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 478,
+          "y": 865
+        },
+        {
+          "x": 22,
+          "y": 865
+        },
+        {
+          "x": 22,
+          "y": 160
+        }
+      ]
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 455,
+      "top": 625,
+      "bottom": 820,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1
+    },
+    {
+      "id": "launchLaneDivider",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": false,
+      "thickness": 6,
+      "restitution": 0.52,
+      "anchors": [
+        {
+          "x": 425,
+          "y": 640
+        },
+        {
+          "x": 425,
+          "y": 865
+        }
+      ]
+    },
+    {
+      "id": "launchExitGuide",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": false,
+      "thickness": 6,
+      "restitution": 0.55,
+      "anchors": [
+        {
+          "x": 425,
+          "y": 625,
+          "outHandle": {
+            "x": 10,
+            "y": -45
+          }
+        },
+        {
+          "x": 455,
+          "y": 540,
+          "inHandle": {
+            "x": -12,
+            "y": 34
+          },
+          "outHandle": {
+            "x": -35,
+            "y": -55
+          }
+        },
+        {
+          "x": 382,
+          "y": 445,
+          "inHandle": {
+            "x": 45,
+            "y": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 135,
+        "y": 685
+      },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "returnSpeed": 18,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 365,
+        "y": 685
+      },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "returnSpeed": 18,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466"
+    },
+    {
+      "id": "drain1",
+      "type": "drain",
+      "level": 0,
+      "x": 250,
+      "y": 846,
+      "w": 170,
+      "h": 24,
+      "color": "#ff4466"
+    },
+    {
+      "id": "trough1",
+      "type": "trough",
+      "level": 0,
+      "x": 250,
+      "y": 812,
+      "radius": 18,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 10,
+      "ejectAngle": -1.5707963267948966,
+      "color": "#88aaff",
+      "pitColor": "#08101f"
+    },
+    {
+      "id": "headerIntake",
+      "type": "boxLight",
+      "level": 0,
+      "x": 115,
+      "y": 105,
+      "w": 120,
+      "h": 32,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "label_intake",
+      "text": "INTAKE",
+      "color": "#5aa6b8"
+    },
+    {
+      "id": "headerReview",
+      "type": "boxLight",
+      "level": 0,
+      "x": 250,
+      "y": 105,
+      "w": 120,
+      "h": 32,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "label_review",
+      "text": "REVIEW",
+      "color": "#d6b15c"
+    },
+    {
+      "id": "headerLoop",
+      "type": "boxLight",
+      "level": 0,
+      "x": 385,
+      "y": 105,
+      "w": 120,
+      "h": 32,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "label_loop",
+      "text": "LOOP",
+      "color": "#8fbfc7"
+    },
+    {
+      "id": "targetSignal",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 115,
+      "y": 180,
+      "w": 18,
+      "h": 46,
+      "score": 250,
+      "angle": 0,
+      "color": "#5aa6b8"
+    },
+    {
+      "id": "targetContext",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 115,
+      "y": 260,
+      "w": 18,
+      "h": 46,
+      "score": 250,
+      "angle": 0,
+      "color": "#5aa6b8"
+    },
+    {
+      "id": "targetPriority",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 115,
+      "y": 340,
+      "w": 18,
+      "h": 46,
+      "score": 250,
+      "angle": 0,
+      "color": "#5aa6b8"
+    },
+    {
+      "id": "lampSignal",
+      "type": "boxLight",
+      "level": 0,
+      "x": 115,
+      "y": 220,
+      "w": 92,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_signal",
+      "text": "SIGNAL",
+      "color": "#5aa6b8"
+    },
+    {
+      "id": "lampContext",
+      "type": "boxLight",
+      "level": 0,
+      "x": 115,
+      "y": 300,
+      "w": 92,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_context",
+      "text": "CONTEXT",
+      "color": "#5aa6b8"
+    },
+    {
+      "id": "lampPriority",
+      "type": "boxLight",
+      "level": 0,
+      "x": 115,
+      "y": 380,
+      "w": 92,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_priority",
+      "text": "PRIORITY",
+      "color": "#5aa6b8"
+    },
+    {
+      "id": "lampIntakeDone",
+      "type": "boxLight",
+      "level": 0,
+      "x": 115,
+      "y": 445,
+      "w": 110,
+      "h": 30,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "lamp_intake_done",
+      "text": "READY",
+      "color": "#5aa6b8"
+    },
+    {
+      "id": "targetReview",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 250,
+      "y": 180,
+      "w": 18,
+      "h": 46,
+      "score": 250,
+      "angle": 0,
+      "color": "#d6b15c"
+    },
+    {
+      "id": "targetChallenge",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 250,
+      "y": 260,
+      "w": 18,
+      "h": 46,
+      "score": 250,
+      "angle": 0,
+      "color": "#d6b15c"
+    },
+    {
+      "id": "targetApprove",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 250,
+      "y": 340,
+      "w": 18,
+      "h": 46,
+      "score": 250,
+      "angle": 0,
+      "color": "#d6b15c"
+    },
+    {
+      "id": "lampReview",
+      "type": "boxLight",
+      "level": 0,
+      "x": 250,
+      "y": 220,
+      "w": 92,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_review",
+      "text": "REVIEW",
+      "color": "#d6b15c"
+    },
+    {
+      "id": "lampChallenge",
+      "type": "boxLight",
+      "level": 0,
+      "x": 250,
+      "y": 300,
+      "w": 100,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_challenge",
+      "text": "CHALLENGE",
+      "color": "#d6b15c"
+    },
+    {
+      "id": "lampApprove",
+      "type": "boxLight",
+      "level": 0,
+      "x": 250,
+      "y": 380,
+      "w": 92,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_approve",
+      "text": "APPROVE",
+      "color": "#d6b15c"
+    },
+    {
+      "id": "lampReviewDone",
+      "type": "boxLight",
+      "level": 0,
+      "x": 250,
+      "y": 445,
+      "w": 130,
+      "h": 30,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "lamp_review_done",
+      "text": "CONFIRMED",
+      "color": "#d6b15c"
+    },
+    {
+      "id": "targetEscalate",
+      "type": "lane",
+      "level": 0,
+      "x": 385,
+      "y": 180,
+      "w": 58,
+      "h": 24,
+      "score": 250,
+      "angle": 0
+    },
+    {
+      "id": "targetAutomate",
+      "type": "lane",
+      "level": 0,
+      "x": 385,
+      "y": 260,
+      "w": 58,
+      "h": 24,
+      "score": 250,
+      "angle": 0
+    },
+    {
+      "id": "returnLoop",
+      "type": "scoreZone",
+      "level": 0,
+      "x": 385,
+      "y": 350,
+      "radius": 24,
+      "score": 500,
+      "color": "#8fbfc7"
+    },
+    {
+      "id": "lampEscalate",
+      "type": "boxLight",
+      "level": 0,
+      "x": 385,
+      "y": 220,
+      "w": 100,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_escalate",
+      "text": "ESCALATE",
+      "color": "#8fbfc7"
+    },
+    {
+      "id": "lampAutomate",
+      "type": "boxLight",
+      "level": 0,
+      "x": 385,
+      "y": 300,
+      "w": 100,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_automate",
+      "text": "AUTOMATE",
+      "color": "#8fbfc7"
+    },
+    {
+      "id": "lampReturnLoop",
+      "type": "boxLight",
+      "level": 0,
+      "x": 385,
+      "y": 390,
+      "w": 100,
+      "h": 26,
+      "angle": 0,
+      "cornerRadius": 8,
+      "lampId": "lamp_return_loop",
+      "text": "RETURN",
+      "color": "#8fbfc7"
+    },
+    {
+      "id": "lampLoopDone",
+      "type": "boxLight",
+      "level": 0,
+      "x": 385,
+      "y": 445,
+      "w": 130,
+      "h": 30,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "lamp_loop_done",
+      "text": "LOOP DONE",
+      "color": "#8fbfc7"
+    },
+    {
+      "id": "aiAssist",
+      "type": "scoreZone",
+      "level": 0,
+      "x": 180,
+      "y": 565,
+      "radius": 26,
+      "score": 500,
+      "color": "#8fbfc7"
+    },
+    {
+      "id": "lampAiAssist",
+      "type": "boxLight",
+      "level": 0,
+      "x": 180,
+      "y": 615,
+      "w": 120,
+      "h": 30,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "lamp_ai_assist",
+      "text": "AI ASSIST",
+      "color": "#8fbfc7"
+    },
+    {
+      "id": "lampHumanConfirmed",
+      "type": "boxLight",
+      "level": 0,
+      "x": 320,
+      "y": 565,
+      "w": 155,
+      "h": 30,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "lamp_human_confirmed",
+      "text": "HUMAN OK",
+      "color": "#d6b15c"
+    },
+    {
+      "id": "lampLoopComplete",
+      "type": "boxLight",
+      "level": 0,
+      "x": 320,
+      "y": 615,
+      "w": 155,
+      "h": 30,
+      "angle": 0,
+      "cornerRadius": 10,
+      "lampId": "lamp_loop_complete",
+      "text": "LOOP COMPLETE",
+      "color": "#d6b15c"
+    },
+    {
+      "id": "lampSystemsLearning",
+      "type": "boxLight",
+      "level": 0,
+      "x": 250,
+      "y": 660,
+      "w": 190,
+      "h": 32,
+      "angle": 0,
+      "cornerRadius": 12,
+      "lampId": "lamp_systems_learning",
+      "text": "SYSTEMS LEARN",
+      "color": "#8fbfc7"
+    }
+  ]
+}

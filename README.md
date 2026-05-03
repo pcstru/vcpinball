@@ -4,6 +4,8 @@ Static pinball web app with two modes:
 
 - `#play` to play a table
 - `#design` to edit/create a table
+- `#logic` to author user-focused TBGameLogic v2 source and compile to runtime rules
+- `#logicstudio` for legacy graph-level rules authoring/simulation
 
 No build step is required.
 
@@ -12,7 +14,10 @@ No build step is required.
 - Open `index.html` directly, or serve folder on any static host.
 - On a hosted copy, the startup fallback table is `tables/DefTable.json` when there is no URL table token and no saved local table.
 - **Play:** open `index.html` (default) or `index.html#play`.
+- **Play with explicit table file:** use `#play&table=tables/DefTable.json` or `?table=tables/DefTable.json#play`.
 - **Design (edit):** set the URL to `index.html#design` (type `#design` at the end of the path and press Enter), or from play press **D**.
+- **Logic Designer:** open `index.html#logic` to edit TBGameLogic v2 source and compile/export runtime table JSON.
+- **Legacy Logic Studio:** open `index.html#logicstudio` for graph-level `rulesEngine` editing and simulation.
 - **Back to play from design:** use the **Test Play** toolbar button, or open `index.html#play`.
 - **Physics tuning lab:** open `physics-lab.html`.
 
@@ -27,6 +32,8 @@ No build step is required.
 - `app/elements/*`: object compile/draw behavior
 - `app/ruleGraph.js`: sequence-rule graph compiler/sync layer
 - `app/editor/*`: design mode layout + tool support
+- `app/logicStudio/core.js`: logic-only compile/validate/simulate data layer
+- `app/logicStudio/studio.js`: standalone Logic Studio UI route
 - `app/storage.js`: LocalStorage, import/export, URL encoding
 - `tables/DefTable.json`: default startup table for hosted deployments
 - `tables/cyberpin.json`: converted Neon Cyberpin table
@@ -250,21 +257,33 @@ such as missing launcher/drain/trough elements, too few flippers, duplicate
 element IDs, invalid launcher geometry, and ramp definitions that do not have
 enough anchors or do not change level.
 
-The Logic tab uses `rulesEngine.logicGraphs` as the editable graph model and
-compiles the sequence-shaped parts into `sequenceRules` for runtime. `Add
-Sequence` opens a visible starter graph with Step, Timed Target, Award, and
-Reset nodes, and the editor now also supports generic nodes plus explicit edge
-links. Unassigned nodes stay visible so the next authoring action is clear.
-Clicking a step or target node selects the table object that provides that
-switch when one is already bound. Clicking a lamp node selects the matching
-light insert. To bind a graph node, select the graph node, select the table
-object or light on the playfield, then use the node detail action to assign the
-current selection. Use `Add Step` on the graph card to grow the sequence, or
-`Add Node` to add custom graph nodes. The right inspector panel is resizable;
-drag the vertical splitter between the playfield and inspector to give the
-Logic graph more room. Variables and Timers subtabs edit `rulesEngine.variables`
-and `rulesEngine.triggers`; condition nodes gate sequence awards and action
-nodes can target elements, variables, or lamps.
+The Logic tab is rules-first. The `Rules` subtab is the main authoring surface,
+with starter template buttons (`Simple Event`, `Light Progress`, `Combo`,
+`Collect Bonus`, `Timed Mode`) plus sequence flow editing. The editor still
+uses `rulesEngine.logicGraphs` as the editable graph model and compiles the
+sequence-shaped parts into `sequenceRules` for runtime. `Add Sequence` opens a
+starter graph with Step, Timed Target, Award, and Reset nodes. Unassigned nodes
+stay visible so the next authoring action is clear. Clicking a step or target
+node selects the table object that provides that switch when one is already
+bound. Clicking a lamp node selects the matching light insert. To bind a graph
+node, select the graph node, select the table object or light on the playfield,
+then use the node detail action to assign the current selection. Use `Add Step`
+on the flow card to grow the sequence. Variables and Timers subtabs edit
+`rulesEngine.variables` and `rulesEngine.triggers`; condition nodes gate
+sequence awards and action nodes can target elements, variables, or lamps.
+
+Logic Studio (`#logic`) is a standalone rules editor focused on:
+
+- `rulesEngine.sequenceRules`
+- `rulesEngine.logicGraphs`
+- `rulesEngine.variables`
+- `rulesEngine.triggers`
+- `rulesEngine.switchMap`
+
+It scans existing table elements for available switch/lamp/score references,
+edits node graphs, continuously validates references and rule schema, simulates
+switch/timer/drain event flow without physics, and exports a TBSpec-valid table
+JSON where sequence runtime remains canonical in `sequenceRules`.
 
 The Assistant tab is a static-app client for OpenAI-compatible providers such
 as LM Studio. Configure `baseUrl` (for LM Studio typically
@@ -356,6 +375,7 @@ The first supported assistant patch operations are:
 - `addTrigger`
 - `updateTrigger`
 - `deleteTrigger`
+- `addElements`
 - `alignHorizontal`
 - `distributeHorizontal`
 - `matchWidth`
@@ -364,11 +384,15 @@ The first supported assistant patch operations are:
 
 For direct property edits, the assistant should use the actual table property
 names. For scoring objects, that property is `score`, not `baseScore`.
+Use `addElements` when the request needs new lights or other supported table
+objects; each added element must be a complete object with its concrete runtime
+fields, not a partial patch.
 For troughs, use `radius`, `holdSeconds`, `reactivateDelay`, `ejectPower`,
 and `ejectAngle`. `reactivateDelay` defaults to `2` seconds after ejection.
 For flippers, body material fields are `surfaceRestitution` and
-`surfaceFriction`; tip-specific fields are `tipRestitution`, `tipFriction`, and
-`tipStrikeBoost`.
+`surfaceFriction`, and driven impact uses `strikeBoost`. Legacy tip-specific
+fields (`tipRestitution`, `tipFriction`, `tipStrikeBoost`) remain loadable for
+older tables but are optional.
 
 Presentation lamps can be circular `light` elements, scalable rotated
 `arrowLight` elements, or rounded rotated `boxLight` elements. All support
@@ -385,6 +409,9 @@ editor mechanism.
 - LocalStorage slots (`pin.tables.<slot>`)
 - File export/import (`*.pin.json`)
 - URL hash token (`#play&t=<token>`)
+- File-backed play table reference (`#play&table=<same-origin-json-path>` or `?table=<same-origin-json-path>#play`)
+
+Inline `t=` tokens are still supported, but large table JSON payloads are better loaded by `table=` file reference to avoid browser URL size limits. `table=` is used for play-mode startup only.
 
 ## Controls (play mode)
 

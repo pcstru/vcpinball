@@ -63,9 +63,23 @@
         return true;
     }
 
-    function drawImageLayer(ctx, layer, w, h, designMode, onReady) {
+    function resolveImageSrc(src, world) {
+        const raw = typeof src === "string" ? src.trim() : "";
+        if (!raw) return raw;
+        if (/^[a-z][a-z0-9+.-]*:/i.test(raw) || raw[0] === "/" || raw.indexOf("tables/") === 0) return raw;
+        const base = world && typeof world.tableAssetBaseHref === "string" ? world.tableAssetBaseHref : "";
+        if (!base) return raw;
+        try {
+            return new URL(raw, base).href;
+        } catch (err) {
+            return raw;
+        }
+    }
+
+    function drawImageLayer(ctx, layer, w, h, designMode, onReady, world) {
         if (!layer || !layer.src || !shouldDrawLayer(layer, designMode)) return;
-        const entry = getImageLayer(layer.src, onReady);
+        const resolvedSrc = resolveImageSrc(layer.src, world);
+        const entry = getImageLayer(resolvedSrc, onReady);
         if (!entry || entry.error || !entry.ready || !entry.image || !entry.image.naturalWidth) return;
         const image = entry.image;
         const iw = image.naturalWidth || image.width;
@@ -108,7 +122,7 @@
         const pf = world.table.playfield;
         const layers = (world.table && world.table.images) || [];
         layers.forEach(function each(layer) {
-            drawImageLayer(ctx, layer, pf.width, pf.height, designMode, onReady);
+            drawImageLayer(ctx, layer, pf.width, pf.height, designMode, onReady, world);
         });
     }
 

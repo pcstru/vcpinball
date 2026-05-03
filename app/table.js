@@ -14,11 +14,8 @@
         returnSpeed: 18,
         returnAccel: 160,
         strikeBoost: 0.52,
-        tipStrikeBoost: 0.68,
         surfaceRestitution: 0.28,
         surfaceFriction: 0.08,
-        tipRestitution: 0.38,
-        tipFriction: 0.04,
         thickness: 10
     };
 
@@ -29,7 +26,7 @@
             playfield: Object.assign({}, DEFAULT_PLAYFIELD),
             rules: { balls: 3, highScoreKey: "pinball.generic.highscore" },
             rulesEngine: { switchMap: [], sequenceRules: [], logicGraphs: [], triggers: [], variables: [] },
-            launcher: { x: 439, y: 710, dir: { x: 0, y: -1 }, maxPower: 42, valve: false },
+            launcher: { x: 439, y: 710, dir: { x: 0, y: -1 }, maxPower: 42 },
             levels: [
                 { level: 0, name: "Playfield", parentLevel: null, elevation: 0, editorVisible: true },
                 { level: 1, name: "Upper Level", parentLevel: 0, elevation: 48, editorVisible: true }
@@ -83,11 +80,8 @@
                     returnSpeed: DEFAULT_FLIPPER_TUNING.returnSpeed,
                     returnAccel: DEFAULT_FLIPPER_TUNING.returnAccel,
                     strikeBoost: DEFAULT_FLIPPER_TUNING.strikeBoost,
-                    tipStrikeBoost: DEFAULT_FLIPPER_TUNING.tipStrikeBoost,
                     surfaceRestitution: DEFAULT_FLIPPER_TUNING.surfaceRestitution,
                     surfaceFriction: DEFAULT_FLIPPER_TUNING.surfaceFriction,
-                    tipRestitution: DEFAULT_FLIPPER_TUNING.tipRestitution,
-                    tipFriction: DEFAULT_FLIPPER_TUNING.tipFriction,
                     thickness: DEFAULT_FLIPPER_TUNING.thickness,
                     color: "#00ddff"
                 },
@@ -106,11 +100,8 @@
                     returnSpeed: DEFAULT_FLIPPER_TUNING.returnSpeed,
                     returnAccel: DEFAULT_FLIPPER_TUNING.returnAccel,
                     strikeBoost: DEFAULT_FLIPPER_TUNING.strikeBoost,
-                    tipStrikeBoost: DEFAULT_FLIPPER_TUNING.tipStrikeBoost,
                     surfaceRestitution: DEFAULT_FLIPPER_TUNING.surfaceRestitution,
                     surfaceFriction: DEFAULT_FLIPPER_TUNING.surfaceFriction,
-                    tipRestitution: DEFAULT_FLIPPER_TUNING.tipRestitution,
-                    tipFriction: DEFAULT_FLIPPER_TUNING.tipFriction,
                     thickness: DEFAULT_FLIPPER_TUNING.thickness,
                     color: "#ff4466"
                 }

@@ -1,0 +1,2311 @@
+{
+  "version": 1,
+  "name": "VC-2",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 12,
+    "gravity": 0.35,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "rulesEngine": {
+    "switchMap": [],
+    "sequenceRules": [
+      {
+        "id": "yb_go_flash_tick",
+        "name": "YB GO Flash Tick",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.yb.go.flash"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "toggleVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "arrowLight_1ui1zc",
+            "variableId": "yb_go_flash",
+            "property": "value"
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_bonus_claim_trough",
+        "name": "YB Bonus Claim Trough",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "trough_8v6niy"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "arrowLight_1ui1zc",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 25
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_drain_reset",
+        "name": "YB Drain Reset",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "drain_x9t984"
+        ],
+        "stepLampIds": [],
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "arrowLight_1ui1zc",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 25
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb1_hit_light",
+        "name": "RB1 Hit Light",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_qtr32l"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb2_hit_light",
+        "name": "RB2 Hit Light",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_hi9at0"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb3_hit_light",
+        "name": "RB3 Hit Light",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_embhfu"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_activate_bonus_1",
+        "name": "RB Activate Bonus 1",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_qtr32l"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_activate_bonus_2",
+        "name": "RB Activate Bonus 2",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_hi9at0"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_activate_bonus_3",
+        "name": "RB Activate Bonus 3",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_embhfu"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_flash_tick",
+        "name": "RB Flash Tick",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.rb.flash"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "toggleVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_mgeiii",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_wgg2ty",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_1bwegn",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_x3ualq",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_a5y97c",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_l2n6ar",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_ad1uag",
+            "variableId": "rb_flash",
+            "property": "value"
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_bonus_countdown",
+        "name": "RB Bonus Countdown",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.rb.second"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "addVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": -1
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_bonus_timeout",
+        "name": "RB Bonus Timeout",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.rb.second"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "operator": "lte",
+            "value": 0
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 100
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 100
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 100
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_mgeiii",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_wgg2ty",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_1bwegn",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_a5y97c",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": false
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_drain_reset",
+        "name": "RB Drain Reset",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "drain_x9t984"
+        ],
+        "stepLampIds": [],
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 100
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 100
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 100
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_mgeiii",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_wgg2ty",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_1bwegn",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_a5y97c",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": false
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb1_progress",
+        "name": "YB1 Progress",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_194zbe",
+          "bumper_194zbe",
+          "bumper_194zbe"
+        ],
+        "stepLampIds": [
+          "YB1-L1",
+          "YB1-L2",
+          "YB1-L3"
+        ],
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb2_progress",
+        "name": "YB2 Progress",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_b3jobn",
+          "bumper_b3jobn",
+          "bumper_b3jobn"
+        ],
+        "stepLampIds": [
+          "YB2-L1",
+          "YB2-L2",
+          "YB2-L3"
+        ],
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb3_progress",
+        "name": "YB3 Progress",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_7h1qb5",
+          "bumper_7h1qb5",
+          "bumper_7h1qb5"
+        ],
+        "stepLampIds": [
+          "YB3-L1",
+          "YB3-L2",
+          "YB3-L3"
+        ],
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_bonus_activate_1",
+        "name": "yb_bonus_activate_1",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_194zbe"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_bonus_activate_2",
+        "name": "yb_bonus_activate_2",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_b3jobn"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_bonus_activate_3",
+        "name": "yb_bonus_activate_3",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_7h1qb5"
+        ],
+        "stepLampIds": [],
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      }
+    ],
+    "logicGraphs": [],
+    "triggers": [
+      {
+        "id": "tick_yb_go_flash",
+        "switchId": "tick.yb.go.flash",
+        "type": "interval",
+        "everySeconds": 0.3,
+        "enabled": true
+      },
+      {
+        "id": "tick_rb_flash",
+        "switchId": "tick.rb.flash",
+        "type": "interval",
+        "everySeconds": 0.3,
+        "enabled": true
+      },
+      {
+        "id": "tick_rb_second",
+        "switchId": "tick.rb.second",
+        "type": "interval",
+        "everySeconds": 1,
+        "enabled": true
+      }
+    ],
+    "variables": [
+      {
+        "id": "yb_all_lit",
+        "name": "YB All Lit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "yb_go_flash",
+        "name": "YB GO Flash",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb1_hit",
+        "name": "RB1 Hit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb2_hit",
+        "name": "RB2 Hit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb3_hit",
+        "name": "RB3 Hit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb_bonus_active",
+        "name": "RB Bonus Active",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb_bonus_seconds",
+        "name": "RB Bonus Seconds",
+        "properties": {
+          "value": 0
+        }
+      },
+      {
+        "id": "rb_flash",
+        "name": "RB Flash",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "yb1_done",
+        "name": "YB1 Done",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "yb2_done",
+        "name": "YB2 Done",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "yb3_done",
+        "name": "YB3 Done",
+        "properties": {
+          "value": false
+        }
+      }
+    ]
+  },
+  "launcher": {
+    "x": 460,
+    "y": 795,
+    "dir": {
+      "x": 0,
+      "y": -1
+    },
+    "maxPower": 42,
+    "valve": false,
+    "top": 640,
+    "bottom": 820,
+    "width": 38,
+    "maxRetract": 65,
+    "springStrength": 1
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "images": [
+    {
+      "id": "image_7o6t9w",
+      "src": "tables/kitten.png",
+      "mode": "both",
+      "opacity": 0,
+      "fit": "cover",
+      "scale": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 150,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 100,
+          "y": 50,
+          "inHandle": {
+            "x": -55.1382712166118,
+            "y": 15.735448098862598
+          },
+          "outHandle": {
+            "x": 55.1382712166118,
+            "y": -15.735448098862598
+          }
+        },
+        {
+          "x": 250,
+          "y": 28,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 400,
+          "y": 60,
+          "inHandle": {
+            "x": -28.89054206412351,
+            "y": -11.410161589942632
+          },
+          "outHandle": {
+            "x": 28.89054206412351,
+            "y": 11.410161589942632
+          }
+        },
+        {
+          "x": 490,
+          "y": 150,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 490,
+          "y": 220
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 220
+        }
+      ]
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 460,
+      "top": 640,
+      "bottom": 820,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "valve": false
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 90,
+        "y": 720
+      },
+      "length": 110,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "tipStrikeBoost": 0.68,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "tipRestitution": 0.28,
+      "tipFriction": 0.04,
+      "thickness": 10,
+      "color": "#00ddff"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 360,
+        "y": 720
+      },
+      "length": 110,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "tipStrikeBoost": 0.68,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "tipRestitution": 0.28,
+      "tipFriction": 0.04,
+      "thickness": 10,
+      "color": "#ff4466"
+    },
+    {
+      "id": "drain_x9t984",
+      "type": "drain",
+      "level": 0,
+      "x": 230,
+      "y": 850,
+      "w": 150,
+      "h": 24
+    },
+    {
+      "id": "path_m90kes",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 430,
+          "y": 640
+        },
+        {
+          "x": 430,
+          "y": 870
+        }
+      ]
+    },
+    {
+      "id": "path_s1tw4o",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 226.99965206985664,
+          "y": 808.3120868329548
+        },
+        {
+          "x": 226.99965206985664,
+          "y": 828.3120868329548
+        }
+      ]
+    },
+    {
+      "id": "path_sam7md",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 360,
+          "y": 700
+        },
+        {
+          "x": 430,
+          "y": 700
+        }
+      ]
+    },
+    {
+      "id": "path_you9op",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 80,
+          "y": 700
+        },
+        {
+          "x": 50,
+          "y": 700
+        },
+        {
+          "x": 49.57132321400099,
+          "y": 478.6150930383203
+        }
+      ]
+    },
+    {
+      "id": "path_8sgulq",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 750
+        },
+        {
+          "x": 160,
+          "y": 870
+        }
+      ]
+    },
+    {
+      "id": "path_nhd4n4",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 310,
+          "y": 870
+        },
+        {
+          "x": 430,
+          "y": 840
+        }
+      ]
+    },
+    {
+      "id": "kicker_xt6drh",
+      "type": "kicker",
+      "level": 0,
+      "radius": 6,
+      "bandThickness": 4,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 250,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 62.5543578759579,
+          "y": 484.3853306658567
+        },
+        {
+          "x": 80,
+          "y": 690
+        },
+        {
+          "x": 60,
+          "y": 690
+        }
+      ]
+    },
+    {
+      "id": "kicker_wnnvlj",
+      "type": "kicker",
+      "level": 0,
+      "radius": 6,
+      "bandThickness": 4,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 250,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 370,
+          "y": 690
+        },
+        {
+          "x": 420,
+          "y": 640
+        },
+        {
+          "x": 420,
+          "y": 690
+        }
+      ]
+    },
+    {
+      "id": "trough_2omso3",
+      "type": "trough",
+      "level": 0,
+      "x": 30,
+      "y": 670,
+      "radius": 10,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 20,
+      "ejectAngle": -1.5707963267948966,
+      "color": "#88aaff",
+      "pitColor": "#08101f"
+    },
+    {
+      "id": "path_gle2s7",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 50,
+          "y": 420
+        },
+        {
+          "x": 10,
+          "y": 480,
+          "outHandle": {
+            "x": -0.09906047531177364,
+            "y": 42.61315494828534
+          },
+          "inHandle": {
+            "x": 0.09906047531177364,
+            "y": -42.61315494828534
+          }
+        },
+        {
+          "x": 10,
+          "y": 360
+        },
+        {
+          "x": 50,
+          "y": 420,
+          "inHandle": {
+            "x": 3.1777217312112427,
+            "y": 0.9127167629562791
+          },
+          "outHandle": {
+            "x": -3.1777217312112427,
+            "y": -0.9127167629562791
+          }
+        }
+      ]
+    },
+    {
+      "id": "trough_8v6niy",
+      "type": "trough",
+      "level": 0,
+      "x": 32.39141205612715,
+      "y": 348.4057252959152,
+      "radius": 10,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 20,
+      "ejectAngle": -1.5836402786109052,
+      "color": "#88aaff",
+      "pitColor": "#08101f"
+    },
+    {
+      "id": "lane_f8dks6",
+      "type": "lane",
+      "level": 0,
+      "x": 30,
+      "y": 570,
+      "w": 40,
+      "h": 20,
+      "score": 100,
+      "angle": 1.5707963267948966
+    },
+    {
+      "id": "arrowLight_1ui1zc",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 83.26151263540768,
+      "y": 424.1424856545968,
+      "w": 86,
+      "h": 34,
+      "angle": 4.070925879958332,
+      "lampId": "",
+      "text": "GO",
+      "label": "",
+      "color": "#fffa66"
+    },
+    {
+      "id": "bumper_qtr32l",
+      "type": "bumper",
+      "x": 80,
+      "y": 130,
+      "radius": 24,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "name": "RB1"
+    },
+    {
+      "id": "bumper_hi9at0",
+      "type": "bumper",
+      "x": 200,
+      "y": 90,
+      "radius": 24,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "name": "RB2"
+    },
+    {
+      "id": "path_e2vm5b",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 220,
+          "y": 30,
+          "outHandle": {
+            "x": 70,
+            "y": 0
+          },
+          "inHandle": {
+            "x": -70,
+            "y": 0
+          }
+        },
+        {
+          "x": 250,
+          "y": 180,
+          "inHandle": {
+            "x": 20,
+            "y": -70
+          },
+          "outHandle": {
+            "x": -20,
+            "y": 70
+          }
+        },
+        {
+          "x": 200,
+          "y": 300,
+          "outHandle": {
+            "x": -3.990375559196508,
+            "y": 15.149937303535864
+          },
+          "inHandle": {
+            "x": 3.990375559196508,
+            "y": -15.149937303535864
+          }
+        },
+        {
+          "x": 220,
+          "y": 310,
+          "outHandle": {
+            "x": 6.014701038923249,
+            "y": -10.173395977321661
+          },
+          "inHandle": {
+            "x": -6.014701038923249,
+            "y": 10.173395977321661
+          }
+        },
+        {
+          "x": 280,
+          "y": 180,
+          "outHandle": {
+            "x": 30,
+            "y": -70
+          },
+          "inHandle": {
+            "x": -30,
+            "y": 70
+          }
+        },
+        {
+          "x": 420,
+          "y": 70,
+          "inHandle": {
+            "x": -100,
+            "y": -40
+          },
+          "outHandle": {
+            "x": 100,
+            "y": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "lane_e5cpe6",
+      "type": "lane",
+      "level": 0,
+      "x": 170,
+      "y": 290,
+      "w": 40,
+      "h": 20,
+      "score": 100,
+      "angle": 1.5707963267948966
+    },
+    {
+      "id": "lane_c1f1og",
+      "type": "lane",
+      "level": 0,
+      "x": 109.37039025397847,
+      "y": 290,
+      "w": 40,
+      "h": 20,
+      "score": 100,
+      "angle": 1.5707963267948966
+    },
+    {
+      "id": "bumper_embhfu",
+      "type": "bumper",
+      "x": 160,
+      "y": 180,
+      "radius": 24,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "name": "RB3"
+    },
+    {
+      "id": "path_7ypzqa",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 141.18106774955794,
+          "y": 264.1337371234528
+        },
+        {
+          "x": 141.18106774955794,
+          "y": 324.1337371234528
+        }
+      ]
+    },
+    {
+      "id": "path_qd8fqp",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 84.09385430389717,
+          "y": 261.7236111822291
+        },
+        {
+          "x": 53.005497574244295,
+          "y": 233.82380386074576
+        },
+        {
+          "x": 52.20836022220191,
+          "y": 335.0602475701282
+        },
+        {
+          "x": 84.89099165593956,
+          "y": 379.69993928450157,
+          "inHandle": {
+            "x": 0.7971373520423839,
+            "y": 5.57996146429673
+          },
+          "outHandle": {
+            "x": -0.7971373520423839,
+            "y": -5.57996146429673
+          }
+        },
+        {
+          "x": 84.09385430389717,
+          "y": 261.7236111822291
+        }
+      ]
+    },
+    {
+      "id": "gate_e451tv",
+      "type": "gate",
+      "level": 0,
+      "x": 53.005497574244295,
+      "y": 236.2152159168729,
+      "length": 51.40299900240648,
+      "angle": -2.549289001295333,
+      "locked": false,
+      "swingStartAngle": -2.548180707911721,
+      "swingEndAngle": -1.5707963267948966,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff"
+    },
+    {
+      "id": "bumper_7h1qb5",
+      "type": "bumper",
+      "x": 400,
+      "y": 170,
+      "radius": 30,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "color": "#e3d431",
+      "name": "YB3"
+    },
+    {
+      "id": "bumper_b3jobn",
+      "type": "bumper",
+      "x": 320,
+      "y": 290,
+      "radius": 30,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "color": "#e3d431",
+      "name": "YB2"
+    },
+    {
+      "id": "bumper_194zbe",
+      "type": "bumper",
+      "x": 400,
+      "y": 410,
+      "radius": 30,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "color": "#e3d431",
+      "name": "YB1"
+    },
+    {
+      "id": "dropTarget_0ry3em",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 410,
+      "y": 290,
+      "w": 10,
+      "h": 10,
+      "angle": 2.356194490192345,
+      "restitution": 0.55,
+      "score": 250
+    },
+    {
+      "id": "dropTarget_st4t1m",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 320,
+      "y": 380,
+      "w": 10,
+      "h": 10,
+      "angle": 2.356194490192345,
+      "restitution": 0.55,
+      "score": 250
+    },
+    {
+      "id": "dropTarget_gq5k8z",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 320,
+      "y": 200,
+      "w": 10,
+      "h": 10,
+      "angle": 2.356194490192345,
+      "restitution": 0.55,
+      "score": 250
+    },
+    {
+      "id": "bumper_cx7zd5",
+      "type": "bumper",
+      "x": 140,
+      "y": 390,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0
+    },
+    {
+      "id": "bumper_h9qtk7",
+      "type": "bumper",
+      "x": 310,
+      "y": 520,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0
+    },
+    {
+      "id": "gate_g5uh8j",
+      "type": "gate",
+      "level": 0,
+      "x": 490,
+      "y": 600,
+      "length": 67.0820393249937,
+      "angle": 2.677945044588987,
+      "locked": false,
+      "swingStartAngle": 2.670353755551324,
+      "swingEndAngle": 4.71238898038469,
+      "maxAngle": 1.05,
+      "returnStrength": 50,
+      "returnDamping": 2,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff"
+    },
+    {
+      "id": "light_8sch5e",
+      "type": "light",
+      "level": 0,
+      "x": 400,
+      "y": 370,
+      "radius": 6,
+      "lampId": "YB1-L1",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB1-L1"
+    },
+    {
+      "id": "light_qb334y",
+      "type": "light",
+      "level": 0,
+      "x": 430,
+      "y": 440,
+      "radius": 6,
+      "lampId": "YB1-L2",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB1-L2"
+    },
+    {
+      "id": "light_8cg4x8",
+      "type": "light",
+      "level": 0,
+      "x": 370,
+      "y": 440,
+      "radius": 6,
+      "lampId": "YB1-L3",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB1-L3"
+    },
+    {
+      "id": "light_4yfis8",
+      "type": "light",
+      "level": 0,
+      "x": 320,
+      "y": 250,
+      "radius": 6,
+      "lampId": "YB2-L1",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB2-L1"
+    },
+    {
+      "id": "light_on1qjy",
+      "type": "light",
+      "level": 0,
+      "x": 400,
+      "y": 130,
+      "radius": 6,
+      "lampId": "YB3-L1",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB3-L1"
+    },
+    {
+      "id": "light_4wx0if",
+      "type": "light",
+      "level": 0,
+      "x": 350,
+      "y": 320,
+      "radius": 6,
+      "lampId": "YB2-L2",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB2-L2"
+    },
+    {
+      "id": "light_5zis55",
+      "type": "light",
+      "level": 0,
+      "x": 290,
+      "y": 320,
+      "radius": 6,
+      "lampId": "YB2-L3",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB2-L3"
+    },
+    {
+      "id": "light_sm014u",
+      "type": "light",
+      "level": 0,
+      "x": 430,
+      "y": 200,
+      "radius": 6,
+      "lampId": "YB3-L2",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB3-L2"
+    },
+    {
+      "id": "light_hu8m7a",
+      "type": "light",
+      "level": 0,
+      "x": 370,
+      "y": 200,
+      "radius": 6,
+      "lampId": "YB3-L3",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB3-L3"
+    },
+    {
+      "id": "path_whlu9q",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 20,
+          "y": 160
+        },
+        {
+          "x": 10,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "path_4hfq27",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 20,
+          "y": 160
+        },
+        {
+          "x": 10,
+          "y": 170
+        }
+      ]
+    },
+    {
+      "id": "light_mgeiii",
+      "type": "light",
+      "level": 0,
+      "x": 100.1239997008378,
+      "y": 216.56217381549058,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_wgg2ty",
+      "type": "light",
+      "level": 0,
+      "x": 144.05991226955862,
+      "y": 124.00487102200721,
+      "radius": 6.594111392051904,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_1bwegn",
+      "type": "light",
+      "level": 0,
+      "x": 213.3695635915098,
+      "y": 153.06652294228275,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_x3ualq",
+      "type": "light",
+      "level": 0,
+      "x": 189.93382498786065,
+      "y": 230.68826109718862,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_a5y97c",
+      "type": "light",
+      "level": 0,
+      "x": 109.18843506226034,
+      "y": 75.57156792936166,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_l2n6ar",
+      "type": "light",
+      "level": 0,
+      "x": 234.49530294306447,
+      "y": 56.94809012373889,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_ad1uag",
+      "type": "light",
+      "level": 0,
+      "x": 38.25565386482981,
+      "y": 186.19226229383742,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    }
+  ]
+}

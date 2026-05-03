@@ -43,11 +43,8 @@
                 returnSpeed: 18,
                 returnAccel: 160,
                 strikeBoost: 0.52,
-                tipStrikeBoost: 0.68,
                 surfaceRestitution: 0.28,
                 surfaceFriction: 0.08,
-                tipRestitution: 0.38,
-                tipFriction: 0.04,
                 thickness: 10
             };
         }
@@ -67,11 +64,8 @@
                 returnSpeed: 18,
                 returnAccel: 160,
                 strikeBoost: 0.52,
-                tipStrikeBoost: 0.68,
                 surfaceRestitution: 0.28,
                 surfaceFriction: 0.08,
-                tipRestitution: 0.38,
-                tipFriction: 0.04,
                 thickness: 10
             };
         }
@@ -79,8 +73,8 @@
         if (type === "lane") return { id: makeId(type), type: "lane", level: 0, x: 120, y: 120, w: 40, h: 20, score: 100 };
         if (type === "dropTarget") return { id: makeId(type), type: "dropTarget", level: 0, x: 200, y: 500, w: 14, h: 40, angle: 0, restitution: 0.55, score: 250 };
         if (type === "spinner") return { id: makeId(type), type: "spinner", level: 0, x: 250, y: 220, length: 60, angle: 0, score: 100 };
-        if (type === "launcher") return { id: makeId(type), type: "launcher", level: 0, x: 439, y: 710, top: 195, bottom: 735, width: 38, maxPower: 42, maxRetract: 65, pullSpeed: 95, returnSpeed: 220, springStrength: 1, valve: false };
-        if (type === "gate") return { id: makeId(type), type: "gate", level: 0, x: 230, y: 360, length: 64, angle: -0.2, locked: false, direction: "forward", twoWay: false, swingStartAngle: -0.2, swingEndAngle: 0.85, maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, restitution: 0.55, color: "#99ffcc", pinColor: "#f7fbff" };
+        if (type === "launcher") return { id: makeId(type), type: "launcher", level: 0, x: 439, y: 710, top: 195, bottom: 735, width: 38, maxPower: 42, maxRetract: 65, pullSpeed: 95, returnSpeed: 220, springStrength: 1 };
+        if (type === "gate") return { id: makeId(type), type: "gate", level: 0, x: 230, y: 360, length: 64, angle: -0.2, locked: false, swingStartAngle: -0.2, swingEndAngle: 0.85, maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, restitution: 0.55, color: "#99ffcc", pinColor: "#f7fbff" };
         if (type === "valve") return { id: makeId(type), type: "valve", level: 0, x: 230, y: 360, length: 64, angle: -0.2, direction: "forward", maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, color: "#a8e4ff", pinColor: "#f7fbff" };
         if (type === "drain") return { id: makeId(type), type: "drain", level: 0, x: 250, y: 835, w: 150, h: 24 };
         if (type === "trough") return { id: makeId(type), type: "trough", level: 0, x: 250, y: 820, radius: 18, holdSeconds: 0.75, reactivateDelay: 2, ejectPower: 10, ejectAngle: -Math.PI * 0.5, color: "#88aaff", pitColor: "#08101f" };
@@ -207,8 +201,7 @@
             top: legacy.top || 195,
             bottom: legacy.bottom || 735,
             width: legacy.width || 38,
-            maxPower: legacy.maxPower || 42,
-            valve: legacy.valve === undefined ? false : coerceBoolean(legacy.valve)
+            maxPower: legacy.maxPower || 42
         });
     }
 
@@ -227,8 +220,6 @@
         table.launcher.maxPower = lane.maxPower || table.launcher.maxPower || 42;
         table.launcher.maxRetract = lane.maxRetract || table.launcher.maxRetract || 65;
         table.launcher.springStrength = lane.springStrength || table.launcher.springStrength || 1;
-        lane.valve = lane.valve === undefined ? false : coerceBoolean(lane.valve);
-        table.launcher.valve = lane.valve;
     }
 
     function ensureRulesEngine(table) {

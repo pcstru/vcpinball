@@ -5,6 +5,10 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
 .play-mode {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+        "top top"
+        "table help";
     align-items: center;
     justify-content: center;
     min-height: 100vh;
@@ -12,6 +16,23 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
     padding: 10px 14px;
     gap: 18px;
     overflow: hidden;
+}
+.play-top-nav {
+    grid-area: top;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+}
+.play-top-nav-button {
+    min-width: 82px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font: 700 13px "Trebuchet MS", "Segoe UI", sans-serif;
+}
+.play-top-nav-button.active {
+    border-color: #89a7ff;
+    background: linear-gradient(180deg, #324b8f, #1d2d59);
 }
 .play-canvas-wrap {
     min-width: 0;
@@ -24,6 +45,7 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
 }
 .play-canvas-wrap canvas { touch-action: none; }
 .play-table-stack {
+    grid-area: table;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -71,6 +93,7 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.38), inset 0 2px 8px rgba(0, 0, 0, 0.34);
 }
 .play-instructions {
+    grid-area: help;
     max-width: 320px; font-size: 12px; line-height: 1.45; color: #a8afd4;
     text-align: left; padding: 12px;
     border: 1px solid rgba(123, 144, 223, 0.22);
@@ -903,6 +926,11 @@ canvas.dragging { cursor: grabbing; }
 @media (max-width: 860px) {
     .play-mode {
         grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        grid-template-areas:
+            "top"
+            "table"
+            "help";
         align-items: start;
         padding: 8px;
     }
@@ -913,5 +941,411 @@ canvas.dragging { cursor: grabbing; }
     .play-instructions {
         justify-self: center;
         max-width: min(500px, 100%);
+    }
+}
+
+/* What: Standalone Logic Studio presentation layer.
+ * Why: logic authoring should run in a dedicated workspace separate from
+ *      playfield geometry editing while preserving the app's dark technical UI.
+ */
+.logicstudio-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr) 340px;
+    gap: 0;
+    height: 100dvh;
+    min-height: 100dvh;
+}
+.logicdesigner-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+}
+.logicstudio-sidebar,
+.logicstudio-inspector,
+.logicstudio-main {
+    min-height: 0;
+}
+.logicstudio-sidebar,
+.logicstudio-inspector {
+    overflow: auto;
+    padding: 12px;
+    background: linear-gradient(180deg, rgba(9, 14, 28, 0.95), rgba(5, 9, 20, 0.98));
+}
+.logicstudio-sidebar {
+    border-right: 1px solid rgba(123, 144, 223, 0.18);
+}
+.logicstudio-inspector {
+    border-left: 1px solid rgba(123, 144, 223, 0.18);
+}
+.logicstudio-main {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) 280px;
+    background: rgba(6, 10, 20, 0.96);
+}
+.logicstudio-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid rgba(123, 144, 223, 0.2);
+    background: rgba(9, 14, 29, 0.96);
+}
+.logicstudio-toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+.logicstudio-toolbar-right {
+    justify-content: flex-end;
+}
+.logicstudio-toolbar-title {
+    display: block;
+    font-size: 13px;
+    color: #f1f6ff;
+}
+.logicstudio-toolbar-sub {
+    font-size: 11px;
+    color: #a8b7db;
+}
+.logicstudio-btn {
+    border-radius: 8px;
+    font-size: 12px;
+    padding: 6px 9px;
+}
+.logicstudio-btn.small {
+    padding: 5px 8px;
+    font-size: 11px;
+}
+.logicstudio-btn.full {
+    width: 100%;
+}
+.logicstudio-btn.active {
+    border-color: #9fc0ff;
+    background: linear-gradient(180deg, #3656a5, #263d76);
+}
+.logicstudio-canvas-shell {
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(0deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        rgba(7, 12, 24, 0.96);
+    background-size: 20px 20px, 20px 20px, auto;
+    cursor: default;
+}
+.logicstudio-canvas-viewport {
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+}
+.logicstudio-canvas-edges {
+    position: absolute;
+    inset: 0;
+    width: 2200px;
+    height: 1600px;
+    pointer-events: none;
+}
+.logicstudio-canvas-nodes {
+    position: absolute;
+    inset: 0;
+}
+.logicstudio-edge {
+    stroke: rgba(121, 149, 250, 0.72);
+    stroke-width: 2;
+    fill: none;
+}
+.logicstudio-edge.active {
+    stroke: rgba(255, 212, 99, 0.92);
+}
+.logicstudio-node {
+    position: absolute;
+    width: 150px;
+    min-height: 66px;
+    border-radius: 8px;
+    text-align: left;
+    display: grid;
+    align-content: center;
+    gap: 5px;
+    padding: 8px;
+    border: 1px solid rgba(111, 136, 224, 0.72);
+    background: rgba(15, 24, 48, 0.95);
+}
+.logicstudio-node strong {
+    font-size: 12px;
+    color: #eff4ff;
+}
+.logicstudio-node span {
+    font-size: 11px;
+    color: #afbddf;
+    overflow-wrap: anywhere;
+}
+.logicstudio-node.active {
+    box-shadow: 0 0 0 2px rgba(158, 191, 255, 0.24);
+    border-color: rgba(158, 191, 255, 0.95);
+}
+.logicstudio-node.link-source {
+    border-color: rgba(255, 212, 99, 0.95);
+    box-shadow: 0 0 0 2px rgba(255, 212, 99, 0.2);
+}
+.logicstudio-node.type-start { border-color: rgba(121, 199, 255, 0.72); }
+.logicstudio-node.type-switchStep { border-color: rgba(91, 221, 157, 0.72); }
+.logicstudio-node.type-timedTarget { border-color: rgba(255, 164, 99, 0.78); }
+.logicstudio-node.type-condition { border-color: rgba(171, 148, 255, 0.78); }
+.logicstudio-node.type-action { border-color: rgba(255, 120, 189, 0.78); }
+.logicstudio-node.type-award { border-color: rgba(255, 228, 103, 0.84); }
+.logicstudio-node.type-reset { border-color: rgba(255, 106, 121, 0.84); }
+.logicstudio-search {
+    width: 100%;
+    padding: 8px 9px;
+    border-radius: 8px;
+    border: 1px solid #334a8a;
+    background: rgba(10, 17, 35, 0.96);
+    color: #eef3ff;
+    margin-bottom: 10px;
+}
+.logicstudio-section {
+    margin-bottom: 14px;
+    border: 1px solid rgba(123, 144, 223, 0.16);
+    border-radius: 8px;
+    padding: 9px;
+    background: rgba(10, 16, 31, 0.82);
+}
+.logicstudio-section-title {
+    margin: 0 0 8px;
+    color: #8daaf9;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.logicstudio-list-item {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 6px;
+    border-radius: 8px;
+}
+.logicstudio-list-item.compact {
+    padding: 6px 8px;
+    font-size: 11px;
+}
+.logicstudio-list-item.active {
+    border-color: #9fc0ff;
+    background: linear-gradient(180deg, #33519c, #22366d);
+}
+.logicstudio-badge {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(122, 142, 219, 0.3);
+    border-radius: 999px;
+    padding: 4px 8px;
+    margin: 0 6px 6px 0;
+    font-size: 11px;
+    color: #d6e0ff;
+    background: rgba(12, 19, 37, 0.9);
+}
+.logic-designer-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(123, 144, 223, 0.18);
+}
+.logic-designer-card-title {
+    display: grid;
+    gap: 3px;
+}
+.logic-designer-card-title strong {
+    color: #f3f7ff;
+    font-size: 14px;
+}
+.logic-designer-card-title small {
+    color: #aab8dc;
+    font-size: 12px;
+    line-height: 1.35;
+}
+.logic-designer-card-label {
+    width: max-content;
+    border: 1px solid rgba(103, 196, 157, 0.34);
+    border-radius: 999px;
+    padding: 2px 7px;
+    color: #9ee8c8;
+    background: rgba(18, 62, 48, 0.34);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.logic-designer-details {
+    margin: 8px 0;
+    border-top: 1px solid rgba(123, 144, 223, 0.12);
+    padding-top: 6px;
+}
+.logic-designer-details summary {
+    cursor: pointer;
+    color: #96a7d5;
+    font-size: 12px;
+    margin-bottom: 7px;
+}
+.logic-designer-type-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 8px;
+}
+.logicstudio-bottom {
+    border-top: 1px solid rgba(123, 144, 223, 0.2);
+    background: rgba(8, 12, 25, 0.96);
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+}
+.logicstudio-bottom-tabs {
+    padding: 9px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border-bottom: 1px solid rgba(123, 144, 223, 0.18);
+}
+.logicstudio-bottom-pane {
+    overflow: auto;
+    padding: 10px;
+}
+.logicstudio-validation-summary {
+    margin-bottom: 8px;
+    color: #d3ddf7;
+    font-size: 12px;
+}
+.logicstudio-validation-row {
+    border-radius: 8px;
+    border: 1px solid rgba(235, 179, 67, 0.34);
+    background: rgba(78, 55, 17, 0.43);
+    color: #ffd98a;
+    font-size: 12px;
+    padding: 7px 8px;
+    margin-bottom: 7px;
+}
+.logicstudio-validation-row.error {
+    border-color: rgba(235, 83, 101, 0.45);
+    background: rgba(81, 23, 34, 0.5);
+    color: #ffb3bd;
+}
+.logicstudio-validation-row.info {
+    border-color: rgba(107, 141, 220, 0.4);
+    background: rgba(30, 45, 82, 0.45);
+    color: #b8c9ff;
+}
+.logicstudio-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.logicstudio-pane {
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 8px;
+    padding: 10px;
+    background: rgba(9, 14, 29, 0.82);
+}
+.logicstudio-pane-title {
+    margin: 0 0 6px;
+    color: #f1f6ff;
+    font-size: 13px;
+}
+.logicstudio-node-meta {
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: #a4b3d8;
+    overflow-wrap: anywhere;
+}
+.logicstudio-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 140px);
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+}
+.logicstudio-field-label {
+    font-size: 12px;
+    color: #ced8f3;
+}
+.logicstudio-input {
+    width: 100%;
+    padding: 6px 7px;
+    border-radius: 8px;
+    border: 1px solid #334a8a;
+    background: rgba(11, 18, 37, 0.96);
+    color: #eff3ff;
+}
+.logicstudio-checkbox {
+    justify-self: end;
+}
+.logicstudio-preview,
+.logicstudio-json {
+    margin: 8px 0 0;
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 8px;
+    padding: 8px;
+    background: rgba(6, 10, 22, 0.96);
+    color: #dbe5ff;
+    font: 12px Consolas, "Courier New", monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.logicstudio-validity {
+    margin-top: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    border: 1px solid rgba(107, 141, 220, 0.4);
+    background: rgba(30, 45, 82, 0.45);
+    color: #b8c9ff;
+}
+.logicstudio-validity.error {
+    border-color: rgba(235, 83, 101, 0.45);
+    background: rgba(81, 23, 34, 0.5);
+    color: #ffb3bd;
+}
+.logicstudio-validity.ok {
+    border-color: rgba(94, 188, 150, 0.45);
+    background: rgba(22, 68, 52, 0.45);
+    color: #a9f0d0;
+}
+.logicstudio-empty {
+    color: #a4b3d8;
+    font-size: 12px;
+}
+.logicstudio-event-row {
+    border-bottom: 1px solid rgba(123, 144, 223, 0.16);
+    padding: 6px 0;
+    font-size: 12px;
+    color: #d6e0ff;
+}
+.logicstudio-ref-title {
+    margin: 6px 0;
+    font-size: 12px;
+    color: #dbe4ff;
+}
+.logicstudio-ref-list {
+    margin-bottom: 8px;
+}
+.logicstudio-sim-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+@media (max-width: 1220px) {
+    .logicstudio-layout {
+        grid-template-columns: 250px minmax(0, 1fr) 300px;
+    }
+}
+@media (max-width: 980px) {
+    .logicstudio-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 260px minmax(0, 1fr) 320px;
+    }
+    .logicstudio-sidebar,
+    .logicstudio-inspector {
+        border: none;
+        border-bottom: 1px solid rgba(123, 144, 223, 0.18);
     }
 }

@@ -345,7 +345,7 @@
         const ndx = ball.x - nextClosest.x;
         const ndy = ball.y - nextClosest.y;
         const nextDistance = Math.sqrt(ndx * ndx + ndy * ndy);
-        if (speed < 0.5 && nextDistance < supportRadius + 20 && nextClosest.t < 0.3) {
+        if (support.controlActive && speed < 0.5 && nextDistance < supportRadius + 20 && nextClosest.t < 0.3) {
             const len = nextDistance || 1;
             const px = ndx / len;
             const py = ndy / len;
@@ -374,8 +374,11 @@
         }
         const supportLoad = Math.max(0, (support.supportRadius || ball.radius) - Math.max(0, hit.overlap || 0));
         const friction = Math.max(0, support.surfaceFriction || 0);
-        const frictionScale = relTx < 0 ? 0.1 : 1;
-        const frictionImpulse = Math.min(Math.abs(relTx), Math.max(0.02, supportLoad * friction * frictionScale * subDt * 60));
+        const gravity = (world.table && world.table.playfield && world.table.playfield.gravity) || 0;
+        const inwardGravity = Math.max(0, -(gravity * normal.y));
+        const inwardContact = Math.max(0, -relNx);
+        const normalLoad = inwardGravity + inwardContact + Math.max(0, supportLoad * 0.02);
+        const frictionImpulse = Math.min(Math.abs(relTx), normalLoad * friction * subDt * 60);
         const nextRelTx = relTx - Math.sign(relTx || 1) * frictionImpulse;
         const supportedNormal = relNx > 1.2 ? relNx : 0;
         ball.vx = surfaceVx + tangentX * nextRelTx + normal.x * supportedNormal;
@@ -632,10 +635,6 @@
     function getLauncherConfig(world) {
         const lane = (world.table.elements || []).find(function find(el) { return el.type === "launcher"; });
         const legacy = world.table.launcher || {};
-        function coerceValve(value) {
-            if (typeof value === "string") return value !== "false" && value !== "0" && value !== "";
-            return !!value;
-        }
         const x = (lane && lane.x) || legacy.x || 439;
         const top = (lane && lane.top) || legacy.top || 195;
         const bottom = (lane && lane.bottom) || legacy.bottom || 735;
@@ -649,7 +648,6 @@
             width: width,
             left: x - width * 0.5,
             right: x + width * 0.5,
-            valve: lane && lane.valve !== undefined ? coerceValve(lane.valve) : coerceValve(legacy.valve),
             id: lane && lane.id,
             element: lane,
             maxPower: (lane && lane.maxPower) || legacy.maxPower || 42,
@@ -726,10 +724,10 @@
                 ball.vx = 0;
                 ball.vy = 0;
                 if (plunger.releasing && plunger.strikeVelocity < 0) {
-                    ball.vx = -Math.min(1.2, Math.abs(plunger.strikeVelocity) * 0.02);
+                    ball.vx = 0;
                     ball.vy = plunger.strikeVelocity;
                     ball.inLaunchLane = false;
-                    ball.y = launcher.y - 8;
+                    ball.y = launcher.y - ball.radius;
                     ball.launchRecaptureGrace = 0.6;
                     plunger.releasing = false;
                     plunger.position = 0;

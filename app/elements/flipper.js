@@ -162,23 +162,23 @@
     }
 
     /*
-     * Resolve the tip restitution separately from the blade body.
-     * Why: the tip often needs a more lively contact response than the cradle
-     * region so it does not feel glued to the ball.
+     * Resolve tip restitution, preserving legacy per-tip overrides.
+     * Why: modern tuning is surface-first, but older tables may still include
+     * explicit tip material fields.
      */
     function getTipRestitution(el) {
         if (typeof el.tipRestitution === "number") return el.tipRestitution;
-        return Math.max(0.12, getSurfaceRestitution(el) * 1.35);
+        return getSurfaceRestitution(el);
     }
 
     /*
-     * Resolve the tip friction separately from the blade body.
-     * Why: a tip that drags too much makes the ball feel sticky instead of
-     * slipping and rebounding naturally.
+     * Resolve tip friction, preserving legacy per-tip overrides.
+     * Why: surface friction is the default authored control, while legacy tip
+     * fields remain optional compatibility inputs.
      */
     function getTipFriction(el) {
         if (typeof el.tipFriction === "number") return el.tipFriction;
-        return Math.max(0.01, getSurfaceFriction(el) * 0.5);
+        return getSurfaceFriction(el);
     }
 
     /*
@@ -193,13 +193,13 @@
     }
 
     /*
-     * Resolve the tip strike assist term.
-     * Why: the end of the blade can need a slightly different launch response
-     * than the center so contact feels less sticky at the far end.
+     * Resolve tip strike assist while keeping legacy overrides.
+     * Why: new tables tune strike at the blade level; older tables can still
+     * provide a dedicated tip term.
      */
     function getTipStrikeBoost(el) {
         if (typeof el.tipStrikeBoost === "number") return el.tipStrikeBoost;
-        return Math.max(0, getStrikeBoost(el) * 1.15);
+        return getStrikeBoost(el);
     }
 
     /*
@@ -289,6 +289,7 @@
                     ball.supportContact = {
                         kind: "flipper",
                         hitKey: "flipper:" + el.id,
+                        controlActive: !!getControlState(el, world, table),
                         tick: world.physicsTick || 0,
                         supportRadius: ball.radius + (typeof el.thickness === "number" ? el.thickness : 10) + 8,
                         surfaceFriction: friction,
@@ -387,6 +388,6 @@
             ctx.fill();
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["side", "control", "length", "restAngle", "activeAngle", "flipSpeed", "flipAccel", "returnSpeed", "returnAccel", "strikeBoost", "tipStrikeBoost", "surfaceRestitution", "surfaceFriction", "tipRestitution", "tipFriction", "thickness", "color", "glowColor"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["side", "control", "length", "restAngle", "activeAngle", "flipSpeed", "flipAccel", "returnSpeed", "returnAccel", "strikeBoost", "surfaceRestitution", "surfaceFriction", "thickness", "color", "glowColor"] }
     });
 })(window.Pin);

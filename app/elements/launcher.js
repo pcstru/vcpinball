@@ -1,9 +1,4 @@
 (function registerLauncher(Pin) {
-    function coerceValve(value) {
-        if (typeof value === "string") return value !== "false" && value !== "0" && value !== "";
-        return !!value;
-    }
-
     Pin.elements.register("launcher", {
         compile: function compile(el, table, world) {
             const x = el.x || 439;
@@ -12,7 +7,6 @@
             const width = el.width || 38;
             const half = width * 0.5;
             const maxRetract = el.maxRetract || 65;
-            const hasValve = el.valve !== undefined ? coerceValve(el.valve) : coerceValve(((table && table.launcher) || {}).valve);
             const state = Pin.elements.getState ?
                 Pin.elements.getState(world, el, { position: 0, velocity: 0, charge: 0, releasing: false }) :
                 { position: 0, velocity: 0, charge: 0, releasing: false };
@@ -33,19 +27,6 @@
                 { x1: x + half, y1: top, x2: x + half, y2: bottom, thickness: 2 },
                 { x1: x - half, y1: bottom, x2: x + half, y2: bottom, thickness: 2 }
             ];
-            if (hasValve) {
-                const valveY = top + 16;
-                segments.push({
-                    x1: x - half + 2,
-                    y1: valveY,
-                    x2: x + half - 2,
-                    y2: valveY,
-                    thickness: 2,
-                    oneWay: function oneWay(ball) {
-                        return ball.vy < 0;
-                    }
-                });
-            }
             return { segments: segments };
         },
         draw: function draw(ctx, el, runtime, world) {
@@ -92,18 +73,6 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            const hasValve = el.valve !== undefined ? coerceValve(el.valve) : coerceValve(((world && world.table && world.table.launcher) || {}).valve);
-            if (hasValve) {
-                const valveY = top + 16;
-                ctx.strokeStyle = "#b9ffe9";
-                ctx.lineWidth = 3;
-                Pin.render.makeGlow(ctx, "#99ffcc", 10);
-                ctx.beginPath();
-                ctx.moveTo(left + 3, valveY);
-                ctx.lineTo(left + width - 3, valveY);
-                ctx.stroke();
-            }
-
             ctx.fillStyle = "rgba(200,220,255,0.75)";
             ctx.font = '16px "Courier New"';
             ctx.textAlign = "center";
@@ -115,6 +84,6 @@
             }
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "top", "bottom", "width", "maxPower", "maxRetract", "pullSpeed", "returnSpeed", "valve"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "top", "bottom", "width", "maxPower", "maxRetract", "pullSpeed", "returnSpeed"] }
     });
 })(window.Pin);

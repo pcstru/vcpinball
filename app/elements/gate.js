@@ -36,11 +36,6 @@
         return angle > limits.min + 0.001;
     }
 
-    function resolveDirectionSign(el) {
-        if (el.direction === "reverse") return -1;
-        return 1;
-    }
-
     function buildGeometry(el, state) {
         const pivotX = typeof el.x === "number" ? el.x : (typeof el.x1 === "number" ? el.x1 : 0);
         const pivotY = typeof el.y === "number" ? el.y : (typeof el.y1 === "number" ? el.y1 : 0);
@@ -68,7 +63,7 @@
         return !!el.locked;
     }
 
-    function kickGate(el, world, ball, normalDot) {
+    function kickGate(el, world, ball, pushDirection) {
         if (!world || !Pin.elements.getState) return;
         if (isLocked(el, world)) return;
         const state = Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0 });
@@ -77,7 +72,7 @@
         const limits = gateSwingLimits(el, restAngle);
         const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
         if (speed < 0.2) return;
-        applyGateImpulse(el, state, speed, normalDot >= 0 ? 1 : -1, limits);
+        applyGateImpulse(el, state, speed, pushDirection, limits);
         state.lastKickTick = world.physicsTick || 0;
         if (Pin.events) Pin.events.emit(world, { type: "gateOpened", sourceId: el.id, elementType: el.type });
     }
@@ -109,9 +104,18 @@
             const geom = buildGeometry(el, state);
             const nx = -(geom.y2 - geom.pivotY) / geom.length;
             const ny = (geom.x2 - geom.pivotX) / geom.length;
-            const directionSign = resolveDirectionSign(el);
             function contactDot(ball) {
-                return (ball.vx * nx + ball.vy * ny) * directionSign;
+                return ball.vx * nx + ball.vy * ny;
+            }
+            /*
+             * What: Resolve which hinge direction this contact should push.
+             * Why: velocity-normal dot alone can be ambiguous during overlap/sweep
+             * contacts and let blocked-side hits incorrectly open the gate.
+             */
+            function resolvePushDirection(ball) {
+                const side = (ball.x - geom.pivotX) * nx + (ball.y - geom.pivotY) * ny;
+                if (Math.abs(side) > 0.0001) return side < 0 ? 1 : -1;
+                return contactDot(ball) >= 0 ? 1 : -1;
             }
             const seg = {
                 x1: geom.pivotX,
@@ -123,20 +127,18 @@
                 thickness: typeof el.thickness === "number" ? el.thickness : 3,
                 oneWay: function oneWay(ball, hitWorld) {
                     if (isLocked(el, hitWorld || world)) return false;
-                    const dot = contactDot(ball);
-                    const pushDirection = dot >= 0 ? 1 : -1;
+                    const pushDirection = resolvePushDirection(ball);
                     const gateState = Pin.elements.getState ? Pin.elements.getState(hitWorld || world, el, { angle: 0, angularVelocity: 0 }) : state;
-                    const passable = !!el.twoWay || (dot > 0 && canSwing(gateState, pushDirection, limits));
-                    if (passable) kickGate(el, hitWorld || world, ball, dot);
+                    const passable = canSwing(gateState, pushDirection, limits);
+                    if (passable) kickGate(el, hitWorld || world, ball, pushDirection);
                     return passable;
                 },
                 onHit: function onHit(ball, hit, hitWorld) {
                     if (!isLocked(el, hitWorld || world) && world && Pin.elements.getState) {
                         const state = Pin.elements.getState(hitWorld || world, el, { angle: 0, angularVelocity: 0 });
-                        const dot = contactDot(ball);
-                        const pushDirection = dot >= 0 ? 1 : -1;
+                        const pushDirection = resolvePushDirection(ball);
                         const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-                        if (canSwing(state, pushDirection, limits) && (!!el.twoWay || dot > 0)) {
+                        if (canSwing(state, pushDirection, limits)) {
                             applyGateImpulse(el, state, speed, pushDirection, limits);
                         } else {
                             state.angularVelocity = 0;
@@ -171,6 +173,6 @@
             ctx.fill();
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "length", "angle", "locked", "direction", "twoWay", "swingStartAngle", "swingEndAngle", "returnStrength", "returnDamping", "thickness", "restitution", "color", "pinColor"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "length", "angle", "locked", "swingStartAngle", "swingEndAngle", "returnStrength", "returnDamping", "thickness", "restitution", "color", "pinColor"] }
     });
 })(window.Pin);

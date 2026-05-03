@@ -10,6 +10,14 @@
     }
 
         function mountEditor(root, state) {
+            /*
+             * Keep design-mode refreshes anchored to local editor state.
+             * Why: a stale #design&t=... token would otherwise override autosave
+             * on Ctrl+Refresh and make metadata edits appear to disappear.
+             */
+            if (window.history && window.history.replaceState && /^#design(&|$)/.test(location.hash || "")) {
+                window.history.replaceState(null, "", location.pathname + location.search + "#design");
+            }
             model.ensureSelectableLauncher(state.table);
             model.ensureLevels(state.table);
             model.ensureElementLevels(state.table);
@@ -58,8 +66,9 @@
         let gridSize = 10;
         let inspectorTab = "properties";
         let assistantSubtab = "chat";
-        let logicSubtab = "design";
+        let logicSubtab = "game";
         let propertySubtab = "layout";
+        let penToolSettings = { color: "#a8b5ea", thickness: 6 };
         let selectedRuleId = null;
         let selectedLogicNode = null;
         let selectedGraphId = null;
@@ -87,6 +96,10 @@
         let tableFitZoom = 1;
         const inspectorDrafts = {};
         let assistantRuntime = null;
+        let gameLogicSource = Pin.gameLogicV2 && Pin.gameLogicV2.createEmpty ? Pin.gameLogicV2.createEmpty(((state.table || {}).name || "Table") + " Logic") : null;
+        if (Pin.gameLogicV2 && Pin.gameLogicV2.scaffoldFromTable && gameLogicSource && !(gameLogicSource.shots || []).length) {
+            gameLogicSource = Pin.gameLogicV2.scaffoldFromTable(state.table, ((state.table || {}).name || "Table") + " Logic");
+        }
 
         function on(target, type, handler, options) {
             target.addEventListener(type, handler, options);
@@ -277,8 +290,142 @@
             Object.keys(inspectorDrafts).forEach(function clear(key) { delete inspectorDrafts[key]; });
         }
 
+        /*
+         * Report whether table-affecting inspector drafts still need persistence.
+         * Why: autosave must wake up for metadata edits even before the user
+         * explicitly clicks the draft card's Save button.
+         */
+        function hasPersistableDirtyDrafts() {
+            return Object.keys(inspectorDrafts).some(function some(key) {
+                if (!inspectorDrafts[key] || !inspectorDrafts[key].dirty) return false;
+                return key.indexOf("table:") === 0 ||
+                    key.indexOf("selected:") === 0 ||
+                    key.indexOf("anchor:") === 0 ||
+                    key.indexOf("image:") === 0 ||
+                    key.indexOf("level:") === 0 ||
+                    key.indexOf("rule:") === 0 ||
+                    key.indexOf("switchMap:") === 0 ||
+                    key.indexOf("logicVariable:") === 0 ||
+                    key.indexOf("logicTrigger:") === 0;
+            });
+        }
+
+        /*
+         * Persist editor drafts that back table metadata and selected element fields.
+         * Why: browser refresh should not discard committed-looking inspector edits
+         * such as element names that are already sitting in dirty draft buffers.
+         */
+        function flushPersistedDrafts() {
+            const tableDraft = inspectorDrafts["table:main"];
+            if (tableDraft && tableDraft.dirty) {
+                patchTableFields(tableDraft.draft);
+                resetCardDraft("table:main");
+            }
+            Object.keys(inspectorDrafts).slice().forEach(function each(key) {
+                const entry = inspectorDrafts[key];
+                if (!entry || !entry.dirty) return;
+                if (key.indexOf("selected:") === 0) {
+                    const selectedIdFromKey = key.slice("selected:".length);
+                    const selectedElement = getElementById(selectedIdFromKey);
+                    if (!selectedElement) return;
+                    const previousSelectedId = selectedId;
+                    selectedId = selectedIdFromKey;
+                    patchSelectedFields(entry.draft);
+                    selectedId = previousSelectedId;
+                    resetCardDraft(key);
+                    return;
+                }
+                if (key.indexOf("anchor:") === 0) {
+                    const parts = key.split(":");
+                    const anchorSelectedId = parts[1] || "";
+                    const anchorKey = parts[2] || "";
+                    const anchorIndex = Number(parts[3]);
+                    if (!anchorKey || !Number.isFinite(anchorIndex)) return;
+                    const anchorElement = getElementById(anchorSelectedId);
+                    if (!anchorElement) return;
+                    const previousSelectedId = selectedId;
+                    selectedId = anchorSelectedId;
+                    patchAnchorFields(anchorKey, anchorIndex, entry.draft);
+                    selectedId = previousSelectedId;
+                    resetCardDraft(key);
+                    return;
+                }
+                if (key.indexOf("image:") === 0) {
+                    const imageIndex = Number(key.slice("image:".length));
+                    if (!Number.isFinite(imageIndex)) return;
+                    patchImageLayerFields(imageIndex, entry.draft);
+                    resetCardDraft(key);
+                    return;
+                }
+                if (key.indexOf("level:") === 0) {
+                    const levelValue = Number(key.slice("level:".length));
+                    if (!Number.isFinite(levelValue)) return;
+                    patchLevelFields(levelValue, entry.draft);
+                    resetCardDraft(key);
+                    return;
+                }
+                if (key.indexOf("rule:") === 0) {
+                    const ruleId = key.slice("rule:".length);
+                    if (!ruleId) return;
+                    patchRuleFields(ruleId, entry.draft);
+                    resetCardDraft(key);
+                    return;
+                }
+                if (key.indexOf("switchMap:") === 0) {
+                    const mapIndex = Number(key.slice("switchMap:".length));
+                    if (!Number.isFinite(mapIndex)) return;
+                    patchSwitchMapFields(mapIndex, entry.draft);
+                    resetCardDraft(key);
+                    return;
+                }
+                if (key.indexOf("logicVariable:") === 0) {
+                    const variableIndex = Number(key.slice("logicVariable:".length));
+                    if (!Number.isFinite(variableIndex)) return;
+                    patchVariableFields(variableIndex, entry.draft);
+                    resetCardDraft(key);
+                    return;
+                }
+                if (key.indexOf("logicTrigger:") === 0) {
+                    const triggerIndex = Number(key.slice("logicTrigger:".length));
+                    if (!Number.isFinite(triggerIndex)) return;
+                    patchTriggerFields(triggerIndex, entry.draft);
+                    resetCardDraft(key);
+                }
+            });
+        }
+
         function makeRuleId() {
             return "rule_" + Math.random().toString(36).slice(2, 8);
+        }
+
+        /*
+         * What: Replace the in-memory TBGameLogic v2 source state.
+         * Why: logic authoring uses a separate source model that compiles into
+         *      the existing runtime rules table only when requested.
+         */
+        function setGameLogicSource(next) {
+            if (!Pin.gameLogicV2 || !Pin.gameLogicV2.normalize) return;
+            gameLogicSource = Pin.gameLogicV2.normalize(next || {});
+            refresh("inspector");
+        }
+
+        /*
+         * What: Compile authored TBGameLogic v2 into the current table runtime.
+         * Why: the simulator and play mode still execute low-level rulesEngine data.
+         */
+        function compileGameLogicIntoTable() {
+            if (!Pin.gameLogicV2 || !Pin.gameLogicV2.compile || !gameLogicSource) return { ok: false, issues: [{ severity: "error", message: "Game logic compiler unavailable." }] };
+            const result = Pin.gameLogicV2.compile(gameLogicSource, state.table);
+            if (!result || !result.ok || !result.table) return result || { ok: false, issues: [{ severity: "error", message: "Game logic compile failed." }] };
+            pushUndo();
+            state.table = result.table;
+            model.ensureSelectableLauncher(state.table);
+            model.ensureLevels(state.table);
+            model.ensureElementLevels(state.table);
+            model.syncLauncherConfig(state.table);
+            markTableDirty();
+            refresh("all");
+            return result;
         }
 
         const editorActions = Pin.editorActions.create({
@@ -418,6 +565,45 @@
             applyPatch: function applyPatch(patch) {
                 return editorRulesLogic.applyAssistantPatch(patch);
             },
+            previewPatch: function previewPatch(patch) {
+                const previewState = {
+                    table: Pin.editorTools.clone(state.table),
+                    undo: []
+                };
+                const previewLogic = Pin.editorRulesLogic.create({
+                    state: previewState,
+                    pushUndo: function pushUndo() {},
+                    markTableDirty: function markTableDirty() {},
+                    refresh: function refresh() {},
+                    makeRuleId: makeRuleId,
+                    normalizeInput: normalizeInput,
+                    ensureRulesEngine: function ensureRulesEnginePreview() {
+                        return Pin.editorModel.ensureRulesEngine(previewState.table);
+                    },
+                    getLogicGraphs: function getLogicGraphsPreview() {
+                        return Pin.editorModel.getLogicGraphs(previewState.table);
+                    },
+                    getSelectedGraph: function getSelectedGraphPreview() { return null; },
+                    getSelectedGraphNode: function getSelectedGraphNodePreview() { return null; },
+                    getSelected: function getSelectedPreview() { return null; },
+                    getElementById: function getElementByIdPreview(id) {
+                        return (previewState.table.elements || []).find(function find(element) {
+                            return element && element.id === id;
+                        }) || null;
+                    },
+                    firstSwitchElementId: function firstSwitchElementIdPreview() { return ""; },
+                    setSelectedId: function setSelectedIdPreview() {},
+                    setSelectedRuleId: function setSelectedRuleIdPreview() {},
+                    setSelectedLogicNode: function setSelectedLogicNodePreview() {},
+                    setSelectedGraphId: function setSelectedGraphIdPreview() {},
+                    getSelectedGraphId: function getSelectedGraphIdPreview() { return null; },
+                    setSelectedGraphNodeId: function setSelectedGraphNodeIdPreview() {},
+                    getPendingEdgeSourceNodeId: function getPendingEdgeSourceNodeIdPreview() { return null; },
+                    setPendingEdgeSourceNodeId: function setPendingEdgeSourceNodeIdPreview() {},
+                    setInspectorTab: function setInspectorTabPreview() {}
+                });
+                return previewLogic.applyAssistantPatch(patch);
+            },
             refresh: refresh
         });
 
@@ -459,6 +645,10 @@
 
         function addSequenceRule() {
             editorRulesLogic.addSequenceRule();
+        }
+
+        function addRuleTemplate(kind) {
+            editorRulesLogic.addRuleTemplate(kind);
         }
 
         function addLogicStep(graphId) {
@@ -809,6 +999,36 @@
                 (extra ? " | " + extra : "");
         }
 
+        /*
+         * Normalize pen width from palette inputs.
+         * Why: tool controls may provide strings or invalid values.
+         */
+        function normalizePenThickness(value) {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return penToolSettings.thickness;
+            return Math.max(1, Math.min(64, parsed));
+        }
+
+        /*
+         * Normalize pen color from palette inputs.
+         * Why: keep authored path color values consistent and render-safe.
+         */
+        function normalizePenColor(value) {
+            const text = String(value || "").trim();
+            if (/^#[0-9a-f]{6}$/i.test(text)) return text.toLowerCase();
+            return penToolSettings.color;
+        }
+
+        /*
+         * Apply the active pen tool style to a path.
+         * Why: pen settings should immediately affect new/current path strokes.
+         */
+        function applyPenStyleToPath(path) {
+            if (!path || path.type !== "path") return;
+            path.thickness = normalizePenThickness(penToolSettings.thickness);
+            path.color = normalizePenColor(penToolSettings.color);
+        }
+
         function markTableDirty() {
             ensureLevels();
             ensureElementLevels();
@@ -1021,6 +1241,7 @@
                     activeTool = type === "path" ? "pen" : "select";
                     paletteDirty = true;
                     if (activeTool === "pen") {
+                        applyPenStyleToPath(el);
                         penState = { path: el, lastWorld: null };
                     }
                     if (el.type === "launcher") model.syncLauncherConfig(state.table);
@@ -1056,6 +1277,38 @@
                             paletteDirty = true;
                             refresh("all");
                         }
+                    },
+                    pen: {
+                        color: penToolSettings.color,
+                        thickness: penToolSettings.thickness,
+                        onSetColor: function onSetPenColor(value) {
+                            const nextColor = normalizePenColor(value);
+                            if (nextColor === penToolSettings.color) return;
+                            penToolSettings.color = nextColor;
+                            if (activeTool === "pen" && penState && penState.path) {
+                                pushUndo();
+                                applyPenStyleToPath(penState.path);
+                                markTableDirty();
+                                refresh("all");
+                                return;
+                            }
+                            paletteDirty = true;
+                            refresh("palette");
+                        },
+                        onSetThickness: function onSetPenThickness(value) {
+                            const nextThickness = normalizePenThickness(value);
+                            if (nextThickness === penToolSettings.thickness) return;
+                            penToolSettings.thickness = nextThickness;
+                            if (activeTool === "pen" && penState && penState.path) {
+                                pushUndo();
+                                applyPenStyleToPath(penState.path);
+                                markTableDirty();
+                                refresh("all");
+                                return;
+                            }
+                            paletteDirty = true;
+                            refresh("palette");
+                        }
                     }
                 });
                 paletteDirty = false;
@@ -1080,6 +1333,7 @@
                 assistant: assistantRuntime.getState(),
                 assistantSubtab: assistantSubtab,
                 logicSubtab: logicSubtab,
+                gameLogicSource: gameLogicSource,
                 propertySubtab: propertySubtab,
                 ruleGraphNodeTypes: Pin.ruleGraph ? Pin.ruleGraph.nodeTypes : [],
                 logicGraphs: getLogicGraphs(),
@@ -1093,8 +1347,45 @@
                     refresh("inspector");
                 },
                 onSetLogicSubtab: function setLogicSubtab(tab) {
-                    logicSubtab = tab || "design";
+                    if (tab === "design") logicSubtab = "game";
+                    else logicSubtab = tab || "game";
                     refresh("inspector");
+                },
+                onPatchGameLogicSourceText: function patchGameLogicSourceText(text) {
+                    if (!Pin.gameLogicV2) return;
+                    let parsed = null;
+                    try {
+                        parsed = JSON.parse(String(text || "{}"));
+                    } catch (err) {
+                        return;
+                    }
+                    setGameLogicSource(parsed);
+                },
+                onScaffoldGameLogicFromTable: function onScaffoldGameLogicFromTable() {
+                    if (!Pin.gameLogicV2 || !Pin.gameLogicV2.scaffoldFromTable) return;
+                    setGameLogicSource(Pin.gameLogicV2.scaffoldFromTable(state.table, ((state.table || {}).name || "Table") + " Logic"));
+                },
+                onCompileGameLogic: function onCompileGameLogic() {
+                    compileGameLogicIntoTable();
+                },
+                onValidateGameLogic: function onValidateGameLogic() {
+                    if (!Pin.gameLogicV2 || !Pin.gameLogicV2.validate || !gameLogicSource) return [];
+                    return Pin.gameLogicV2.validate(gameLogicSource, state.table);
+                },
+                onExportGameLogicFile: function onExportGameLogicFile() {
+                    if (!gameLogicSource) return;
+                    const payload = JSON.stringify(gameLogicSource, null, 2);
+                    const blob = new Blob([payload], { type: "application/json" });
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob);
+                    a.download = (((state.table && state.table.name) || "table").replace(/[^a-z0-9_-]+/gi, "_")) + ".game-logic.json";
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                },
+                onImportGameLogicFile: function onImportGameLogicFile() {
+                    Pin.storage.file.import().then(function apply(imported) {
+                        setGameLogicSource(imported || {});
+                    });
                 },
                 onSetPropertySubtab: function setPropertySubtab(tab) {
                     propertySubtab = tab || "layout";
@@ -1113,8 +1404,27 @@
                 onSetAssistantDraft: function setAssistantDraft(value) {
                     assistantRuntime.setDraft(value);
                 },
+                onSetAgenticDraft: function setAgenticDraft(value) {
+                    assistantRuntime.setAgenticDraft(value);
+                },
+                onSaveAgenticModeDraft: function saveAgenticModeDraft(key, draft) {
+                    assistantRuntime.setAgenticMode(draft);
+                    resetCardDraft(key);
+                },
                 onSendAssistantMessage: function sendAssistantMessage() {
                     assistantRuntime.send();
+                },
+                onRunAgentic: function runAgentic() {
+                    assistantRuntime.runAgentic();
+                },
+                onStopAgentic: function stopAgentic() {
+                    assistantRuntime.stopAgentic();
+                },
+                onApplyAgenticPendingPatch: function applyAgenticPendingPatch() {
+                    assistantRuntime.applyAgenticPendingPatch();
+                },
+                onRejectAgenticPendingPatch: function rejectAgenticPendingPatch() {
+                    assistantRuntime.rejectAgenticPendingPatch();
                 },
                 onAssistantQuickPrompt: function assistantQuickPrompt(kind) {
                     assistantRuntime.quickPrompt(kind);
@@ -1217,6 +1527,11 @@
                     editorSession.applyTable(t);
                 },
                 onSaveFile: function saveFile() {
+                    flushPersistedDrafts();
+                    if (gameLogicSource && Pin.gameLogicV2 && Pin.gameLogicV2.compile) {
+                        const compiled = Pin.gameLogicV2.compile(gameLogicSource, state.table);
+                        if (compiled && compiled.ok && compiled.table) state.table = compiled.table;
+                    }
                     model.syncLauncherConfig(state.table);
                     Pin.storage.file.export(state.table);
                 },
@@ -1228,8 +1543,14 @@
                     });
                 },
                 onSaveSlot1: function saveSlot1() {
+                    flushPersistedDrafts();
                     model.syncLauncherConfig(state.table);
                     Pin.storage.local.save("slot1", state.table);
+                },
+                onOpenLogicStudio: function openLogicStudio() {
+                    flushPersistedDrafts();
+                    model.syncLauncherConfig(state.table);
+                    location.hash = "#logic&t=" + Pin.storage.url.encode(state.table);
                 },
                 onLoadSlot1: function loadSlot1() {
                     const t = Pin.storage.local.load("slot1");
@@ -1240,6 +1561,11 @@
                     }
                 },
                 onTestPlay: function testPlay() {
+                    flushPersistedDrafts();
+                    if (gameLogicSource && Pin.gameLogicV2 && Pin.gameLogicV2.compile) {
+                        const compiled = Pin.gameLogicV2.compile(gameLogicSource, state.table);
+                        if (compiled && compiled.ok && compiled.table) state.table = compiled.table;
+                    }
                     model.syncLauncherConfig(state.table);
                     Pin.storage.local.save("autosave", state.table);
                     autosavedRevision = dirtyRevision;
@@ -1258,6 +1584,7 @@
                 onAssignSelectedToLevel: assignSelectedToLevel,
                 onRemoveLevel: removeLevel,
                 onAddSequenceRule: addSequenceRule,
+                onAddRuleTemplate: addRuleTemplate,
                 onSelectRule: editorSession.selectRule,
                 onSelectLogicNode: selectLogicNode,
                 onAssignSelectedToLogicNode: assignSelectedToLogicNode,
@@ -1394,6 +1721,7 @@
                 if (!penState) {
                     pushUndo();
                     const path = createDefaultElement("path");
+                    applyPenStyleToPath(path);
                     path.anchors = [{ x: penWorld.x, y: penWorld.y }];
                     state.table.elements.push(path);
                     selectedId = path.id;
@@ -1635,14 +1963,21 @@
             }
         };
         interval(function autosave() {
-            if (dirtyRevision === autosavedRevision) return;
+            if (dirtyRevision === autosavedRevision && !hasPersistableDirtyDrafts()) return;
             if (Date.now() - lastDirtyAt < 1500) return;
             if (isInteractiveCanvasMotion()) return;
             if (isTextEntryTarget(document.activeElement)) return;
+            flushPersistedDrafts();
             model.syncLauncherConfig(state.table);
             Pin.storage.local.save("autosave", state.table);
             autosavedRevision = dirtyRevision;
         }, 3000);
+        on(window, "beforeunload", function onBeforeUnload() {
+            flushPersistedDrafts();
+            model.syncLauncherConfig(state.table);
+            Pin.storage.local.save("autosave", state.table);
+            autosavedRevision = dirtyRevision;
+        });
         interval(function animateDash() {
             dashTick = (dashTick + 1) % 1000;
             if (dragState || hoveredId || penState) refresh("canvas");

@@ -1,0 +1,5969 @@
+{
+  "version": 1,
+  "name": "Kitten",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 12,
+    "gravity": 0.35,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "rulesEngine": {
+    "switchMap": [],
+    "sequenceRules": [
+      {
+        "id": "yb_go_flash_tick",
+        "name": "YB GO Flash Tick",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.yb.go.flash"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "toggleVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "arrowLight_1ui1zc",
+            "variableId": "yb_go_flash",
+            "property": "value"
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_bonus_claim_trough",
+        "name": "YB Bonus Claim Trough",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "trough_8v6niy"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "arrowLight_1ui1zc",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 25
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_drain_reset",
+        "name": "YB Drain Reset",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "drain_x9t984"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB1-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB2-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L1",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L2",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "YB3-L3",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "arrowLight_1ui1zc",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 25
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb1_hit_light",
+        "name": "RB1 Hit Light",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_qtr32l"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb2_hit_light",
+        "name": "RB2 Hit Light",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_hi9at0"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb3_hit_light",
+        "name": "RB3 Hit Light",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_embhfu"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_activate_bonus_1",
+        "name": "RB Activate Bonus 1",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_qtr32l"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_activate_bonus_2",
+        "name": "RB Activate Bonus 2",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_hi9at0"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_activate_bonus_3",
+        "name": "RB Activate Bonus 3",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_embhfu"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_flash_tick",
+        "name": "RB Flash Tick",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.rb.flash"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "toggleVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_mgeiii",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_wgg2ty",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_1bwegn",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_x3ualq",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_a5y97c",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_l2n6ar",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "actionType": "setLampFromVariable",
+            "lampId": "light_ad1uag",
+            "variableId": "rb_flash",
+            "property": "value"
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_bonus_countdown",
+        "name": "RB Bonus Countdown",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.rb.second"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "addVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": -1
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_bonus_timeout",
+        "name": "RB Bonus Timeout",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "tick.rb.second"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "operator": "lte",
+            "value": 0
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 100
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 100
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 100
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_mgeiii",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_wgg2ty",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_1bwegn",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_a5y97c",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": false
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "rb_drain_reset",
+        "name": "RB Drain Reset",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "drain_x9t984"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 100
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 100
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 100
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_mgeiii",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_wgg2ty",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_1bwegn",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_a5y97c",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": false
+          },
+          {
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": false
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb1_progress",
+        "name": "YB1 Progress",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_194zbe",
+          "bumper_194zbe",
+          "bumper_194zbe"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [
+          "YB1-L1",
+          "YB1-L2",
+          "YB1-L3"
+        ],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb2_progress",
+        "name": "YB2 Progress",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_b3jobn",
+          "bumper_b3jobn",
+          "bumper_b3jobn"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [
+          "YB2-L1",
+          "YB2-L2",
+          "YB2-L3"
+        ],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb3_progress",
+        "name": "YB3 Progress",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_7h1qb5",
+          "bumper_7h1qb5",
+          "bumper_7h1qb5"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [
+          "YB3-L1",
+          "YB3-L2",
+          "YB3-L3"
+        ],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": true
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": false,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_bonus_activate_1",
+        "name": "yb_bonus_activate_1",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_194zbe"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_bonus_activate_2",
+        "name": "yb_bonus_activate_2",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_b3jobn"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      },
+      {
+        "id": "yb_bonus_activate_3",
+        "name": "yb_bonus_activate_3",
+        "type": "sequence",
+        "enabled": true,
+        "ordered": true,
+        "steps": [
+          "bumper_7h1qb5"
+        ],
+        "targetSwitchId": "",
+        "stepLampIds": [],
+        "targetLampId": "",
+        "windowSeconds": 8,
+        "awardPoints": 0,
+        "awardEvent": "ruleAwarded",
+        "conditions": [
+          {
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          }
+        ],
+        "actions": [
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          }
+        ],
+        "resetOnDrain": true,
+        "resetOnComplete": true,
+        "resetOnWrongOrder": false
+      }
+    ],
+    "logicGraphs": [
+      {
+        "id": "graph_yb_go_flash_tick",
+        "sourceRuleId": "yb_go_flash_tick",
+        "name": "YB GO Flash Tick",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_p42csr",
+            "type": "start",
+            "x": 60,
+            "y": 80,
+            "label": "YB GO Flash Tick"
+          },
+          {
+            "id": "switchStep_xizpb3",
+            "type": "switchStep",
+            "x": 220,
+            "y": 80,
+            "label": "Switch Step",
+            "switchId": "tick.yb.go.flash",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_w3gbwz",
+            "type": "condition",
+            "x": 560,
+            "y": 80,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "award_6ojgvi",
+            "type": "award",
+            "x": 590,
+            "y": 80,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_rn193x",
+            "type": "action",
+            "x": 770,
+            "y": 80,
+            "label": "Action",
+            "actionType": "toggleVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value"
+          },
+          {
+            "id": "action_bbo5fg",
+            "type": "action",
+            "x": 940,
+            "y": 80,
+            "label": "Action",
+            "actionType": "setLampFromVariable",
+            "lampId": "arrowLight_1ui1zc",
+            "variableId": "yb_go_flash",
+            "property": "value"
+          },
+          {
+            "id": "reset_izon9a",
+            "type": "reset",
+            "x": 770,
+            "y": 80,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_3wmz77",
+            "from": "start_p42csr",
+            "to": "switchStep_xizpb3"
+          },
+          {
+            "id": "edge_gcs8i2",
+            "from": "switchStep_xizpb3",
+            "to": "condition_w3gbwz"
+          },
+          {
+            "id": "edge_vtb373",
+            "from": "condition_w3gbwz",
+            "to": "award_6ojgvi"
+          },
+          {
+            "id": "edge_ph7ok0",
+            "from": "award_6ojgvi",
+            "to": "action_rn193x"
+          },
+          {
+            "id": "edge_am4g75",
+            "from": "action_rn193x",
+            "to": "action_bbo5fg"
+          },
+          {
+            "id": "edge_u6z5jh",
+            "from": "action_bbo5fg",
+            "to": "reset_izon9a"
+          }
+        ]
+      },
+      {
+        "id": "graph_yb_bonus_claim_trough",
+        "sourceRuleId": "yb_bonus_claim_trough",
+        "name": "YB Bonus Claim Trough",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_on5igx",
+            "type": "start",
+            "x": 60,
+            "y": 300,
+            "label": "YB Bonus Claim Trough"
+          },
+          {
+            "id": "switchStep_e6oa1u",
+            "type": "switchStep",
+            "x": 220,
+            "y": 300,
+            "label": "Switch Step",
+            "switchId": "trough_8v6niy",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_z6qz4t",
+            "type": "condition",
+            "x": 560,
+            "y": 300,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "award_qo1vft",
+            "type": "award",
+            "x": 590,
+            "y": 300,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_bkgfvn",
+            "type": "action",
+            "x": 770,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_7zdxzo",
+            "type": "action",
+            "x": 940,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_z4cshl",
+            "type": "action",
+            "x": 1110,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_vzu2qu",
+            "type": "action",
+            "x": 1280,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_enihf3",
+            "type": "action",
+            "x": 1450,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_d5ce1x",
+            "type": "action",
+            "x": 1620,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB1-L1",
+            "value": false
+          },
+          {
+            "id": "action_6gmjqh",
+            "type": "action",
+            "x": 1790,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB1-L2",
+            "value": false
+          },
+          {
+            "id": "action_x5dcki",
+            "type": "action",
+            "x": 1960,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB1-L3",
+            "value": false
+          },
+          {
+            "id": "action_xtthey",
+            "type": "action",
+            "x": 2130,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB2-L1",
+            "value": false
+          },
+          {
+            "id": "action_8zvnas",
+            "type": "action",
+            "x": 2300,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB2-L2",
+            "value": false
+          },
+          {
+            "id": "action_9f786z",
+            "type": "action",
+            "x": 2470,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB2-L3",
+            "value": false
+          },
+          {
+            "id": "action_dsc05i",
+            "type": "action",
+            "x": 2640,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB3-L1",
+            "value": false
+          },
+          {
+            "id": "action_o41nz3",
+            "type": "action",
+            "x": 2810,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB3-L2",
+            "value": false
+          },
+          {
+            "id": "action_mv41r6",
+            "type": "action",
+            "x": 2980,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB3-L3",
+            "value": false
+          },
+          {
+            "id": "action_7w9qzj",
+            "type": "action",
+            "x": 3150,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "arrowLight_1ui1zc",
+            "value": false
+          },
+          {
+            "id": "action_ti50ow",
+            "type": "action",
+            "x": 3320,
+            "y": 300,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 25
+          },
+          {
+            "id": "reset_s3un9u",
+            "type": "reset",
+            "x": 770,
+            "y": 300,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_utaffn",
+            "from": "start_on5igx",
+            "to": "switchStep_e6oa1u"
+          },
+          {
+            "id": "edge_ozhgoj",
+            "from": "switchStep_e6oa1u",
+            "to": "condition_z6qz4t"
+          },
+          {
+            "id": "edge_8q9ax1",
+            "from": "condition_z6qz4t",
+            "to": "award_qo1vft"
+          },
+          {
+            "id": "edge_vtgcr5",
+            "from": "award_qo1vft",
+            "to": "action_bkgfvn"
+          },
+          {
+            "id": "edge_f5fc8s",
+            "from": "action_bkgfvn",
+            "to": "action_7zdxzo"
+          },
+          {
+            "id": "edge_hhr5im",
+            "from": "action_7zdxzo",
+            "to": "action_z4cshl"
+          },
+          {
+            "id": "edge_z9wbja",
+            "from": "action_z4cshl",
+            "to": "action_vzu2qu"
+          },
+          {
+            "id": "edge_uljbmi",
+            "from": "action_vzu2qu",
+            "to": "action_enihf3"
+          },
+          {
+            "id": "edge_1x9p4w",
+            "from": "action_enihf3",
+            "to": "action_d5ce1x"
+          },
+          {
+            "id": "edge_nl67rl",
+            "from": "action_d5ce1x",
+            "to": "action_6gmjqh"
+          },
+          {
+            "id": "edge_ejrtua",
+            "from": "action_6gmjqh",
+            "to": "action_x5dcki"
+          },
+          {
+            "id": "edge_blpy1d",
+            "from": "action_x5dcki",
+            "to": "action_xtthey"
+          },
+          {
+            "id": "edge_m761q8",
+            "from": "action_xtthey",
+            "to": "action_8zvnas"
+          },
+          {
+            "id": "edge_x246o7",
+            "from": "action_8zvnas",
+            "to": "action_9f786z"
+          },
+          {
+            "id": "edge_opjff9",
+            "from": "action_9f786z",
+            "to": "action_dsc05i"
+          },
+          {
+            "id": "edge_8uibfe",
+            "from": "action_dsc05i",
+            "to": "action_o41nz3"
+          },
+          {
+            "id": "edge_ejmozv",
+            "from": "action_o41nz3",
+            "to": "action_mv41r6"
+          },
+          {
+            "id": "edge_m3vht0",
+            "from": "action_mv41r6",
+            "to": "action_7w9qzj"
+          },
+          {
+            "id": "edge_fcwndq",
+            "from": "action_7w9qzj",
+            "to": "action_ti50ow"
+          },
+          {
+            "id": "edge_v3vgmu",
+            "from": "action_ti50ow",
+            "to": "reset_s3un9u"
+          }
+        ]
+      },
+      {
+        "id": "graph_yb_drain_reset",
+        "sourceRuleId": "yb_drain_reset",
+        "name": "YB Drain Reset",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_gqxt0g",
+            "type": "start",
+            "x": 60,
+            "y": 520,
+            "label": "YB Drain Reset"
+          },
+          {
+            "id": "switchStep_7vhml0",
+            "type": "switchStep",
+            "x": 220,
+            "y": 520,
+            "label": "Switch Step",
+            "switchId": "drain_x9t984",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "award_fwex6j",
+            "type": "award",
+            "x": 590,
+            "y": 520,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_v6p073",
+            "type": "action",
+            "x": 770,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_rabezm",
+            "type": "action",
+            "x": 940,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_5uu1gt",
+            "type": "action",
+            "x": 1110,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_snh37d",
+            "type": "action",
+            "x": 1280,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_5zep0c",
+            "type": "action",
+            "x": 1450,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_i2978i",
+            "type": "action",
+            "x": 1620,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB1-L1",
+            "value": false
+          },
+          {
+            "id": "action_j9yikk",
+            "type": "action",
+            "x": 1790,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB1-L2",
+            "value": false
+          },
+          {
+            "id": "action_vi2y6u",
+            "type": "action",
+            "x": 1960,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB1-L3",
+            "value": false
+          },
+          {
+            "id": "action_mffxd5",
+            "type": "action",
+            "x": 2130,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB2-L1",
+            "value": false
+          },
+          {
+            "id": "action_wl7ku9",
+            "type": "action",
+            "x": 2300,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB2-L2",
+            "value": false
+          },
+          {
+            "id": "action_hc2x5u",
+            "type": "action",
+            "x": 2470,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB2-L3",
+            "value": false
+          },
+          {
+            "id": "action_wxa3df",
+            "type": "action",
+            "x": 2640,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB3-L1",
+            "value": false
+          },
+          {
+            "id": "action_gaxll1",
+            "type": "action",
+            "x": 2810,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB3-L2",
+            "value": false
+          },
+          {
+            "id": "action_7b67y1",
+            "type": "action",
+            "x": 2980,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "YB3-L3",
+            "value": false
+          },
+          {
+            "id": "action_z3ap3q",
+            "type": "action",
+            "x": 3150,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "arrowLight_1ui1zc",
+            "value": false
+          },
+          {
+            "id": "action_l5bcpl",
+            "type": "action",
+            "x": 3320,
+            "y": 520,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 25
+          },
+          {
+            "id": "reset_tcvdmh",
+            "type": "reset",
+            "x": 770,
+            "y": 520,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_zx7sdr",
+            "from": "start_gqxt0g",
+            "to": "switchStep_7vhml0"
+          },
+          {
+            "id": "edge_y4909q",
+            "from": "switchStep_7vhml0",
+            "to": "award_fwex6j"
+          },
+          {
+            "id": "edge_hsjw1i",
+            "from": "award_fwex6j",
+            "to": "action_v6p073"
+          },
+          {
+            "id": "edge_cfondq",
+            "from": "action_v6p073",
+            "to": "action_rabezm"
+          },
+          {
+            "id": "edge_m7q8c7",
+            "from": "action_rabezm",
+            "to": "action_5uu1gt"
+          },
+          {
+            "id": "edge_vqzfdf",
+            "from": "action_5uu1gt",
+            "to": "action_snh37d"
+          },
+          {
+            "id": "edge_8ijh3g",
+            "from": "action_snh37d",
+            "to": "action_5zep0c"
+          },
+          {
+            "id": "edge_y6ks8e",
+            "from": "action_5zep0c",
+            "to": "action_i2978i"
+          },
+          {
+            "id": "edge_k5wnh1",
+            "from": "action_i2978i",
+            "to": "action_j9yikk"
+          },
+          {
+            "id": "edge_yauic0",
+            "from": "action_j9yikk",
+            "to": "action_vi2y6u"
+          },
+          {
+            "id": "edge_nk0okj",
+            "from": "action_vi2y6u",
+            "to": "action_mffxd5"
+          },
+          {
+            "id": "edge_uvbawl",
+            "from": "action_mffxd5",
+            "to": "action_wl7ku9"
+          },
+          {
+            "id": "edge_aab9y5",
+            "from": "action_wl7ku9",
+            "to": "action_hc2x5u"
+          },
+          {
+            "id": "edge_6v9wwu",
+            "from": "action_hc2x5u",
+            "to": "action_wxa3df"
+          },
+          {
+            "id": "edge_d4gas7",
+            "from": "action_wxa3df",
+            "to": "action_gaxll1"
+          },
+          {
+            "id": "edge_pjtr0n",
+            "from": "action_gaxll1",
+            "to": "action_7b67y1"
+          },
+          {
+            "id": "edge_wtc6gx",
+            "from": "action_7b67y1",
+            "to": "action_z3ap3q"
+          },
+          {
+            "id": "edge_32qerb",
+            "from": "action_z3ap3q",
+            "to": "action_l5bcpl"
+          },
+          {
+            "id": "edge_9dmaln",
+            "from": "action_l5bcpl",
+            "to": "reset_tcvdmh"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb1_hit_light",
+        "sourceRuleId": "rb1_hit_light",
+        "name": "RB1 Hit Light",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_xxx2b5",
+            "type": "start",
+            "x": 60,
+            "y": 740,
+            "label": "RB1 Hit Light"
+          },
+          {
+            "id": "switchStep_c3lg12",
+            "type": "switchStep",
+            "x": 220,
+            "y": 740,
+            "label": "Switch Step",
+            "switchId": "bumper_qtr32l",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_zs4ig2",
+            "type": "condition",
+            "x": 560,
+            "y": 740,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_rlwlkh",
+            "type": "award",
+            "x": 590,
+            "y": 740,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_wfgyuc",
+            "type": "action",
+            "x": 770,
+            "y": 740,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_jhk3p9",
+            "type": "action",
+            "x": 940,
+            "y": 740,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": true
+          },
+          {
+            "id": "reset_22c7f8",
+            "type": "reset",
+            "x": 770,
+            "y": 740,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_1hzmow",
+            "from": "start_xxx2b5",
+            "to": "switchStep_c3lg12"
+          },
+          {
+            "id": "edge_gl4exn",
+            "from": "switchStep_c3lg12",
+            "to": "condition_zs4ig2"
+          },
+          {
+            "id": "edge_c0u7ar",
+            "from": "condition_zs4ig2",
+            "to": "award_rlwlkh"
+          },
+          {
+            "id": "edge_cuiwxj",
+            "from": "award_rlwlkh",
+            "to": "action_wfgyuc"
+          },
+          {
+            "id": "edge_sv6t3v",
+            "from": "action_wfgyuc",
+            "to": "action_jhk3p9"
+          },
+          {
+            "id": "edge_apeeyl",
+            "from": "action_jhk3p9",
+            "to": "reset_22c7f8"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb2_hit_light",
+        "sourceRuleId": "rb2_hit_light",
+        "name": "RB2 Hit Light",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_z2q8jt",
+            "type": "start",
+            "x": 60,
+            "y": 960,
+            "label": "RB2 Hit Light"
+          },
+          {
+            "id": "switchStep_birb7b",
+            "type": "switchStep",
+            "x": 220,
+            "y": 960,
+            "label": "Switch Step",
+            "switchId": "bumper_hi9at0",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_ve91ch",
+            "type": "condition",
+            "x": 560,
+            "y": 960,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_q4u100",
+            "type": "award",
+            "x": 590,
+            "y": 960,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_6xmcw2",
+            "type": "action",
+            "x": 770,
+            "y": 960,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_63emuh",
+            "type": "action",
+            "x": 940,
+            "y": 960,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": true
+          },
+          {
+            "id": "reset_r3b8f1",
+            "type": "reset",
+            "x": 770,
+            "y": 960,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_112zqo",
+            "from": "start_z2q8jt",
+            "to": "switchStep_birb7b"
+          },
+          {
+            "id": "edge_vl0s9f",
+            "from": "switchStep_birb7b",
+            "to": "condition_ve91ch"
+          },
+          {
+            "id": "edge_0masdd",
+            "from": "condition_ve91ch",
+            "to": "award_q4u100"
+          },
+          {
+            "id": "edge_nq6l34",
+            "from": "award_q4u100",
+            "to": "action_6xmcw2"
+          },
+          {
+            "id": "edge_2hrz6q",
+            "from": "action_6xmcw2",
+            "to": "action_63emuh"
+          },
+          {
+            "id": "edge_4pf6yi",
+            "from": "action_63emuh",
+            "to": "reset_r3b8f1"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb3_hit_light",
+        "sourceRuleId": "rb3_hit_light",
+        "name": "RB3 Hit Light",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_yikh3k",
+            "type": "start",
+            "x": 60,
+            "y": 1180,
+            "label": "RB3 Hit Light"
+          },
+          {
+            "id": "switchStep_c1j2ef",
+            "type": "switchStep",
+            "x": 220,
+            "y": 1180,
+            "label": "Switch Step",
+            "switchId": "bumper_embhfu",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_iwpi4t",
+            "type": "condition",
+            "x": 560,
+            "y": 1180,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_dsov36",
+            "type": "award",
+            "x": 590,
+            "y": 1180,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_d22ti3",
+            "type": "action",
+            "x": 770,
+            "y": 1180,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_efbiv0",
+            "type": "action",
+            "x": 940,
+            "y": 1180,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": true
+          },
+          {
+            "id": "reset_rcnar6",
+            "type": "reset",
+            "x": 770,
+            "y": 1180,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_d89xl1",
+            "from": "start_yikh3k",
+            "to": "switchStep_c1j2ef"
+          },
+          {
+            "id": "edge_uldw8x",
+            "from": "switchStep_c1j2ef",
+            "to": "condition_iwpi4t"
+          },
+          {
+            "id": "edge_vaqcwm",
+            "from": "condition_iwpi4t",
+            "to": "award_dsov36"
+          },
+          {
+            "id": "edge_f5v4pt",
+            "from": "award_dsov36",
+            "to": "action_d22ti3"
+          },
+          {
+            "id": "edge_i6vcku",
+            "from": "action_d22ti3",
+            "to": "action_efbiv0"
+          },
+          {
+            "id": "edge_ty602j",
+            "from": "action_efbiv0",
+            "to": "reset_rcnar6"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb_activate_bonus_1",
+        "sourceRuleId": "rb_activate_bonus_1",
+        "name": "RB Activate Bonus 1",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_3c6qn4",
+            "type": "start",
+            "x": 60,
+            "y": 1400,
+            "label": "RB Activate Bonus 1"
+          },
+          {
+            "id": "switchStep_yj2qgi",
+            "type": "switchStep",
+            "x": 220,
+            "y": 1400,
+            "label": "Switch Step",
+            "switchId": "bumper_qtr32l",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_auo9si",
+            "type": "condition",
+            "x": 560,
+            "y": 1400,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_cjh1a1",
+            "type": "condition",
+            "x": 730,
+            "y": 1400,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_krouef",
+            "type": "condition",
+            "x": 900,
+            "y": 1400,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_1fy5wu",
+            "type": "condition",
+            "x": 1070,
+            "y": 1400,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_42aqee",
+            "type": "award",
+            "x": 590,
+            "y": 1400,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_3gcc50",
+            "type": "action",
+            "x": 770,
+            "y": 1400,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_ny3mch",
+            "type": "action",
+            "x": 940,
+            "y": 1400,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "id": "action_mi4lpw",
+            "type": "action",
+            "x": 1110,
+            "y": 1400,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_3fq083",
+            "type": "action",
+            "x": 1280,
+            "y": 1400,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "id": "action_qtbayj",
+            "type": "action",
+            "x": 1450,
+            "y": 1400,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "id": "action_3ujq9n",
+            "type": "action",
+            "x": 1620,
+            "y": 1400,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          },
+          {
+            "id": "reset_v2bdux",
+            "type": "reset",
+            "x": 770,
+            "y": 1400,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_ycb2b9",
+            "from": "start_3c6qn4",
+            "to": "switchStep_yj2qgi"
+          },
+          {
+            "id": "edge_dot9mk",
+            "from": "switchStep_yj2qgi",
+            "to": "condition_auo9si"
+          },
+          {
+            "id": "edge_ip4hm7",
+            "from": "condition_auo9si",
+            "to": "condition_cjh1a1"
+          },
+          {
+            "id": "edge_i0qcqc",
+            "from": "condition_cjh1a1",
+            "to": "condition_krouef"
+          },
+          {
+            "id": "edge_cg3nmz",
+            "from": "condition_krouef",
+            "to": "condition_1fy5wu"
+          },
+          {
+            "id": "edge_dkwyl0",
+            "from": "condition_1fy5wu",
+            "to": "award_42aqee"
+          },
+          {
+            "id": "edge_t090ud",
+            "from": "award_42aqee",
+            "to": "action_3gcc50"
+          },
+          {
+            "id": "edge_xaqgl5",
+            "from": "action_3gcc50",
+            "to": "action_ny3mch"
+          },
+          {
+            "id": "edge_wcqeon",
+            "from": "action_ny3mch",
+            "to": "action_mi4lpw"
+          },
+          {
+            "id": "edge_i5pkhw",
+            "from": "action_mi4lpw",
+            "to": "action_3fq083"
+          },
+          {
+            "id": "edge_lf00m4",
+            "from": "action_3fq083",
+            "to": "action_qtbayj"
+          },
+          {
+            "id": "edge_jqjgnq",
+            "from": "action_qtbayj",
+            "to": "action_3ujq9n"
+          },
+          {
+            "id": "edge_ktgpr5",
+            "from": "action_3ujq9n",
+            "to": "reset_v2bdux"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb_activate_bonus_2",
+        "sourceRuleId": "rb_activate_bonus_2",
+        "name": "RB Activate Bonus 2",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_7tmvmk",
+            "type": "start",
+            "x": 60,
+            "y": 1620,
+            "label": "RB Activate Bonus 2"
+          },
+          {
+            "id": "switchStep_xfc4t4",
+            "type": "switchStep",
+            "x": 220,
+            "y": 1620,
+            "label": "Switch Step",
+            "switchId": "bumper_hi9at0",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_sc9n0j",
+            "type": "condition",
+            "x": 560,
+            "y": 1620,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_09bhqp",
+            "type": "condition",
+            "x": 730,
+            "y": 1620,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_0a71k1",
+            "type": "condition",
+            "x": 900,
+            "y": 1620,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_qldka4",
+            "type": "condition",
+            "x": 1070,
+            "y": 1620,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_4zg20l",
+            "type": "award",
+            "x": 590,
+            "y": 1620,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_kivobl",
+            "type": "action",
+            "x": 770,
+            "y": 1620,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_fd6y6v",
+            "type": "action",
+            "x": 940,
+            "y": 1620,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "id": "action_r4b9ch",
+            "type": "action",
+            "x": 1110,
+            "y": 1620,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_ta067t",
+            "type": "action",
+            "x": 1280,
+            "y": 1620,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "id": "action_st4evv",
+            "type": "action",
+            "x": 1450,
+            "y": 1620,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "id": "action_981epk",
+            "type": "action",
+            "x": 1620,
+            "y": 1620,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          },
+          {
+            "id": "reset_i3j6ip",
+            "type": "reset",
+            "x": 770,
+            "y": 1620,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_1d4rdk",
+            "from": "start_7tmvmk",
+            "to": "switchStep_xfc4t4"
+          },
+          {
+            "id": "edge_mprma2",
+            "from": "switchStep_xfc4t4",
+            "to": "condition_sc9n0j"
+          },
+          {
+            "id": "edge_pw5cog",
+            "from": "condition_sc9n0j",
+            "to": "condition_09bhqp"
+          },
+          {
+            "id": "edge_0ymfnu",
+            "from": "condition_09bhqp",
+            "to": "condition_0a71k1"
+          },
+          {
+            "id": "edge_f6v0ya",
+            "from": "condition_0a71k1",
+            "to": "condition_qldka4"
+          },
+          {
+            "id": "edge_amxeh7",
+            "from": "condition_qldka4",
+            "to": "award_4zg20l"
+          },
+          {
+            "id": "edge_3pwupa",
+            "from": "award_4zg20l",
+            "to": "action_kivobl"
+          },
+          {
+            "id": "edge_e8k1r8",
+            "from": "action_kivobl",
+            "to": "action_fd6y6v"
+          },
+          {
+            "id": "edge_txl81q",
+            "from": "action_fd6y6v",
+            "to": "action_r4b9ch"
+          },
+          {
+            "id": "edge_2vvu23",
+            "from": "action_r4b9ch",
+            "to": "action_ta067t"
+          },
+          {
+            "id": "edge_73soej",
+            "from": "action_ta067t",
+            "to": "action_st4evv"
+          },
+          {
+            "id": "edge_gyt9go",
+            "from": "action_st4evv",
+            "to": "action_981epk"
+          },
+          {
+            "id": "edge_eqbkhv",
+            "from": "action_981epk",
+            "to": "reset_i3j6ip"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb_activate_bonus_3",
+        "sourceRuleId": "rb_activate_bonus_3",
+        "name": "RB Activate Bonus 3",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_ftxjgg",
+            "type": "start",
+            "x": 60,
+            "y": 1840,
+            "label": "RB Activate Bonus 3"
+          },
+          {
+            "id": "switchStep_d1kifu",
+            "type": "switchStep",
+            "x": 220,
+            "y": 1840,
+            "label": "Switch Step",
+            "switchId": "bumper_embhfu",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_7sgirk",
+            "type": "condition",
+            "x": 560,
+            "y": 1840,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_1zrg9c",
+            "type": "condition",
+            "x": 730,
+            "y": 1840,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_5s5t0t",
+            "type": "condition",
+            "x": 900,
+            "y": 1840,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_b2iuti",
+            "type": "condition",
+            "x": 1070,
+            "y": 1840,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_f0rk72",
+            "type": "award",
+            "x": 590,
+            "y": 1840,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_dhvjbs",
+            "type": "action",
+            "x": 770,
+            "y": 1840,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_av4hhg",
+            "type": "action",
+            "x": 940,
+            "y": 1840,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 10
+          },
+          {
+            "id": "action_f7rwlc",
+            "type": "action",
+            "x": 1110,
+            "y": 1840,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_jr76ia",
+            "type": "action",
+            "x": 1280,
+            "y": 1840,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 500
+          },
+          {
+            "id": "action_dobh9v",
+            "type": "action",
+            "x": 1450,
+            "y": 1840,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 500
+          },
+          {
+            "id": "action_rfleuy",
+            "type": "action",
+            "x": 1620,
+            "y": 1840,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 500
+          },
+          {
+            "id": "reset_2veisx",
+            "type": "reset",
+            "x": 770,
+            "y": 1840,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_dzaa5r",
+            "from": "start_ftxjgg",
+            "to": "switchStep_d1kifu"
+          },
+          {
+            "id": "edge_l197g7",
+            "from": "switchStep_d1kifu",
+            "to": "condition_7sgirk"
+          },
+          {
+            "id": "edge_zgbaqn",
+            "from": "condition_7sgirk",
+            "to": "condition_1zrg9c"
+          },
+          {
+            "id": "edge_sfvo21",
+            "from": "condition_1zrg9c",
+            "to": "condition_5s5t0t"
+          },
+          {
+            "id": "edge_bgkl87",
+            "from": "condition_5s5t0t",
+            "to": "condition_b2iuti"
+          },
+          {
+            "id": "edge_3a3wn6",
+            "from": "condition_b2iuti",
+            "to": "award_f0rk72"
+          },
+          {
+            "id": "edge_j0zntk",
+            "from": "award_f0rk72",
+            "to": "action_dhvjbs"
+          },
+          {
+            "id": "edge_ayu2uj",
+            "from": "action_dhvjbs",
+            "to": "action_av4hhg"
+          },
+          {
+            "id": "edge_cvw2mu",
+            "from": "action_av4hhg",
+            "to": "action_f7rwlc"
+          },
+          {
+            "id": "edge_47lm6u",
+            "from": "action_f7rwlc",
+            "to": "action_jr76ia"
+          },
+          {
+            "id": "edge_h6dxkh",
+            "from": "action_jr76ia",
+            "to": "action_dobh9v"
+          },
+          {
+            "id": "edge_p1wjx5",
+            "from": "action_dobh9v",
+            "to": "action_rfleuy"
+          },
+          {
+            "id": "edge_9jxrqy",
+            "from": "action_rfleuy",
+            "to": "reset_2veisx"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb_flash_tick",
+        "sourceRuleId": "rb_flash_tick",
+        "name": "RB Flash Tick",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_8m29oh",
+            "type": "start",
+            "x": 60,
+            "y": 2060,
+            "label": "RB Flash Tick"
+          },
+          {
+            "id": "switchStep_9k4guc",
+            "type": "switchStep",
+            "x": 220,
+            "y": 2060,
+            "label": "Switch Step",
+            "switchId": "tick.rb.flash",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_6n3qng",
+            "type": "condition",
+            "x": 560,
+            "y": 2060,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "award_1rnuop",
+            "type": "award",
+            "x": 590,
+            "y": 2060,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_v0f8fu",
+            "type": "action",
+            "x": 770,
+            "y": 2060,
+            "label": "Action",
+            "actionType": "toggleVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "id": "action_z2di1g",
+            "type": "action",
+            "x": 940,
+            "y": 2060,
+            "label": "Action",
+            "actionType": "setLampFromVariable",
+            "lampId": "light_mgeiii",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "id": "action_s50pzf",
+            "type": "action",
+            "x": 1110,
+            "y": 2060,
+            "label": "Action",
+            "actionType": "setLampFromVariable",
+            "lampId": "light_wgg2ty",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "id": "action_5flk7b",
+            "type": "action",
+            "x": 1280,
+            "y": 2060,
+            "label": "Action",
+            "actionType": "setLampFromVariable",
+            "lampId": "light_1bwegn",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "id": "action_hhg2j2",
+            "type": "action",
+            "x": 1450,
+            "y": 2060,
+            "label": "Action",
+            "actionType": "setLampFromVariable",
+            "lampId": "light_x3ualq",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "id": "action_pacm2y",
+            "type": "action",
+            "x": 1620,
+            "y": 2060,
+            "label": "Action",
+            "actionType": "setLampFromVariable",
+            "lampId": "light_a5y97c",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "id": "action_srqiqt",
+            "type": "action",
+            "x": 1790,
+            "y": 2060,
+            "label": "Action",
+            "actionType": "setLampFromVariable",
+            "lampId": "light_l2n6ar",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "id": "action_plnpit",
+            "type": "action",
+            "x": 1960,
+            "y": 2060,
+            "label": "Action",
+            "actionType": "setLampFromVariable",
+            "lampId": "light_ad1uag",
+            "variableId": "rb_flash",
+            "property": "value"
+          },
+          {
+            "id": "reset_vlz045",
+            "type": "reset",
+            "x": 770,
+            "y": 2060,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_264mlv",
+            "from": "start_8m29oh",
+            "to": "switchStep_9k4guc"
+          },
+          {
+            "id": "edge_db78wu",
+            "from": "switchStep_9k4guc",
+            "to": "condition_6n3qng"
+          },
+          {
+            "id": "edge_p69m3k",
+            "from": "condition_6n3qng",
+            "to": "award_1rnuop"
+          },
+          {
+            "id": "edge_vme84o",
+            "from": "award_1rnuop",
+            "to": "action_v0f8fu"
+          },
+          {
+            "id": "edge_mmb8ea",
+            "from": "action_v0f8fu",
+            "to": "action_z2di1g"
+          },
+          {
+            "id": "edge_cpk6od",
+            "from": "action_z2di1g",
+            "to": "action_s50pzf"
+          },
+          {
+            "id": "edge_e012o8",
+            "from": "action_s50pzf",
+            "to": "action_5flk7b"
+          },
+          {
+            "id": "edge_4p8k6t",
+            "from": "action_5flk7b",
+            "to": "action_hhg2j2"
+          },
+          {
+            "id": "edge_uv26b7",
+            "from": "action_hhg2j2",
+            "to": "action_pacm2y"
+          },
+          {
+            "id": "edge_tr14dp",
+            "from": "action_pacm2y",
+            "to": "action_srqiqt"
+          },
+          {
+            "id": "edge_44arf5",
+            "from": "action_srqiqt",
+            "to": "action_plnpit"
+          },
+          {
+            "id": "edge_1snwd7",
+            "from": "action_plnpit",
+            "to": "reset_vlz045"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb_bonus_countdown",
+        "sourceRuleId": "rb_bonus_countdown",
+        "name": "RB Bonus Countdown",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_2lpmnr",
+            "type": "start",
+            "x": 60,
+            "y": 2280,
+            "label": "RB Bonus Countdown"
+          },
+          {
+            "id": "switchStep_x75enb",
+            "type": "switchStep",
+            "x": 220,
+            "y": 2280,
+            "label": "Switch Step",
+            "switchId": "tick.rb.second",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_rj3si1",
+            "type": "condition",
+            "x": 560,
+            "y": 2280,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "award_cmnp4b",
+            "type": "award",
+            "x": 590,
+            "y": 2280,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_tb0130",
+            "type": "action",
+            "x": 770,
+            "y": 2280,
+            "label": "Action",
+            "actionType": "addVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": -1
+          },
+          {
+            "id": "reset_k1vmgc",
+            "type": "reset",
+            "x": 770,
+            "y": 2280,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_kbg8u8",
+            "from": "start_2lpmnr",
+            "to": "switchStep_x75enb"
+          },
+          {
+            "id": "edge_a1ky42",
+            "from": "switchStep_x75enb",
+            "to": "condition_rj3si1"
+          },
+          {
+            "id": "edge_5wxox8",
+            "from": "condition_rj3si1",
+            "to": "award_cmnp4b"
+          },
+          {
+            "id": "edge_jvep1z",
+            "from": "award_cmnp4b",
+            "to": "action_tb0130"
+          },
+          {
+            "id": "edge_3ht9c3",
+            "from": "action_tb0130",
+            "to": "reset_k1vmgc"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb_bonus_timeout",
+        "sourceRuleId": "rb_bonus_timeout",
+        "name": "RB Bonus Timeout",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_0sr9ak",
+            "type": "start",
+            "x": 60,
+            "y": 2500,
+            "label": "RB Bonus Timeout"
+          },
+          {
+            "id": "switchStep_5un7f8",
+            "type": "switchStep",
+            "x": 220,
+            "y": 2500,
+            "label": "Switch Step",
+            "switchId": "tick.rb.second",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_8q5nfb",
+            "type": "condition",
+            "x": 560,
+            "y": 2500,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_lmhr2n",
+            "type": "condition",
+            "x": 730,
+            "y": 2500,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "operator": "lte",
+            "value": 0
+          },
+          {
+            "id": "award_0mb21e",
+            "type": "award",
+            "x": 590,
+            "y": 2500,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_cn067w",
+            "type": "action",
+            "x": 770,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_d3zfp3",
+            "type": "action",
+            "x": 940,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "id": "action_2c52f9",
+            "type": "action",
+            "x": 1110,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_rcuvmk",
+            "type": "action",
+            "x": 1280,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_k42np7",
+            "type": "action",
+            "x": 1450,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_p5xydg",
+            "type": "action",
+            "x": 1620,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_eez0k2",
+            "type": "action",
+            "x": 1790,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 100
+          },
+          {
+            "id": "action_800jxk",
+            "type": "action",
+            "x": 1960,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 100
+          },
+          {
+            "id": "action_s66xqp",
+            "type": "action",
+            "x": 2130,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 100
+          },
+          {
+            "id": "action_vllcus",
+            "type": "action",
+            "x": 2300,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_mgeiii",
+            "value": false
+          },
+          {
+            "id": "action_ii19c3",
+            "type": "action",
+            "x": 2470,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_wgg2ty",
+            "value": false
+          },
+          {
+            "id": "action_atfu80",
+            "type": "action",
+            "x": 2640,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_1bwegn",
+            "value": false
+          },
+          {
+            "id": "action_vlfb2w",
+            "type": "action",
+            "x": 2810,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": false
+          },
+          {
+            "id": "action_yms7xg",
+            "type": "action",
+            "x": 2980,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_a5y97c",
+            "value": false
+          },
+          {
+            "id": "action_9r5o53",
+            "type": "action",
+            "x": 3150,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": false
+          },
+          {
+            "id": "action_34uifv",
+            "type": "action",
+            "x": 3320,
+            "y": 2500,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": false
+          },
+          {
+            "id": "reset_n2mknc",
+            "type": "reset",
+            "x": 770,
+            "y": 2500,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_gwmv6b",
+            "from": "start_0sr9ak",
+            "to": "switchStep_5un7f8"
+          },
+          {
+            "id": "edge_hhe25h",
+            "from": "switchStep_5un7f8",
+            "to": "condition_8q5nfb"
+          },
+          {
+            "id": "edge_rpvfjt",
+            "from": "condition_8q5nfb",
+            "to": "condition_lmhr2n"
+          },
+          {
+            "id": "edge_zxy7gc",
+            "from": "condition_lmhr2n",
+            "to": "award_0mb21e"
+          },
+          {
+            "id": "edge_skkclf",
+            "from": "award_0mb21e",
+            "to": "action_cn067w"
+          },
+          {
+            "id": "edge_jkxyfx",
+            "from": "action_cn067w",
+            "to": "action_d3zfp3"
+          },
+          {
+            "id": "edge_z515n5",
+            "from": "action_d3zfp3",
+            "to": "action_2c52f9"
+          },
+          {
+            "id": "edge_u870nm",
+            "from": "action_2c52f9",
+            "to": "action_rcuvmk"
+          },
+          {
+            "id": "edge_5zbc8m",
+            "from": "action_rcuvmk",
+            "to": "action_k42np7"
+          },
+          {
+            "id": "edge_spg4vg",
+            "from": "action_k42np7",
+            "to": "action_p5xydg"
+          },
+          {
+            "id": "edge_g7ucdw",
+            "from": "action_p5xydg",
+            "to": "action_eez0k2"
+          },
+          {
+            "id": "edge_eeiowj",
+            "from": "action_eez0k2",
+            "to": "action_800jxk"
+          },
+          {
+            "id": "edge_o91eb8",
+            "from": "action_800jxk",
+            "to": "action_s66xqp"
+          },
+          {
+            "id": "edge_aigef0",
+            "from": "action_s66xqp",
+            "to": "action_vllcus"
+          },
+          {
+            "id": "edge_jigjz0",
+            "from": "action_vllcus",
+            "to": "action_ii19c3"
+          },
+          {
+            "id": "edge_k30gt3",
+            "from": "action_ii19c3",
+            "to": "action_atfu80"
+          },
+          {
+            "id": "edge_oc5g9u",
+            "from": "action_atfu80",
+            "to": "action_vlfb2w"
+          },
+          {
+            "id": "edge_gidgqp",
+            "from": "action_vlfb2w",
+            "to": "action_yms7xg"
+          },
+          {
+            "id": "edge_shvwdk",
+            "from": "action_yms7xg",
+            "to": "action_9r5o53"
+          },
+          {
+            "id": "edge_80a4d9",
+            "from": "action_9r5o53",
+            "to": "action_34uifv"
+          },
+          {
+            "id": "edge_4wygti",
+            "from": "action_34uifv",
+            "to": "reset_n2mknc"
+          }
+        ]
+      },
+      {
+        "id": "graph_rb_drain_reset",
+        "sourceRuleId": "rb_drain_reset",
+        "name": "RB Drain Reset",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_debqvj",
+            "type": "start",
+            "x": 60,
+            "y": 2720,
+            "label": "RB Drain Reset"
+          },
+          {
+            "id": "switchStep_bfejeu",
+            "type": "switchStep",
+            "x": 220,
+            "y": 2720,
+            "label": "Switch Step",
+            "switchId": "drain_x9t984",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "award_dy94b6",
+            "type": "award",
+            "x": 590,
+            "y": 2720,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_igtvg5",
+            "type": "action",
+            "x": 770,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_active",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_pvnaa2",
+            "type": "action",
+            "x": 940,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_bonus_seconds",
+            "property": "value",
+            "value": 0
+          },
+          {
+            "id": "action_irljrx",
+            "type": "action",
+            "x": 1110,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb_flash",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_8yaa11",
+            "type": "action",
+            "x": 1280,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb1_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_4rc03x",
+            "type": "action",
+            "x": 1450,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb2_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_nbwv61",
+            "type": "action",
+            "x": 1620,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "rb3_hit",
+            "property": "value",
+            "value": false
+          },
+          {
+            "id": "action_5sks7k",
+            "type": "action",
+            "x": 1790,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_qtr32l",
+            "value": 100
+          },
+          {
+            "id": "action_1xwd12",
+            "type": "action",
+            "x": 1960,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_hi9at0",
+            "value": 100
+          },
+          {
+            "id": "action_axduo8",
+            "type": "action",
+            "x": 2130,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "bumper_embhfu",
+            "value": 100
+          },
+          {
+            "id": "action_rlsr16",
+            "type": "action",
+            "x": 2300,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_mgeiii",
+            "value": false
+          },
+          {
+            "id": "action_ujtvaw",
+            "type": "action",
+            "x": 2470,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_wgg2ty",
+            "value": false
+          },
+          {
+            "id": "action_qbgmia",
+            "type": "action",
+            "x": 2640,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_1bwegn",
+            "value": false
+          },
+          {
+            "id": "action_blvrjo",
+            "type": "action",
+            "x": 2810,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_x3ualq",
+            "value": false
+          },
+          {
+            "id": "action_s9u5pg",
+            "type": "action",
+            "x": 2980,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_a5y97c",
+            "value": false
+          },
+          {
+            "id": "action_vk20yu",
+            "type": "action",
+            "x": 3150,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_l2n6ar",
+            "value": false
+          },
+          {
+            "id": "action_26qp6v",
+            "type": "action",
+            "x": 3320,
+            "y": 2720,
+            "label": "Action",
+            "actionType": "setLamp",
+            "lampId": "light_ad1uag",
+            "value": false
+          },
+          {
+            "id": "reset_qwp4bx",
+            "type": "reset",
+            "x": 770,
+            "y": 2720,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_kcq160",
+            "from": "start_debqvj",
+            "to": "switchStep_bfejeu"
+          },
+          {
+            "id": "edge_o9vkle",
+            "from": "switchStep_bfejeu",
+            "to": "award_dy94b6"
+          },
+          {
+            "id": "edge_fiqwek",
+            "from": "award_dy94b6",
+            "to": "action_igtvg5"
+          },
+          {
+            "id": "edge_jchwc8",
+            "from": "action_igtvg5",
+            "to": "action_pvnaa2"
+          },
+          {
+            "id": "edge_kiosfw",
+            "from": "action_pvnaa2",
+            "to": "action_irljrx"
+          },
+          {
+            "id": "edge_36hf9i",
+            "from": "action_irljrx",
+            "to": "action_8yaa11"
+          },
+          {
+            "id": "edge_je7xwn",
+            "from": "action_8yaa11",
+            "to": "action_4rc03x"
+          },
+          {
+            "id": "edge_f5e901",
+            "from": "action_4rc03x",
+            "to": "action_nbwv61"
+          },
+          {
+            "id": "edge_fjh9db",
+            "from": "action_nbwv61",
+            "to": "action_5sks7k"
+          },
+          {
+            "id": "edge_lpdx70",
+            "from": "action_5sks7k",
+            "to": "action_1xwd12"
+          },
+          {
+            "id": "edge_3npsd2",
+            "from": "action_1xwd12",
+            "to": "action_axduo8"
+          },
+          {
+            "id": "edge_cocv4s",
+            "from": "action_axduo8",
+            "to": "action_rlsr16"
+          },
+          {
+            "id": "edge_nwmeo8",
+            "from": "action_rlsr16",
+            "to": "action_ujtvaw"
+          },
+          {
+            "id": "edge_q6vdej",
+            "from": "action_ujtvaw",
+            "to": "action_qbgmia"
+          },
+          {
+            "id": "edge_mtpnps",
+            "from": "action_qbgmia",
+            "to": "action_blvrjo"
+          },
+          {
+            "id": "edge_urht0k",
+            "from": "action_blvrjo",
+            "to": "action_s9u5pg"
+          },
+          {
+            "id": "edge_3cc3j8",
+            "from": "action_s9u5pg",
+            "to": "action_vk20yu"
+          },
+          {
+            "id": "edge_n4nenb",
+            "from": "action_vk20yu",
+            "to": "action_26qp6v"
+          },
+          {
+            "id": "edge_4339ej",
+            "from": "action_26qp6v",
+            "to": "reset_qwp4bx"
+          }
+        ]
+      },
+      {
+        "id": "graph_yb1_progress",
+        "sourceRuleId": "yb1_progress",
+        "name": "YB1 Progress",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_0hrag9",
+            "type": "start",
+            "x": 60,
+            "y": 2940,
+            "label": "YB1 Progress"
+          },
+          {
+            "id": "switchStep_g9nvxt",
+            "type": "switchStep",
+            "x": 220,
+            "y": 2940,
+            "label": "Switch Step",
+            "switchId": "bumper_194zbe",
+            "lampId": "YB1-L1",
+            "stepIndex": 0
+          },
+          {
+            "id": "switchStep_u3uqeq",
+            "type": "switchStep",
+            "x": 390,
+            "y": 2940,
+            "label": "Switch Step",
+            "switchId": "bumper_194zbe",
+            "lampId": "YB1-L2",
+            "stepIndex": 1
+          },
+          {
+            "id": "switchStep_7krdog",
+            "type": "switchStep",
+            "x": 560,
+            "y": 2940,
+            "label": "Switch Step",
+            "switchId": "bumper_194zbe",
+            "lampId": "YB1-L3",
+            "stepIndex": 2
+          },
+          {
+            "id": "award_eghthe",
+            "type": "award",
+            "x": 930,
+            "y": 2940,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_1jgz33",
+            "type": "action",
+            "x": 1110,
+            "y": 2940,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb1_done",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "reset_1pn7ie",
+            "type": "reset",
+            "x": 1110,
+            "y": 2940,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": false,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_v8kcx0",
+            "from": "start_0hrag9",
+            "to": "switchStep_g9nvxt"
+          },
+          {
+            "id": "edge_xvsl78",
+            "from": "switchStep_g9nvxt",
+            "to": "switchStep_u3uqeq"
+          },
+          {
+            "id": "edge_y3smo5",
+            "from": "switchStep_u3uqeq",
+            "to": "switchStep_7krdog"
+          },
+          {
+            "id": "edge_o5esdv",
+            "from": "switchStep_7krdog",
+            "to": "award_eghthe"
+          },
+          {
+            "id": "edge_1kxkjq",
+            "from": "award_eghthe",
+            "to": "action_1jgz33"
+          },
+          {
+            "id": "edge_5obvi1",
+            "from": "action_1jgz33",
+            "to": "reset_1pn7ie"
+          }
+        ]
+      },
+      {
+        "id": "graph_yb2_progress",
+        "sourceRuleId": "yb2_progress",
+        "name": "YB2 Progress",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_j0s6hq",
+            "type": "start",
+            "x": 60,
+            "y": 3160,
+            "label": "YB2 Progress"
+          },
+          {
+            "id": "switchStep_52kq13",
+            "type": "switchStep",
+            "x": 220,
+            "y": 3160,
+            "label": "Switch Step",
+            "switchId": "bumper_b3jobn",
+            "lampId": "YB2-L1",
+            "stepIndex": 0
+          },
+          {
+            "id": "switchStep_wngef0",
+            "type": "switchStep",
+            "x": 390,
+            "y": 3160,
+            "label": "Switch Step",
+            "switchId": "bumper_b3jobn",
+            "lampId": "YB2-L2",
+            "stepIndex": 1
+          },
+          {
+            "id": "switchStep_giv5sy",
+            "type": "switchStep",
+            "x": 560,
+            "y": 3160,
+            "label": "Switch Step",
+            "switchId": "bumper_b3jobn",
+            "lampId": "YB2-L3",
+            "stepIndex": 2
+          },
+          {
+            "id": "award_p15zb0",
+            "type": "award",
+            "x": 930,
+            "y": 3160,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_kpb9rs",
+            "type": "action",
+            "x": 1110,
+            "y": 3160,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb2_done",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "reset_7cdb5q",
+            "type": "reset",
+            "x": 1110,
+            "y": 3160,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": false,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_60d1zv",
+            "from": "start_j0s6hq",
+            "to": "switchStep_52kq13"
+          },
+          {
+            "id": "edge_rb4po0",
+            "from": "switchStep_52kq13",
+            "to": "switchStep_wngef0"
+          },
+          {
+            "id": "edge_wfdj0p",
+            "from": "switchStep_wngef0",
+            "to": "switchStep_giv5sy"
+          },
+          {
+            "id": "edge_wel1lo",
+            "from": "switchStep_giv5sy",
+            "to": "award_p15zb0"
+          },
+          {
+            "id": "edge_6aq3pk",
+            "from": "award_p15zb0",
+            "to": "action_kpb9rs"
+          },
+          {
+            "id": "edge_lgtak8",
+            "from": "action_kpb9rs",
+            "to": "reset_7cdb5q"
+          }
+        ]
+      },
+      {
+        "id": "graph_yb3_progress",
+        "sourceRuleId": "yb3_progress",
+        "name": "YB3 Progress",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_28sr0a",
+            "type": "start",
+            "x": 60,
+            "y": 3380,
+            "label": "YB3 Progress"
+          },
+          {
+            "id": "switchStep_pgpfrg",
+            "type": "switchStep",
+            "x": 220,
+            "y": 3380,
+            "label": "Switch Step",
+            "switchId": "bumper_7h1qb5",
+            "lampId": "YB3-L1",
+            "stepIndex": 0
+          },
+          {
+            "id": "switchStep_7a31ke",
+            "type": "switchStep",
+            "x": 390,
+            "y": 3380,
+            "label": "Switch Step",
+            "switchId": "bumper_7h1qb5",
+            "lampId": "YB3-L2",
+            "stepIndex": 1
+          },
+          {
+            "id": "switchStep_vl42lt",
+            "type": "switchStep",
+            "x": 560,
+            "y": 3380,
+            "label": "Switch Step",
+            "switchId": "bumper_7h1qb5",
+            "lampId": "YB3-L3",
+            "stepIndex": 2
+          },
+          {
+            "id": "award_gx5sff",
+            "type": "award",
+            "x": 930,
+            "y": 3380,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_qs0gtm",
+            "type": "action",
+            "x": 1110,
+            "y": 3380,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb3_done",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "reset_sdd9w1",
+            "type": "reset",
+            "x": 1110,
+            "y": 3380,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": false,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_kqvo5g",
+            "from": "start_28sr0a",
+            "to": "switchStep_pgpfrg"
+          },
+          {
+            "id": "edge_cv3c9h",
+            "from": "switchStep_pgpfrg",
+            "to": "switchStep_7a31ke"
+          },
+          {
+            "id": "edge_ck6equ",
+            "from": "switchStep_7a31ke",
+            "to": "switchStep_vl42lt"
+          },
+          {
+            "id": "edge_qczwfw",
+            "from": "switchStep_vl42lt",
+            "to": "award_gx5sff"
+          },
+          {
+            "id": "edge_vzdcbe",
+            "from": "award_gx5sff",
+            "to": "action_qs0gtm"
+          },
+          {
+            "id": "edge_2jzmh5",
+            "from": "action_qs0gtm",
+            "to": "reset_sdd9w1"
+          }
+        ]
+      },
+      {
+        "id": "graph_yb_bonus_activate_1",
+        "sourceRuleId": "yb_bonus_activate_1",
+        "name": "yb_bonus_activate_1",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_dwgd8r",
+            "type": "start",
+            "x": 60,
+            "y": 3600,
+            "label": "yb_bonus_activate_1"
+          },
+          {
+            "id": "switchStep_i4iuke",
+            "type": "switchStep",
+            "x": 220,
+            "y": 3600,
+            "label": "Switch Step",
+            "switchId": "bumper_194zbe",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_cymjtk",
+            "type": "condition",
+            "x": 560,
+            "y": 3600,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_jag0ft",
+            "type": "condition",
+            "x": 730,
+            "y": 3600,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_pz0z6m",
+            "type": "condition",
+            "x": 900,
+            "y": 3600,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_9gpkfq",
+            "type": "condition",
+            "x": 1070,
+            "y": 3600,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_r494fr",
+            "type": "award",
+            "x": 590,
+            "y": 3600,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_bawmdm",
+            "type": "action",
+            "x": 770,
+            "y": 3600,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_o7mw9s",
+            "type": "action",
+            "x": 940,
+            "y": 3600,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_r083vt",
+            "type": "action",
+            "x": 1110,
+            "y": 3600,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          },
+          {
+            "id": "reset_6nqsdo",
+            "type": "reset",
+            "x": 770,
+            "y": 3600,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_owxqrj",
+            "from": "start_dwgd8r",
+            "to": "switchStep_i4iuke"
+          },
+          {
+            "id": "edge_n78au2",
+            "from": "switchStep_i4iuke",
+            "to": "condition_cymjtk"
+          },
+          {
+            "id": "edge_479ava",
+            "from": "condition_cymjtk",
+            "to": "condition_jag0ft"
+          },
+          {
+            "id": "edge_64o94h",
+            "from": "condition_jag0ft",
+            "to": "condition_pz0z6m"
+          },
+          {
+            "id": "edge_3per0f",
+            "from": "condition_pz0z6m",
+            "to": "condition_9gpkfq"
+          },
+          {
+            "id": "edge_zca79n",
+            "from": "condition_9gpkfq",
+            "to": "award_r494fr"
+          },
+          {
+            "id": "edge_cod92z",
+            "from": "award_r494fr",
+            "to": "action_bawmdm"
+          },
+          {
+            "id": "edge_nzs5nw",
+            "from": "action_bawmdm",
+            "to": "action_o7mw9s"
+          },
+          {
+            "id": "edge_l102mq",
+            "from": "action_o7mw9s",
+            "to": "action_r083vt"
+          },
+          {
+            "id": "edge_e9mynx",
+            "from": "action_r083vt",
+            "to": "reset_6nqsdo"
+          }
+        ]
+      },
+      {
+        "id": "graph_yb_bonus_activate_2",
+        "sourceRuleId": "yb_bonus_activate_2",
+        "name": "yb_bonus_activate_2",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_tm2i3d",
+            "type": "start",
+            "x": 60,
+            "y": 3820,
+            "label": "yb_bonus_activate_2"
+          },
+          {
+            "id": "switchStep_qc87il",
+            "type": "switchStep",
+            "x": 220,
+            "y": 3820,
+            "label": "Switch Step",
+            "switchId": "bumper_b3jobn",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_9a15tn",
+            "type": "condition",
+            "x": 560,
+            "y": 3820,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_5o4t1q",
+            "type": "condition",
+            "x": 730,
+            "y": 3820,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_0y9p35",
+            "type": "condition",
+            "x": 900,
+            "y": 3820,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_ua3zme",
+            "type": "condition",
+            "x": 1070,
+            "y": 3820,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_jfw7kw",
+            "type": "award",
+            "x": 590,
+            "y": 3820,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_7ry2bd",
+            "type": "action",
+            "x": 770,
+            "y": 3820,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_kbyzsp",
+            "type": "action",
+            "x": 940,
+            "y": 3820,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_uyvid9",
+            "type": "action",
+            "x": 1110,
+            "y": 3820,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          },
+          {
+            "id": "reset_yzytxz",
+            "type": "reset",
+            "x": 770,
+            "y": 3820,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_83tz7v",
+            "from": "start_tm2i3d",
+            "to": "switchStep_qc87il"
+          },
+          {
+            "id": "edge_7uv8je",
+            "from": "switchStep_qc87il",
+            "to": "condition_9a15tn"
+          },
+          {
+            "id": "edge_7x3369",
+            "from": "condition_9a15tn",
+            "to": "condition_5o4t1q"
+          },
+          {
+            "id": "edge_qf6lym",
+            "from": "condition_5o4t1q",
+            "to": "condition_0y9p35"
+          },
+          {
+            "id": "edge_07jqev",
+            "from": "condition_0y9p35",
+            "to": "condition_ua3zme"
+          },
+          {
+            "id": "edge_7gdwlb",
+            "from": "condition_ua3zme",
+            "to": "award_jfw7kw"
+          },
+          {
+            "id": "edge_0jn6ig",
+            "from": "award_jfw7kw",
+            "to": "action_7ry2bd"
+          },
+          {
+            "id": "edge_yoc10l",
+            "from": "action_7ry2bd",
+            "to": "action_kbyzsp"
+          },
+          {
+            "id": "edge_nhvzew",
+            "from": "action_kbyzsp",
+            "to": "action_uyvid9"
+          },
+          {
+            "id": "edge_4peikz",
+            "from": "action_uyvid9",
+            "to": "reset_yzytxz"
+          }
+        ]
+      },
+      {
+        "id": "graph_yb_bonus_activate_3",
+        "sourceRuleId": "yb_bonus_activate_3",
+        "name": "yb_bonus_activate_3",
+        "enabled": true,
+        "ordered": true,
+        "nodes": [
+          {
+            "id": "start_dnyqa9",
+            "type": "start",
+            "x": 60,
+            "y": 4040,
+            "label": "yb_bonus_activate_3"
+          },
+          {
+            "id": "switchStep_5ad6n2",
+            "type": "switchStep",
+            "x": 220,
+            "y": 4040,
+            "label": "Switch Step",
+            "switchId": "bumper_7h1qb5",
+            "lampId": "",
+            "stepIndex": 0
+          },
+          {
+            "id": "condition_tsjpzz",
+            "type": "condition",
+            "x": 560,
+            "y": 4040,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb1_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_r6kp1u",
+            "type": "condition",
+            "x": 730,
+            "y": 4040,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb2_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_0f93vs",
+            "type": "condition",
+            "x": 900,
+            "y": 4040,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb3_done",
+            "property": "value",
+            "operator": "truthy"
+          },
+          {
+            "id": "condition_909n1w",
+            "type": "condition",
+            "x": 1070,
+            "y": 4040,
+            "label": "Condition",
+            "source": "variable",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "operator": "falsy"
+          },
+          {
+            "id": "award_nw1inc",
+            "type": "award",
+            "x": 590,
+            "y": 4040,
+            "label": "Award",
+            "awardPoints": 0,
+            "awardEvent": "ruleAwarded"
+          },
+          {
+            "id": "action_mkeox6",
+            "type": "action",
+            "x": 770,
+            "y": 4040,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_all_lit",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_8dx865",
+            "type": "action",
+            "x": 940,
+            "y": 4040,
+            "label": "Action",
+            "actionType": "setVariableProperty",
+            "variableId": "yb_go_flash",
+            "property": "value",
+            "value": true
+          },
+          {
+            "id": "action_s9hddm",
+            "type": "action",
+            "x": 1110,
+            "y": 4040,
+            "label": "Action",
+            "actionType": "setElementScore",
+            "targetId": "trough_8v6niy",
+            "value": 1000
+          },
+          {
+            "id": "reset_o1oyrw",
+            "type": "reset",
+            "x": 770,
+            "y": 4040,
+            "label": "Reset",
+            "resetOnDrain": true,
+            "resetOnComplete": true,
+            "resetOnWrongOrder": false
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge_40fcnm",
+            "from": "start_dnyqa9",
+            "to": "switchStep_5ad6n2"
+          },
+          {
+            "id": "edge_7q2hyn",
+            "from": "switchStep_5ad6n2",
+            "to": "condition_tsjpzz"
+          },
+          {
+            "id": "edge_tskv25",
+            "from": "condition_tsjpzz",
+            "to": "condition_r6kp1u"
+          },
+          {
+            "id": "edge_gfb3om",
+            "from": "condition_r6kp1u",
+            "to": "condition_0f93vs"
+          },
+          {
+            "id": "edge_ev8zv6",
+            "from": "condition_0f93vs",
+            "to": "condition_909n1w"
+          },
+          {
+            "id": "edge_atnodr",
+            "from": "condition_909n1w",
+            "to": "award_nw1inc"
+          },
+          {
+            "id": "edge_xlbun3",
+            "from": "award_nw1inc",
+            "to": "action_mkeox6"
+          },
+          {
+            "id": "edge_v6iut9",
+            "from": "action_mkeox6",
+            "to": "action_8dx865"
+          },
+          {
+            "id": "edge_8vthak",
+            "from": "action_8dx865",
+            "to": "action_s9hddm"
+          },
+          {
+            "id": "edge_eibe36",
+            "from": "action_s9hddm",
+            "to": "reset_o1oyrw"
+          }
+        ]
+      }
+    ],
+    "triggers": [
+      {
+        "id": "tick_yb_go_flash",
+        "switchId": "tick.yb.go.flash",
+        "type": "interval",
+        "everySeconds": 0.3,
+        "enabled": true
+      },
+      {
+        "id": "tick_rb_flash",
+        "switchId": "tick.rb.flash",
+        "type": "interval",
+        "everySeconds": 0.3,
+        "enabled": true
+      },
+      {
+        "id": "tick_rb_second",
+        "switchId": "tick.rb.second",
+        "type": "interval",
+        "everySeconds": 1,
+        "enabled": true
+      }
+    ],
+    "variables": [
+      {
+        "id": "yb_all_lit",
+        "name": "YB All Lit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "yb_go_flash",
+        "name": "YB GO Flash",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb1_hit",
+        "name": "RB1 Hit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb2_hit",
+        "name": "RB2 Hit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb3_hit",
+        "name": "RB3 Hit",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb_bonus_active",
+        "name": "RB Bonus Active",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "rb_bonus_seconds",
+        "name": "RB Bonus Seconds",
+        "properties": {
+          "value": 0
+        }
+      },
+      {
+        "id": "rb_flash",
+        "name": "RB Flash",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "yb1_done",
+        "name": "YB1 Done",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "yb2_done",
+        "name": "YB2 Done",
+        "properties": {
+          "value": false
+        }
+      },
+      {
+        "id": "yb3_done",
+        "name": "YB3 Done",
+        "properties": {
+          "value": false
+        }
+      }
+    ]
+  },
+  "launcher": {
+    "x": 460,
+    "y": 795,
+    "dir": {
+      "x": 0,
+      "y": -1
+    },
+    "maxPower": 42,
+    "valve": false,
+    "top": 640,
+    "bottom": 820,
+    "width": 38,
+    "maxRetract": 65,
+    "springStrength": 1
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "images": [
+    {
+      "id": "image_7o6t9w",
+      "src": "tables/kitten.png",
+      "mode": "both",
+      "opacity": 1,
+      "fit": "cover",
+      "scale": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 0.86515990139678,
+          "y": 141.0738997627491,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 80,
+          "y": 40,
+          "inHandle": {
+            "x": -55.1382712166118,
+            "y": 15.735448098862598
+          },
+          "outHandle": {
+            "x": 55.1382712166118,
+            "y": -15.735448098862598
+          }
+        },
+        {
+          "x": 250,
+          "y": 10,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 410,
+          "y": 40,
+          "inHandle": {
+            "x": -28.89054206412351,
+            "y": -11.410161589942632
+          },
+          "outHandle": {
+            "x": 28.89054206412351,
+            "y": 11.410161589942632
+          }
+        },
+        {
+          "x": 493.3290776280867,
+          "y": 147.24071089707263,
+          "inHandle": {
+            "x": 3.0070684978546183,
+            "y": -68.56388014582136
+          },
+          "outHandle": {
+            "x": -3.0070684978546183,
+            "y": 68.56388014582136
+          }
+        },
+        {
+          "x": 494.21005064727575,
+          "y": 223.00439054733258
+        },
+        {
+          "x": 494.7745545054538,
+          "y": 862.5826407385508
+        },
+        {
+          "x": 3.800348951027053,
+          "y": 861.5054557706358
+        },
+        {
+          "x": 2.627105939774919,
+          "y": 222.1234175281435
+        }
+      ],
+      "color": "#d49221"
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 460,
+      "top": 640,
+      "bottom": 820,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "valve": false
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 90,
+        "y": 720
+      },
+      "length": 110,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 34,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "tipStrikeBoost": 0.68,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "tipRestitution": 0.28,
+      "tipFriction": 0.04,
+      "thickness": 10,
+      "color": "#00ddff"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 360,
+        "y": 720
+      },
+      "length": 110,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 34,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "tipStrikeBoost": 0.68,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "tipRestitution": 0.28,
+      "tipFriction": 0.04,
+      "thickness": 10,
+      "color": "#ff4466"
+    },
+    {
+      "id": "drain_x9t984",
+      "type": "drain",
+      "level": 0,
+      "x": 230,
+      "y": 850,
+      "w": 150,
+      "h": 10,
+      "color": "#925454"
+    },
+    {
+      "id": "path_m90kes",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 435.24509481722237,
+          "y": 619.2381781198894
+        },
+        {
+          "x": 434.1322414131403,
+          "y": 860.2662854871351
+        }
+      ],
+      "color": "#dd8d1d"
+    },
+    {
+      "id": "path_s1tw4o",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 226.99965206985664,
+          "y": 808.3120868329548
+        },
+        {
+          "x": 226.99965206985664,
+          "y": 828.3120868329548
+        }
+      ]
+    },
+    {
+      "id": "path_sam7md",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 370.5236823471875,
+          "y": 694.1513263082027
+        },
+        {
+          "x": 432.8669934512913,
+          "y": 695.7498727467694,
+          "inHandle": {
+            "x": -56.342373976540614,
+            "y": 1.3267874504877
+          },
+          "outHandle": {
+            "x": 56.342373976540614,
+            "y": -1.3267874504877
+          }
+        }
+      ],
+      "color": "#c38f1d"
+    },
+    {
+      "id": "path_you9op",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 80,
+          "y": 700
+        },
+        {
+          "x": 43.95346178062168,
+          "y": 696.5698409594388
+        },
+        {
+          "x": 44.809064858971894,
+          "y": 475.73714357015285
+        }
+      ],
+      "color": "#c48c12"
+    },
+    {
+      "id": "path_8sgulq",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 5.105630680115554,
+          "y": 745.3353818817598
+        },
+        {
+          "x": 150.23006780778655,
+          "y": 860.6252906894608
+        }
+      ],
+      "color": "#db831f"
+    },
+    {
+      "id": "path_nhd4n4",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 311.1941961513675,
+          "y": 864.1160192288128
+        },
+        {
+          "x": 434.8630184628098,
+          "y": 834.5830001861924
+        }
+      ],
+      "color": "#c39618"
+    },
+    {
+      "id": "kicker_xt6drh",
+      "type": "kicker",
+      "level": 0,
+      "radius": 6,
+      "bandThickness": 4,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 250,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 53.427320406990674,
+          "y": 474.52627940391494
+        },
+        {
+          "x": 83.03312861439387,
+          "y": 682.9511691840333
+        },
+        {
+          "x": 59.34848204847134,
+          "y": 682.3590530198853
+        }
+      ]
+    },
+    {
+      "id": "kicker_wnnvlj",
+      "type": "kicker",
+      "level": 0,
+      "radius": 5.9517505898674825,
+      "bandThickness": 4,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 250,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 376.1185948821711,
+          "y": 681.3629547996685
+        },
+        {
+          "x": 422.4764416006073,
+          "y": 629.4101955462487
+        },
+        {
+          "x": 422.4764416006073,
+          "y": 683.7607744575187
+        }
+      ]
+    },
+    {
+      "id": "trough_2omso3",
+      "type": "trough",
+      "level": 0,
+      "x": 23.915845187265482,
+      "y": 661.9579225936327,
+      "radius": 10.073914913715743,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 20,
+      "ejectAngle": -1.5707963267948966,
+      "color": "#88aaff",
+      "pitColor": "#08101f"
+    },
+    {
+      "id": "path_gle2s7",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 50.73023424409348,
+          "y": 418.6723377680066,
+          "inHandle": {
+            "x": 3.8122557668810515,
+            "y": 2.3460035488498647
+          },
+          "outHandle": {
+            "x": -3.8122557668810515,
+            "y": -2.3460035488498647
+          }
+        },
+        {
+          "x": 4.126232219101773,
+          "y": 472.168309625469,
+          "outHandle": {
+            "x": -0.09906047531177364,
+            "y": 42.61315494828534
+          },
+          "inHandle": {
+            "x": 0.09906047531177364,
+            "y": -42.61315494828534
+          }
+        },
+        {
+          "x": 4.126232219101773,
+          "y": 352.168309625469
+        },
+        {
+          "x": 36.360962507387995,
+          "y": 400.19755982081386,
+          "inHandle": {
+            "x": -4.985257541305984,
+            "y": -7.038010646549651
+          },
+          "outHandle": {
+            "x": 4.985257541305984,
+            "y": 7.038010646549651
+          }
+        }
+      ],
+      "color": "#d19515"
+    },
+    {
+      "id": "trough_8v6niy",
+      "type": "trough",
+      "level": 0,
+      "x": 26.802907122866472,
+      "y": 336.8029071228665,
+      "radius": 10,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 20,
+      "ejectAngle": -1.5836402786109052,
+      "color": "#88aaff",
+      "pitColor": "#08101f"
+    },
+    {
+      "id": "lane_f8dks6",
+      "type": "lane",
+      "level": 0,
+      "x": 25.594912534983674,
+      "y": 562.0072678071662,
+      "w": 40,
+      "h": 20,
+      "score": 100,
+      "angle": 1.5707963267948966
+    },
+    {
+      "id": "arrowLight_1ui1zc",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 59.21889629863203,
+      "y": 384.8138088336157,
+      "w": 56.8403539121461,
+      "h": 24.610780452727116,
+      "angle": 4.147836459905761,
+      "lampId": "",
+      "text": "GO",
+      "label": "",
+      "color": "#fffa66"
+    },
+    {
+      "id": "bumper_qtr32l",
+      "type": "bumper",
+      "x": 70,
+      "y": 110,
+      "radius": 24,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "name": "RB1"
+    },
+    {
+      "id": "bumper_hi9at0",
+      "type": "bumper",
+      "x": 200,
+      "y": 70,
+      "radius": 24,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "name": "RB2"
+    },
+    {
+      "id": "path_e2vm5b",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 222.3959958608953,
+          "y": 11.25381993625814,
+          "outHandle": {
+            "x": 70,
+            "y": 0
+          },
+          "inHandle": {
+            "x": -70,
+            "y": 0
+          }
+        },
+        {
+          "x": 247.60400413910475,
+          "y": 158.7461800637418,
+          "inHandle": {
+            "x": 20,
+            "y": -70
+          },
+          "outHandle": {
+            "x": -20,
+            "y": 70
+          }
+        },
+        {
+          "x": 197.60400413910475,
+          "y": 278.7461800637418,
+          "outHandle": {
+            "x": -13.681491333509854,
+            "y": 32.38243437452985
+          },
+          "inHandle": {
+            "x": 13.681491333509854,
+            "y": -32.38243437452985
+          }
+        },
+        {
+          "x": 222.3959958608953,
+          "y": 291.2538199362582,
+          "outHandle": {
+            "x": 12.241221424116077,
+            "y": -22.25954555939387
+          },
+          "inHandle": {
+            "x": -12.241221424116077,
+            "y": 22.25954555939387
+          }
+        },
+        {
+          "x": 282.3959958608953,
+          "y": 161.25381993625814,
+          "outHandle": {
+            "x": 30,
+            "y": -70
+          },
+          "inHandle": {
+            "x": -30,
+            "y": 70
+          }
+        },
+        {
+          "x": 447.60400413910475,
+          "y": 58.746180063741804,
+          "inHandle": {
+            "x": -124.1735544767568,
+            "y": -63.597080728372305
+          },
+          "outHandle": {
+            "x": 124.1735544767568,
+            "y": 63.597080728372305
+          }
+        }
+      ],
+      "color": "#dfb620"
+    },
+    {
+      "id": "lane_e5cpe6",
+      "type": "lane",
+      "level": 0,
+      "x": 165.72530282785777,
+      "y": 283.2060228791067,
+      "w": 40,
+      "h": 20,
+      "score": 100,
+      "angle": 1.5707963267948966
+    },
+    {
+      "id": "lane_c1f1og",
+      "type": "lane",
+      "level": 0,
+      "x": 108.39698856044667,
+      "y": 282.1373485860711,
+      "w": 40,
+      "h": 20,
+      "score": 100,
+      "angle": 1.5707963267948966
+    },
+    {
+      "id": "bumper_embhfu",
+      "type": "bumper",
+      "x": 160,
+      "y": 170,
+      "radius": 24,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "name": "RB3"
+    },
+    {
+      "id": "path_7ypzqa",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 137.32831426741112,
+          "y": 253.7403600256244
+        },
+        {
+          "x": 137.32831426741112,
+          "y": 313.7403600256244
+        }
+      ]
+    },
+    {
+      "id": "path_qd8fqp",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 82.64877632402619,
+          "y": 252.6971238441204
+        },
+        {
+          "x": 50.733512206294996,
+          "y": 220.8864075101308
+        },
+        {
+          "x": 50.05421038644182,
+          "y": 325.36697577053803,
+          "inHandle": {
+            "x": -2.7912053088139004,
+            "y": -6.553452160915128
+          },
+          "outHandle": {
+            "x": 2.7912053088139004,
+            "y": 6.553452160915128
+          }
+        },
+        {
+          "x": 83.27931066166857,
+          "y": 374.337626797524,
+          "inHandle": {
+            "x": -0.6484747557995689,
+            "y": 8.883862993115315
+          },
+          "outHandle": {
+            "x": 0.6484747557995689,
+            "y": -8.883862993115315
+          }
+        },
+        {
+          "x": 82.11443917750842,
+          "y": 302.9248156167914
+        }
+      ],
+      "color": "#5c5851"
+    },
+    {
+      "id": "gate_e451tv",
+      "type": "gate",
+      "level": 0,
+      "x": 50,
+      "y": 220,
+      "length": 51.40299900240648,
+      "angle": -2.549289001295333,
+      "locked": false,
+      "direction": "forward",
+      "twoWay": false,
+      "swingStartAngle": -2.548180707911721,
+      "swingEndAngle": -1.5707963267948966,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff"
+    },
+    {
+      "id": "bumper_7h1qb5",
+      "type": "bumper",
+      "x": 408.4489662608993,
+      "y": 179.74880722411456,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "color": "#e3d431",
+      "name": "YB3"
+    },
+    {
+      "id": "bumper_b3jobn",
+      "type": "bumper",
+      "x": 327.47408553848777,
+      "y": 285.1255963879427,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "color": "#e3d431",
+      "name": "YB2"
+    },
+    {
+      "id": "bumper_194zbe",
+      "type": "bumper",
+      "x": 405.5243240936649,
+      "y": 405.4505566287466,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "color": "#e3d431",
+      "name": "YB1"
+    },
+    {
+      "id": "dropTarget_0ry3em",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 405.77551686955036,
+      "y": 302.3484891505451,
+      "w": 10,
+      "h": 10,
+      "angle": 2.356194490192345,
+      "restitution": 0.55,
+      "score": 250
+    },
+    {
+      "id": "dropTarget_st4t1m",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 313.16635839810607,
+      "y": 392.69104868923165,
+      "w": 6,
+      "h": 11.061791056261251,
+      "angle": 4.020209055075683,
+      "restitution": 0.55,
+      "score": 250
+    },
+    {
+      "id": "dropTarget_gq5k8z",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 306.67663012704344,
+      "y": 196.42543735115797,
+      "w": 10,
+      "h": 10,
+      "angle": 2.356194490192345,
+      "restitution": 0.55,
+      "score": 250
+    },
+    {
+      "id": "bumper_cx7zd5",
+      "type": "bumper",
+      "x": 134.74378861998144,
+      "y": 389.26064619132353,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0
+    },
+    {
+      "id": "bumper_h9qtk7",
+      "type": "bumper",
+      "x": 238.28606070937187,
+      "y": 388.4556965139074,
+      "radius": 17.77290311524005,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0
+    },
+    {
+      "id": "light_8sch5e",
+      "type": "light",
+      "level": 0,
+      "x": 405.1993638528611,
+      "y": 366.1004771103542,
+      "radius": 6,
+      "lampId": "YB1-L1",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB1-L1"
+    },
+    {
+      "id": "light_qb334y",
+      "type": "light",
+      "level": 0,
+      "x": 436.49920481607637,
+      "y": 437.72527831437327,
+      "radius": 6,
+      "lampId": "YB1-L2",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB1-L2"
+    },
+    {
+      "id": "light_8cg4x8",
+      "type": "light",
+      "level": 0,
+      "x": 372.92464216723437,
+      "y": 438.7001590367847,
+      "radius": 7.1044028113748325,
+      "lampId": "YB1-L3",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB1-L3"
+    },
+    {
+      "id": "light_4yfis8",
+      "type": "light",
+      "level": 0,
+      "x": 327.7990457792916,
+      "y": 243.82575542472745,
+      "radius": 6,
+      "lampId": "YB2-L1",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB2-L1"
+    },
+    {
+      "id": "light_on1qjy",
+      "type": "light",
+      "level": 0,
+      "x": 410.39872770572214,
+      "y": 138.44896626089925,
+      "radius": 7.940452735339111,
+      "lampId": "YB3-L1",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB3-L1"
+    },
+    {
+      "id": "light_4wx0if",
+      "type": "light",
+      "level": 0,
+      "x": 358.7739265017031,
+      "y": 315.4505566287466,
+      "radius": 6,
+      "lampId": "YB2-L2",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB2-L2"
+    },
+    {
+      "id": "light_5zis55",
+      "type": "light",
+      "level": 0,
+      "x": 297.14912529768395,
+      "y": 315.1255963879427,
+      "radius": 4,
+      "lampId": "YB2-L3",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB2-L3"
+    },
+    {
+      "id": "light_sm014u",
+      "type": "light",
+      "level": 0,
+      "x": 439.74880722411456,
+      "y": 211.69856866893744,
+      "radius": 6,
+      "lampId": "YB3-L2",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB3-L2"
+    },
+    {
+      "id": "light_hu8m7a",
+      "type": "light",
+      "level": 0,
+      "x": 379.7488072241145,
+      "y": 212.34848915054505,
+      "radius": 6,
+      "lampId": "YB3-L3",
+      "text": "",
+      "label": "",
+      "color": "#ffee55",
+      "name": "YB3-L3"
+    },
+    {
+      "id": "light_mgeiii",
+      "type": "light",
+      "level": 0,
+      "x": 104.2577368242906,
+      "y": 195.30295432344755,
+      "radius": 7.418613378976439,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_wgg2ty",
+      "type": "light",
+      "level": 0,
+      "x": 140.51670902088478,
+      "y": 118.09953227421748,
+      "radius": 6.594111392051904,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_1bwegn",
+      "type": "light",
+      "level": 0,
+      "x": 189.74820860035086,
+      "y": 140.07477769714532,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_x3ualq",
+      "type": "light",
+      "level": 0,
+      "x": 191.1148927374186,
+      "y": 217.10598197727222,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_a5y97c",
+      "type": "light",
+      "level": 0,
+      "x": 109.18843506226034,
+      "y": 75.57156792936166,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_l2n6ar",
+      "type": "light",
+      "level": 0,
+      "x": 230,
+      "y": 40,
+      "radius": 5.528345119404392,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "light_ad1uag",
+      "type": "light",
+      "level": 0,
+      "x": 41.208323238724674,
+      "y": 85.801503581412,
+      "radius": 7.173621064292567,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#ec3636",
+      "name": "WoolLight"
+    },
+    {
+      "id": "gate_u491f4",
+      "type": "gate",
+      "level": 0,
+      "x": 487.69304445135435,
+      "y": 602.5984621682276,
+      "length": 47.76882909787013,
+      "angle": 2.8623399732707,
+      "locked": false,
+      "swingStartAngle": 2.8623399732707,
+      "swingEndAngle": 4.71238898038469,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff"
+    },
+    {
+      "id": "path_ypedgv",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 85.40159327098614,
+          "y": 695.9777247952908,
+          "inHandle": {
+            "x": -20.595184305727074,
+            "y": 6.569649030720257
+          },
+          "outHandle": {
+            "x": 20.595184305727074,
+            "y": -6.569649030720257
+          }
+        },
+        {
+          "x": 80.66466395780164,
+          "y": 699.5304217801792
+        }
+      ]
+    }
+  ]
+}

@@ -30,14 +30,17 @@
         "- Timer triggers emit normal switch IDs, so sequence steps may use trigger switch IDs like tick.flash.",
         "- Rules may also use conditions. Conditions can compare variables, element scores/properties, world score, or constants with eq/ne/gt/gte/lt/lte/truthy/falsy.",
         "- Logic variables are invisible runtime state, not table elements. Use setVariableProperty, addVariableProperty, toggleVariableProperty, resetVariableProperty, setLamp, clearLamp, or setLampFromVariable when needed.",
-        "- Flippers use pivot, length, restAngle, activeAngle, flipSpeed, flipAccel, returnSpeed, returnAccel, strikeBoost, surfaceRestitution, surfaceFriction, tipStrikeBoost, tipRestitution, tipFriction, and thickness.",
+        "- For staged per-object progression (for example, one switch/object advancing several stage lamps), prefer one ordered sequence rule with repeated step IDs and aligned stepLampIds instead of multiple one-step stage rules; this prevents one hit from advancing multiple stages in a single frame.",
+        "- In lamp actions, reference the lamp's gameplay id (lampId) when present; do not use light element ids unless that light has no lampId.",
+        "- Flippers use pivot, length, restAngle, activeAngle, flipSpeed, flipAccel, returnSpeed, returnAccel, strikeBoost, surfaceRestitution, surfaceFriction, and thickness. Legacy tip fields may exist on older tables but are optional.",
         "- Gate is the current rotating gate mechanism. Gate supports locked; when locked it acts as a wall and cannot swing.",
         "- Drain is an out-of-play removal sensor. Trough is a circular saucer/pit with radius, holdSeconds, reactivateDelay, ejectPower, and ejectAngle.",
         "- Launcher is selectable and uses x, top, bottom, width, maxPower, maxRetract, pullSpeed, returnSpeed, and springStrength.",
         "- Presentation lamps use light, arrowLight, or boxLight. All support lampId, text, label, and color; arrowLight uses w, h, and angle; boxLight uses w, h, angle, and cornerRadius.",
+        "- Progressive bumper logic is supported with sequenceRules plus variables and actions. Use score for the bumper's base/default score, and use setElementScore to raise later hit values.",
         "- Do not invent geometry fields for elements that do not expose them.",
         "- If the request is under-specified, explain the blocker briefly instead of guessing.",
-        "- Do not output raw element objects when the task is an edit request.",
+        "- Do not output raw replacement table JSON. Use complete element objects only inside addElements when the patch needs new table objects.",
         "- For layout requests, reason in terms of editor operations first, not freehand coordinate math."
     ].join("\n");
 
@@ -49,15 +52,7 @@
         try {
             const raw = localStorage.getItem(SETTINGS_KEY);
             if (!raw) return clone(DEFAULT_SETTINGS);
-            const parsed = JSON.parse(raw);
-            const settings = Object.assign({}, DEFAULT_SETTINGS, parsed);
-            if (parsed && parsed.apiKey) {
-                try {
-                    localStorage.setItem(SETTINGS_KEY, JSON.stringify(Object.assign({}, parsed, { apiKey: "" })));
-                } catch (writeErr) {}
-            }
-            settings.apiKey = "";
-            return settings;
+            return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
         } catch (err) {
             return clone(DEFAULT_SETTINGS);
         }
@@ -65,8 +60,7 @@
 
     function saveSettings(settings) {
         try {
-            const safeSettings = Object.assign({}, settings, { apiKey: "" });
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(safeSettings));
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
         } catch (err) {}
     }
 
@@ -89,8 +83,7 @@
         [
             "x", "y", "w", "h", "width", "top", "bottom", "radius", "length", "angle", "cornerRadius",
             "restAngle", "activeAngle", "flipSpeed", "flipAccel", "returnSpeed", "returnAccel",
-            "strikeBoost", "tipStrikeBoost", "surfaceRestitution", "surfaceFriction",
-            "tipRestitution", "tipFriction", "thickness", "maxPower", "maxRetract",
+            "strikeBoost", "surfaceRestitution", "surfaceFriction", "thickness", "maxPower", "maxRetract",
             "pullSpeed", "springStrength", "power", "kickPower", "score", "restitution",
             "friction", "holdSeconds", "reactivateDelay", "ejectPower", "ejectAngle", "maxAngle",
             "returnStrength", "returnDamping", "levelFrom", "levelTo", "zStart", "zEnd"
@@ -103,7 +96,7 @@
         ].forEach(function copyString(key) {
             if (typeof element[key] === "string" && element[key]) summary[key] = element[key];
         });
-        ["closed", "twoWay", "enabled", "locked"].forEach(function copyBoolean(key) {
+        ["closed", "enabled", "locked"].forEach(function copyBoolean(key) {
             if (typeof element[key] === "boolean") summary[key] = element[key];
         });
         ["anchors", "leftAnchors", "rightAnchors"].forEach(function countAnchors(key) {
@@ -119,12 +112,12 @@
 
     function getElementKnowledge() {
         return {
-            patchOperation: "Use patchElements with { patches: [{ id, patch }] } for direct element property edits.",
+            patchOperation: "Use addElements with { elements: [complete element objects] } to create new table objects, and use patchElements with { patches: [{ id, patch }] } for direct element property edits.",
             score: "Use score for default contact scoring. Do not use baseScore.",
             gate: "Use gate for rotating gate mechanisms. Valve is legacy and should not be proposed for new table edits. Gate locked=true makes it act as a wall.",
             trough: "Use trough for a round saucer/pit: radius, holdSeconds, reactivateDelay, ejectPower, ejectAngle, color, pitColor.",
             drain: "Use drain for bottom out-of-play removal: x, y, w, h, color.",
-            flipper: "Use flipper material fields: surfaceRestitution/surfaceFriction for body, tipRestitution/tipFriction/tipStrikeBoost for tip, strikeBoost for driven impact.",
+            flipper: "Use flipper material fields: surfaceRestitution/surfaceFriction plus strikeBoost. Legacy tipRestitution/tipFriction/tipStrikeBoost may appear in older tables.",
             launcher: "Launcher geometry is x/top/bottom/width; power is maxPower/maxRetract/pullSpeed/returnSpeed/springStrength.",
             presentation: "Use light for circular lamps, arrowLight for scalable rotated arrow lamps, and boxLight for rotated rounded text boxes. All use lampId and optional text.",
             logic: "Rules can use sequenceRules plus logicGraphs. Timers are rulesEngine.triggers and emit normal switch IDs. Variables are rulesEngine.variables runtime state. Rules may use conditions with eq/ne/gt/gte/lt/lte/truthy/falsy. Action nodes can use element, variable, and lamp action types."
@@ -258,6 +251,7 @@
                                             rule: { type: "object" },
                                             variable: { type: "object" },
                                             trigger: { type: "object" },
+                                            elements: { type: "array", items: { type: "object" } },
                                             id: { type: "string" },
                                             ids: { type: "array", items: { type: "string" } },
                                             value: { type: "number" },
@@ -295,6 +289,14 @@
             settings: loadSettings(),
             messages: [],
             draft: "",
+            agenticDraft: "",
+            agenticFullyAuto: true,
+            agenticApproveEachChange: false,
+            agenticRunning: false,
+            agenticStopRequested: false,
+            agenticBatches: [],
+            agenticPendingPatch: null,
+            agenticPendingBatchId: "",
             busy: false,
             error: "",
             lastPatch: null,
@@ -313,6 +315,14 @@
                 settings: clone(state.settings),
                 messages: clone(state.messages),
                 draft: state.draft,
+                agenticDraft: state.agenticDraft,
+                agenticFullyAuto: state.agenticFullyAuto,
+                agenticApproveEachChange: state.agenticApproveEachChange,
+                agenticRunning: state.agenticRunning,
+                agenticStopRequested: state.agenticStopRequested,
+                agenticBatches: clone(state.agenticBatches),
+                agenticPendingPatch: clone(state.agenticPendingPatch),
+                agenticPendingBatchId: state.agenticPendingBatchId || "",
                 busy: state.busy,
                 error: state.error,
                 lastPatch: clone(state.lastPatch),
@@ -356,10 +366,24 @@
             state.draft = value || "";
         }
 
+        function setAgenticDraft(value) {
+            state.agenticDraft = value || "";
+        }
+
+        function setAgenticMode(patch) {
+            if (!patch || typeof patch !== "object") return;
+            if (typeof patch.fullyAuto === "boolean") state.agenticFullyAuto = patch.fullyAuto;
+            if (typeof patch.approveEachChange === "boolean") state.agenticApproveEachChange = patch.approveEachChange;
+            refresh("inspector");
+        }
+
         function clearConversation() {
             state.messages = [];
             state.error = "";
             state.lastPatch = null;
+            state.agenticBatches = [];
+            state.agenticPendingPatch = null;
+            state.agenticPendingBatchId = "";
             refresh("inspector");
         }
 
@@ -482,6 +506,21 @@
                 if (operation.op === "addTrigger") {
                     const trigger = operation.trigger || {};
                     lines.push("Add trigger " + (trigger.id || "(trigger)") + " -> " + (trigger.switchId || "(switch)"));
+                    return;
+                }
+                if (operation.op === "addElements") {
+                    lines.push("Add elements");
+                    (operation.elements || []).forEach(function eachElement(element) {
+                        const summary = [];
+                        if (element && element.type) summary.push("type=" + element.type);
+                        if (typeof element.x === "number") summary.push("x=" + element.x);
+                        if (typeof element.y === "number") summary.push("y=" + element.y);
+                        if (typeof element.radius === "number") summary.push("radius=" + element.radius);
+                        if (typeof element.w === "number") summary.push("w=" + element.w);
+                        if (typeof element.h === "number") summary.push("h=" + element.h);
+                        if (element && element.lampId) summary.push("lampId=" + element.lampId);
+                        lines.push("  " + ((element && element.id) || "(new element)") + (summary.length ? ": " + summary.join(", ") : ""));
+                    });
                     return;
                 }
                 if (operation.op === "updateTrigger") {
@@ -731,8 +770,12 @@
                 "The expected outcome is a clear intended edit or a short blocker explanation if a valid edit cannot be formed.",
                 "When the user is asking for an edit, do not answer like a tutorial.",
                 "Do not produce replacement JSON objects for edit requests.",
+                "Do not claim the sequence-rule schema is missing when rulesEngine, sequenceRules, variables, conditions, and actions are already present in context.",
+                "For progressive scoring requests on an existing bumper, use the bumper's current id plus resolved lamp ids, variables, conditions, and setElementScore actions rather than blocking on schema.",
+                "Translate user phrases like 'base score' into the real element field score.",
                 "For layout requests, identify the exact target ids and state the intended editor operations.",
                 "Good first-pass layout wording is like: 'Target ids: laneA, laneB, laneC. Intended operations: alignHorizontal, matchWidth, matchHeight.'",
+                "Good first-pass logic wording is like: 'Target ids: switchA and lamps lamp_stage_a, lamp_stage_b, lamp_stage_c. Intended operations: one ordered sequence rule with repeated step ids and aligned stepLampIds.'",
                 "Bad wording is freehand geometry advice, average-coordinate calculations, or illustrative JSON.",
                 AUTHORING_CONTRACT,
                 skillText
@@ -767,16 +810,23 @@
                 "- addTrigger { trigger }",
                 "- updateTrigger { id, patch }",
                 "- deleteTrigger { id }",
+                "- addElements { elements: [complete element objects] }",
                 "- alignHorizontal { ids }",
                 "- distributeHorizontal { ids }",
                 "- matchWidth { ids, value? }",
                 "- matchHeight { ids, value? }",
                 "- patchElements { patches: [{ id, patch }] }",
                 "Use only ids and fields already present in the provided context.",
+                "Use addElements when the request requires creating new lights or other supported table objects.",
+                "Each addElements entry must include a stable id, a supported type, and the concrete fields that type needs.",
                 "For current supported element properties, use the Current editor context knowledge section and the element summaries.",
                 "For score edits, emit patchElements patches that set score, never baseScore.",
+                "If the user says 'base score', translate that to the existing element score field.",
+                "Do not return a blocker saying the sequence-rule schema is unavailable when sequenceRules, variables, conditions, and actions are present in context.",
+                "For per-object staged progression, prefer one ordered sequence rule with repeated step ids and aligned stepLampIds. Use variable/action rules only for state that cannot be represented by sequence progress alone.",
+                "If object or lamp names are explicitly given, resolve them from current elements by exact name, label, id, or lampId match before claiming ambiguity.",
                 "For trough edits, emit patchElements patches using radius, holdSeconds, reactivateDelay, ejectPower, ejectAngle, color, or pitColor.",
-                "For flipper physics/material edits, emit patchElements patches using surfaceRestitution, surfaceFriction, tipRestitution, tipFriction, tipStrikeBoost, strikeBoost, flipAccel, returnAccel, flipSpeed, or returnSpeed.",
+                "For flipper physics/material edits, emit patchElements patches using surfaceRestitution, surfaceFriction, strikeBoost, flipAccel, returnAccel, flipSpeed, or returnSpeed. Legacy tipRestitution/tipFriction/tipStrikeBoost are optional compatibility fields.",
                 "For launcher edits, emit patchElements patches using x, top, bottom, width, maxPower, maxRetract, pullSpeed, returnSpeed, or springStrength.",
                 "For horizontal alignment requests, prefer alignHorizontal with the resolved ids.",
                 "For 'same size' requests on rectangular elements such as lanes, prefer matchWidth and matchHeight.",
@@ -793,6 +843,17 @@
                             { op: "alignHorizontal", ids: ["laneA", "laneB", "laneC"] },
                             { op: "matchWidth", ids: ["laneA", "laneB", "laneC"] },
                             { op: "matchHeight", ids: ["laneA", "laneB", "laneC"] }
+                        ]
+                    }
+                }),
+                "Example valid logic response:",
+                JSON.stringify({
+                    message: "Advance one bumper through three lamp stages, then set a completion variable and reset on drain.",
+                    patch: {
+                        type: "logicPatch",
+                        operations: [
+                            { op: "addVariable", variable: { id: "switch_a_complete", name: "Switch A Complete", properties: { value: false } } },
+                            { op: "addSequenceRule", rule: { id: "switch_a_progress", steps: ["switchA", "switchA", "switchA"], stepLampIds: ["lamp_stage_a", "lamp_stage_b", "lamp_stage_c"], conditions: [], actions: [{ actionType: "setVariableProperty", variableId: "switch_a_complete", property: "value", value: true }], resetOnDrain: true, resetOnComplete: false, resetOnWrongOrder: false } }
                         ]
                     }
                 }),
@@ -1100,6 +1161,7 @@
                 addTrigger: true,
                 updateTrigger: true,
                 deleteTrigger: true,
+                addElements: true,
                 alignHorizontal: true,
                 distributeHorizontal: true,
                 matchWidth: true,
@@ -1123,6 +1185,196 @@
             const text = (state.draft || "").trim();
             if (!text || state.busy) return;
             return sendPrompt(text, true);
+        }
+
+        function pushAgenticBatch(record) {
+            state.agenticBatches.push(record);
+            if (state.agenticBatches.length > 40) {
+                state.agenticBatches.splice(0, state.agenticBatches.length - 40);
+            }
+        }
+
+        function markBatchStatus(batchId, patch) {
+            if (!batchId) return null;
+            for (let i = state.agenticBatches.length - 1; i >= 0; i--) {
+                const batch = state.agenticBatches[i];
+                if (!batch || batch.id !== batchId) continue;
+                if (patch && typeof patch === "object") {
+                    Object.keys(patch).forEach(function each(key) {
+                        batch[key] = patch[key];
+                    });
+                }
+                return batch;
+            }
+            return null;
+        }
+
+        function previewPatchValidation(patch) {
+            if (!patch || !options.previewPatch) return null;
+            try {
+                const previewResult = options.previewPatch(clone(patch));
+                if (!previewResult || previewResult.ok !== true) {
+                    return {
+                        ok: false,
+                        error: previewResult && previewResult.message ? previewResult.message : "Patch preview failed.",
+                        issuesCount: null
+                    };
+                }
+                return {
+                    ok: true,
+                    issuesCount: Array.isArray(previewResult.issues) ? previewResult.issues.length : 0
+                };
+            } catch (err) {
+                return {
+                    ok: false,
+                    error: err && err.message ? err.message : String(err),
+                    issuesCount: null
+                };
+            }
+        }
+
+        async function runAgentic() {
+            const text = (state.agenticDraft || "").trim();
+            if (!text || state.busy || state.agenticRunning) return;
+            state.busy = true;
+            state.agenticRunning = true;
+            state.agenticStopRequested = false;
+            state.error = "";
+            state.agenticPendingPatch = null;
+            state.agenticPendingBatchId = "";
+            state.messages.push({ role: "user", content: "[Agentic] " + text });
+            refresh("inspector");
+            try {
+                let prompt = text;
+                const maxBatches = Math.max(1, Number(state.settings.maxSteps) || 4);
+                for (let i = 0; i < maxBatches; i++) {
+                    if (state.agenticStopRequested) break;
+                    const firstPassText = await runAgent(prompt);
+                    const extractedText = await extractStructuredResponse(prompt, firstPassText);
+                    const extractedResult = tryParseJson(extractedText);
+                    const result = extractedResult ?
+                        normalizePatchCandidate(extractedResult) :
+                        {
+                            message: "Agentic extraction returned an invalid structured response.",
+                            patch: null,
+                            error: extractedText ? "Agentic extraction did not return valid JSON." : "Agentic extraction returned no content."
+                        };
+                    const assistantText = result && typeof result.message === "string" ? result.message : "No response.";
+                    state.messages.push({ role: "assistant", content: "[Agentic] " + assistantText });
+                    if (result && result.error) {
+                        state.error = result.error;
+                        break;
+                    }
+                    if (!result || !result.patch) break;
+                    const batch = {
+                        id: "batch_" + Date.now() + "_" + i,
+                        at: new Date().toISOString(),
+                        status: "proposed",
+                        message: assistantText,
+                        summary: summarizePatch(result.patch),
+                        patch: clone(result.patch)
+                    };
+                    const preview = previewPatchValidation(result.patch);
+                    if (preview) batch.preview = preview;
+                    if (!state.agenticApproveEachChange && state.agenticFullyAuto) {
+                        // Auto mode is intentionally strict: only auto-apply batches that preview cleanly.
+                        if (!preview || !preview.ok || (typeof preview.issuesCount === "number" && preview.issuesCount > 0)) {
+                            batch.status = "pending_manual_apply";
+                            batch.error = !preview ? "Auto-apply blocked: preview is unavailable." :
+                                (!preview.ok ? ("Auto-apply blocked: " + (preview.error || "preview failed.")) :
+                                    ("Auto-apply blocked: preview found " + preview.issuesCount + " issue(s)."));
+                            state.agenticPendingPatch = clone(result.patch);
+                            state.agenticPendingBatchId = batch.id;
+                            state.lastPatch = clone(result.patch);
+                            pushAgenticBatch(batch);
+                            state.error = batch.error;
+                            break;
+                        }
+                    }
+                    if (state.agenticApproveEachChange || !state.agenticFullyAuto) {
+                        batch.status = state.agenticApproveEachChange ? "pending_approval" : "pending_manual_apply";
+                        state.agenticPendingPatch = clone(result.patch);
+                        state.agenticPendingBatchId = batch.id;
+                        state.lastPatch = clone(result.patch);
+                        pushAgenticBatch(batch);
+                        break;
+                    }
+                    const applyResult = options.applyPatch ? options.applyPatch(result.patch) : { ok: false, message: "No apply handler available." };
+                    if (applyResult && applyResult.ok) {
+                        batch.status = "applied";
+                        batch.issues = (applyResult.issues || []).length;
+                        pushAgenticBatch(batch);
+                        state.lastPatch = null;
+                        prompt = "Continue the same user task. Prior patch applied. If complete, return patch null.";
+                        refresh("inspector");
+                        continue;
+                    }
+                    batch.status = "failed";
+                    batch.error = (applyResult && applyResult.message) || "Failed to apply patch.";
+                    pushAgenticBatch(batch);
+                    state.error = batch.error;
+                    break;
+                }
+            } catch (err) {
+                state.error = err && err.message ? err.message : String(err);
+                logEntry("agentic.error", state.error);
+            } finally {
+                state.agenticRunning = false;
+                state.agenticStopRequested = false;
+                state.busy = false;
+                refresh("inspector");
+            }
+        }
+
+        function stopAgentic() {
+            state.agenticStopRequested = true;
+            refresh("inspector");
+        }
+
+        function applyAgenticPendingPatch() {
+            if (!state.agenticPendingPatch || !options.applyPatch) return { ok: false, message: "No pending agentic patch." };
+            const patch = clone(state.agenticPendingPatch);
+            const result = options.applyPatch(patch);
+            const linkedBatch = markBatchStatus(state.agenticPendingBatchId, {
+                status: result && result.ok ? "applied" : "failed",
+                issues: result && result.issues ? result.issues.length : 0,
+                error: result && !result.ok ? (result.message || "Failed to apply pending patch.") : ""
+            });
+            if (!linkedBatch) {
+                pushAgenticBatch({
+                    at: new Date().toISOString(),
+                    status: result && result.ok ? "applied" : "failed",
+                    summary: summarizePatch(patch),
+                    patch: patch,
+                    issues: result && result.issues ? result.issues.length : 0,
+                    error: result && !result.ok ? (result.message || "Failed to apply pending patch.") : ""
+                });
+            }
+            if (result && result.ok) {
+                state.agenticPendingPatch = null;
+                state.agenticPendingBatchId = "";
+                state.lastPatch = null;
+            } else if (result && result.message) {
+                state.error = result.message;
+            }
+            if (linkedBatch && linkedBatch.preview && linkedBatch.preview.ok && typeof linkedBatch.issues === "number") {
+                linkedBatch.preview.afterApplyIssues = linkedBatch.issues;
+            }
+            refresh("inspector");
+            return result;
+        }
+
+        function rejectAgenticPendingPatch() {
+            if (!state.agenticPendingPatch) return { ok: false, message: "No pending agentic patch." };
+            markBatchStatus(state.agenticPendingBatchId, {
+                status: "rejected",
+                error: ""
+            });
+            state.agenticPendingPatch = null;
+            state.agenticPendingBatchId = "";
+            state.lastPatch = null;
+            refresh("inspector");
+            return { ok: true, message: "Pending patch rejected." };
         }
 
         /**
@@ -1243,6 +1495,12 @@
             loadModels: loadModels,
             testConnection: testConnection,
             send: send,
+            setAgenticDraft: setAgenticDraft,
+            setAgenticMode: setAgenticMode,
+            runAgentic: runAgentic,
+            stopAgentic: stopAgentic,
+            applyAgenticPendingPatch: applyAgenticPendingPatch,
+            rejectAgenticPendingPatch: rejectAgenticPendingPatch,
             quickPrompt: quickPrompt,
             applyLastPatch: applyLastPatch,
             openLog: openLog,

@@ -202,7 +202,7 @@
         if (/(^|\.)(color|glowColor|pinColor|label|lampId|bandThickness)$/.test(path)) {
             return "visual";
         }
-        if (/(^|\.)(surfaceRestitution|surfaceFriction|tipRestitution|tipFriction|strikeBoost|tipStrikeBoost|thickness)$/.test(path)) {
+        if (/(^|\.)(surfaceRestitution|surfaceFriction|strikeBoost|thickness)$/.test(path)) {
             return "contact";
         }
         if (/(^|\.)(flipSpeed|flipAccel|returnSpeed|returnAccel|maxPower|maxRetract|pullSpeed|springStrength|returnStrength|returnDamping|power|kickPower|score|damping|windowSeconds|awardPoints|restitution|holdSeconds|reactivateDelay|ejectPower)$/.test(path)) {
@@ -244,11 +244,8 @@
                 { path: "returnSpeed", label: "return speed", groupKey: "Stroke" },
                 { path: "returnAccel", label: "return accel", groupKey: "Stroke" },
                 { path: "strikeBoost", label: "strike boost", groupKey: "Contact" },
-                { path: "tipStrikeBoost", label: "tip strike boost", groupKey: "Tip" },
                 { path: "surfaceRestitution", label: "surface restitution", groupKey: "Contact" },
                 { path: "surfaceFriction", label: "surface friction", groupKey: "Contact" },
-                { path: "tipRestitution", label: "tip restitution", groupKey: "Tip" },
-                { path: "tipFriction", label: "tip friction", groupKey: "Tip" },
                 { path: "color", label: "body color", groupKey: "Appearance" },
                 { path: "glowColor", label: "glow color", groupKey: "Appearance" },
                 { path: "side", label: "side", groupKey: "Setup" },
@@ -263,8 +260,7 @@
                 { path: "maxPower", label: "max power", groupKey: "Spring" },
                 { path: "maxRetract", label: "max retract", groupKey: "Spring" },
                 { path: "pullSpeed", label: "pull speed", groupKey: "Spring" },
-                { path: "returnSpeed", label: "return speed", groupKey: "Spring" },
-                { path: "valve", label: "valve", groupKey: "Setup" }
+                { path: "returnSpeed", label: "return speed", groupKey: "Spring" }
             ],
             path: [
                 { path: "role", label: "role", groupKey: "Shape" },
@@ -335,8 +331,6 @@
                 { path: "length", label: "length", groupKey: "Shape" },
                 { path: "angle", label: "angle", groupKey: "Shape" },
                 { path: "locked", label: "locked", groupKey: "Setup" },
-                { path: "direction", label: "direction", groupKey: "Setup", options: [{ value: "forward", label: "Forward" }, { value: "reverse", label: "Reverse" }] },
-                { path: "twoWay", label: "two way", groupKey: "Setup" },
                 { path: "swingStartAngle", label: "swing start angle", groupKey: "Hinge" },
                 { path: "swingEndAngle", label: "swing end angle", groupKey: "Hinge" },
                 { path: "returnStrength", label: "return spring", groupKey: "Hinge" },
@@ -373,7 +367,10 @@
                 pivotRollPreserve: true,
                 outwardSlipPreserve: true,
                 passiveSettleBias: true,
-                drivenSettleBias: true
+                drivenSettleBias: true,
+                tipStrikeBoost: true,
+                tipRestitution: true,
+                tipFriction: true
             }
         };
         return hidden[type] || null;
@@ -629,6 +626,15 @@
             toolGrid.appendChild(b);
         });
         toolSection.appendChild(toolGrid);
+        if (activeTool === "pen" && actions && actions.pen) {
+            const penSection = appendSection(container, "Pen");
+            appendField(penSection, "color", actions.pen.color || "#a8b5ea", function setPenColor(value) {
+                if (actions.pen.onSetColor) actions.pen.onSetColor(value);
+            });
+            appendField(penSection, "width", typeof actions.pen.thickness === "number" ? actions.pen.thickness : 6, function setPenWidth(value) {
+                if (actions.pen.onSetThickness) actions.pen.onSetThickness(value);
+            });
+        }
         if (actions && actions.tools && actions.tools.length) {
             appendActionRow(toolSection, actions.tools);
         }
@@ -703,6 +709,7 @@
         appendSmallText(tableSection, "Launcher tuning lives on the launcher element in Properties.");
         appendActionRow(tableSection, [
             { label: "Fit Table", onClick: model.onFrameTable },
+            { label: "Open Logic Editor", onClick: model.onOpenLogicStudio },
             { label: "Save File", onClick: model.onSaveFile },
             { label: "Open File", onClick: model.onOpenFile },
             { label: "Load Autosave", onClick: model.onLoadAutosave },
@@ -791,6 +798,7 @@
         assistantSubtabs.className = "assistant-subtabs";
         [
             { id: "chat", label: "Chat" },
+            { id: "agentic", label: "Agentic" },
             { id: "provider", label: "Provider" }
         ].forEach(function each(tab) {
             const button = document.createElement("button");
@@ -825,6 +833,98 @@
             { label: "Test Connection", onClick: model.onTestAssistantConnection, disabled: !!assistantState.busy },
             { label: "Load Models", onClick: model.onLoadAssistantModels, disabled: !!assistantState.busy }
         ]);
+        return;
+        }
+
+        if ((model.assistantSubtab || "chat") === "agentic") {
+        const agenticSection = appendSection(container, "Agentic");
+        appendSmallText(agenticSection, "Multi-step tool-driven flow that can inspect, plan, and execute structured patch batches.");
+        const agenticKey = "assistant:agentic";
+        const agenticDraftState = getDraftState(model, agenticKey, {
+            fullyAuto: assistantState.agenticFullyAuto !== false,
+            approveEachChange: !!assistantState.agenticApproveEachChange
+        });
+        appendField(agenticSection, "Fully Auto", !!agenticDraftState.value.fullyAuto, function patch(value) {
+            patchDraftValue(model, agenticKey, "fullyAuto", value);
+        });
+        appendField(agenticSection, "Approve Each Batch", !!agenticDraftState.value.approveEachChange, function patch(value) {
+            patchDraftValue(model, agenticKey, "approveEachChange", value);
+        });
+        appendDraftActions(agenticSection, agenticKey, agenticDraftState.dirty, function saveAgenticMode() {
+            if (model.onSaveAgenticModeDraft) model.onSaveAgenticModeDraft(agenticKey, agenticDraftState.value);
+        }, function resetAgenticMode() {
+            if (model.onResetCardDraft) model.onResetCardDraft(agenticKey);
+        });
+        const agenticComposer = document.createElement("textarea");
+        agenticComposer.className = "assistant-composer";
+        agenticComposer.placeholder = "Describe the table-editing task for the Agentic loop.";
+        agenticComposer.value = assistantState.agenticDraft || "";
+        agenticComposer.oninput = function updateAgenticDraft() {
+            if (model.onSetAgenticDraft) model.onSetAgenticDraft(agenticComposer.value);
+        };
+        agenticSection.appendChild(agenticComposer);
+        appendActionRow(agenticSection, [
+            { label: assistantState.agenticRunning ? "Running..." : "Run", onClick: model.onRunAgentic, disabled: !!assistantState.busy || !!assistantState.agenticRunning },
+            { label: "Stop", onClick: model.onStopAgentic, disabled: !assistantState.agenticRunning },
+            { label: "Apply Pending", onClick: model.onApplyAgenticPendingPatch, disabled: !assistantState.agenticPendingPatch },
+            { label: "Reject Pending", onClick: model.onRejectAgenticPendingPatch, disabled: !assistantState.agenticPendingPatch }
+        ]);
+        if (assistantState.agenticPendingPatch) {
+            const pendingCard = document.createElement("div");
+            pendingCard.className = "assistant-patch-summary";
+            const pendingHead = document.createElement("div");
+            pendingHead.className = "assistant-patch-line";
+            pendingHead.textContent = "Pending patch awaiting decision";
+            pendingCard.appendChild(pendingHead);
+            const pendingPre = document.createElement("pre");
+            pendingPre.className = "assistant-patch";
+            pendingPre.textContent = JSON.stringify(assistantState.agenticPendingPatch, null, 2);
+            pendingCard.appendChild(pendingPre);
+            agenticSection.appendChild(pendingCard);
+        }
+        if (assistantState.error) {
+            const errorRow = document.createElement("div");
+            errorRow.className = "validation-row error";
+            errorRow.textContent = assistantState.error;
+            agenticSection.appendChild(errorRow);
+        }
+        const batchSection = appendSection(container, "Agentic Batches");
+        const batches = assistantState.agenticBatches || [];
+        if (!batches.length) {
+            appendSmallText(batchSection, "No agentic batches yet");
+        } else {
+            batches.slice().reverse().forEach(function eachBatch(batch) {
+                const card = document.createElement("div");
+                card.className = "assistant-patch-summary";
+                const head = document.createElement("div");
+                head.className = "assistant-patch-line";
+                head.textContent = "[" + (batch.status || "unknown") + "] " + (batch.at || "");
+                card.appendChild(head);
+                (batch.summary || []).forEach(function eachLine(line) {
+                    const row = document.createElement("div");
+                    row.className = line.indexOf("  ") === 0 ? "assistant-patch-detail" : "assistant-patch-line";
+                    row.textContent = line.replace(/^  /, "");
+                    card.appendChild(row);
+                });
+                if (batch.error) {
+                    const err = document.createElement("div");
+                    err.className = "validation-row error";
+                    err.textContent = batch.error;
+                    card.appendChild(err);
+                }
+                if (batch.preview) {
+                    const preview = document.createElement("div");
+                    preview.className = "assistant-patch-line";
+                    if (batch.preview.ok) {
+                        preview.textContent = "Preview issues before apply: " + batch.preview.issuesCount;
+                    } else {
+                        preview.textContent = "Preview failed: " + (batch.preview.error || "Unknown error");
+                    }
+                    card.appendChild(preview);
+                }
+                batchSection.appendChild(card);
+            });
+        }
         return;
         }
 
@@ -1084,8 +1184,18 @@
         appendActionRow(rulesSection, [
             { label: "Add Sequence", onClick: model.onAddSequenceRule }
         ]);
+        if (model.onAddRuleTemplate) {
+            appendActionRow(rulesSection, [
+                { label: "Simple Event", onClick: function addSimpleEvent() { model.onAddRuleTemplate("simpleEvent"); } },
+                { label: "Light Progress", onClick: function addLightProgress() { model.onAddRuleTemplate("lightProgress"); } },
+                { label: "Combo", onClick: function addCombo() { model.onAddRuleTemplate("combo"); } },
+                { label: "Collect Bonus", onClick: function addCollectBonus() { model.onAddRuleTemplate("collectBonus"); } },
+                { label: "Timed Mode", onClick: function addTimedMode() { model.onAddRuleTemplate("timedMode"); } }
+            ]);
+        }
         const logicSubtabs = [
-            { id: "design", label: "Design" },
+            { id: "game", label: "Game Logic v2" },
+            { id: "rules", label: "Rules" },
             { id: "outcomes", label: "Outcomes" },
             { id: "variables", label: "Variables" },
             { id: "timers", label: "Timers" },
@@ -1093,7 +1203,8 @@
             { id: "check", label: "Check" },
             { id: "advanced", label: "Advanced" }
         ];
-        const activeLogicSubtab = logicSubtabs.some(function some(tab) { return tab.id === model.logicSubtab; }) ? model.logicSubtab : "design";
+        const normalizedLogicSubtab = model.logicSubtab === "design" ? "game" : model.logicSubtab;
+        const activeLogicSubtab = logicSubtabs.some(function some(tab) { return tab.id === normalizedLogicSubtab; }) ? normalizedLogicSubtab : "game";
         const subtabRow = document.createElement("div");
         subtabRow.className = "logic-subtabs";
         logicSubtabs.forEach(function each(tab) {
@@ -1107,6 +1218,45 @@
             subtabRow.appendChild(button);
         });
         rulesSection.appendChild(subtabRow);
+        function renderGameLogicSubtab() {
+            const gameSection = appendSection(container, "TBGameLogic v2");
+            appendSmallText(gameSection, "Author feature-level game logic here, then compile to runtime rules.");
+            appendActionRow(gameSection, [
+                { label: "Compile to Runtime", onClick: function compileGame() { if (model.onCompileGameLogic) model.onCompileGameLogic(); } },
+                { label: "Validate", onClick: function validateGame() { if (model.onSetLogicSubtab) model.onSetLogicSubtab("game"); } },
+                { label: "Scaffold Shots", onClick: function scaffoldGame() { if (model.onScaffoldGameLogicFromTable) model.onScaffoldGameLogicFromTable(); } },
+                { label: "Import", onClick: function importGame() { if (model.onImportGameLogicFile) model.onImportGameLogicFile(); } },
+                { label: "Export", onClick: function exportGame() { if (model.onExportGameLogicFile) model.onExportGameLogicFile(); } }
+            ]);
+            const issues = model.onValidateGameLogic ? model.onValidateGameLogic() : [];
+            if (issues.length) {
+                const issueWrap = document.createElement("div");
+                issueWrap.className = "logic-compact-list";
+                issues.forEach(function each(issue) {
+                    const row = document.createElement("div");
+                    row.className = "validation-row " + ((issue && issue.severity) || "warning");
+                    row.textContent = String((issue && issue.message) || "Issue");
+                    issueWrap.appendChild(row);
+                });
+                gameSection.appendChild(issueWrap);
+            } else {
+                appendSmallText(gameSection, "No validation issues.");
+            }
+            const source = model.gameLogicSource || { version: 2, shots: [], features: [], modes: [], awards: [], resets: [] };
+            const textArea = document.createElement("textarea");
+            textArea.className = "assistant-prompt";
+            textArea.style.minHeight = "360px";
+            textArea.value = JSON.stringify(source, null, 2);
+            textArea.onchange = function patchGameSource() {
+                if (model.onPatchGameLogicSourceText) model.onPatchGameLogicSourceText(textArea.value);
+            };
+            gameSection.appendChild(textArea);
+        }
+
+        if (activeLogicSubtab === "game") {
+            renderGameLogicSubtab();
+            return;
+        }
         if (activeLogicSubtab === "variables") {
             renderVariablesSubtab();
             return;
@@ -1355,7 +1505,7 @@
             ]);
         }
 
-        if (activeLogicSubtab === "design") {
+        if (activeLogicSubtab === "rules") {
             const flow = appendSection(container, "Flow");
             const flowStrip = document.createElement("div");
             flowStrip.className = "sequence-flow";
@@ -1376,7 +1526,7 @@
             flow.appendChild(flowStrip);
             appendSequenceSummary(flow, stepNodes, targetNode);
 
-            const builder = appendSection(container, "Design");
+            const builder = appendSection(container, "Rules");
             appendSmallText(builder, "Set up triggers and progress lights here. Use the current table selection to bind a step or lamp when it helps.");
             appendActionRow(builder, [
                 { label: "Add Step", onClick: function addBuilderStep() { if (model.onAddLogicStep) model.onAddLogicStep(selectedGraph.id); } }
@@ -1519,7 +1669,7 @@
             null;
         if (activeLogicSubtab === "advanced") {
             const advancedSection = appendSection(container, "Advanced");
-            appendSmallText(advancedSection, "Raw graph editing remains available here for unusual cases. Most sequence authoring should happen in Design, Outcomes, and Reset.");
+            appendSmallText(advancedSection, "Raw graph editing remains available here for unusual cases. Most sequence authoring should happen in Rules, Outcomes, and Reset.");
             appendActionRow(advancedSection, [
                 { label: "Add Action", onClick: function addActionNode() { if (model.onAddLogicNode) model.onAddLogicNode(selectedGraph.id, "action", { actionType: "setElementScore", targetId: "", value: 0 }); } },
                 { label: "Add Event", onClick: function addEventNode() { if (model.onAddLogicNode) model.onAddLogicNode(selectedGraph.id, "event", { eventType: "switchClosed", sourceId: "" }); } },
@@ -1937,9 +2087,6 @@
         const configuredFields = module && module.editor && Array.isArray(module.editor.inspectorFields) ? module.editor.inspectorFields : null;
         const hiddenLegacyFields = hiddenLegacyInspectorFields(selected.type);
         const fallbackDefaults = {
-            launcher: {
-                valve: false
-            },
             flipper: {
                 length: 95,
                 restAngle: -0.5,
@@ -1949,11 +2096,8 @@
                 returnSpeed: 18,
                 returnAccel: 160,
                 strikeBoost: 0.52,
-                tipStrikeBoost: 0.68,
                 surfaceRestitution: 0.28,
-                surfaceFriction: 0.08,
-                tipRestitution: 0.38,
-                tipFriction: 0.04
+                surfaceFriction: 0.08
             }
         };
         const rendered = {};
@@ -1968,12 +2112,6 @@
 
         function readField(path) {
             const current = Pin.editorTools.getByPath(selectedDraftState.value, path);
-            // Launcher valve must stay boolean so the editor renders a checkbox rather than text.
-            if (selected.type === "launcher" && path === "valve") {
-                if (current === undefined || current === null || current === "") return false;
-                if (typeof current === "string") return current !== "false" && current !== "0";
-                return !!current;
-            }
             if (selected.type === "gate" && (path === "swingStartAngle" || path === "swingEndAngle") && current === undefined) {
                 const restAngle = typeof selectedDraftState.value.angle === "number" ? selectedDraftState.value.angle : 0;
                 const maxAngle = Math.abs(typeof selectedDraftState.value.maxAngle === "number" ? selectedDraftState.value.maxAngle : 1.05);

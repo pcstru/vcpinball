@@ -54,16 +54,13 @@
      * Normalize sandbox flipper tuning so older saved layouts still expose the
      * current material controls in the lab.
      * Why: the sandbox should stay aligned with the runtime defaults even when a
-     * table fragment predates the newer tip-specific properties.
+     * table fragment predates current surface-level tuning defaults.
      */
     function normalizeSandboxFlipper(element) {
         if (!element || element.type !== "flipper") return element;
         if (typeof element.strikeBoost !== "number") element.strikeBoost = 0.52;
-        if (typeof element.tipStrikeBoost !== "number") element.tipStrikeBoost = 0.68;
         if (typeof element.surfaceRestitution !== "number") element.surfaceRestitution = 0.28;
         if (typeof element.surfaceFriction !== "number") element.surfaceFriction = 0.08;
-        if (typeof element.tipRestitution !== "number") element.tipRestitution = 0.38;
-        if (typeof element.tipFriction !== "number") element.tipFriction = 0.04;
         return element;
     }
 
@@ -544,11 +541,8 @@
                     { key: "returnSpeed", label: "Return Speed", min: 4, max: 40, step: 1 },
                     { key: "returnAccel", label: "Return Accel", min: 20, max: 600, step: 5 },
                     { key: "strikeBoost", label: "Strike Boost", min: 0, max: 6, step: 0.05 },
-                    { key: "tipStrikeBoost", label: "Tip Strike Boost", min: 0, max: 6, step: 0.05 },
                     { key: "surfaceRestitution", label: "Surface Restitution", min: 0, max: 2, step: 0.01 },
-                    { key: "surfaceFriction", label: "Surface Friction", min: 0, max: 4, step: 0.05 },
-                    { key: "tipRestitution", label: "Tip Restitution", min: 0, max: 2, step: 0.01 },
-                    { key: "tipFriction", label: "Tip Friction", min: 0, max: 4, step: 0.05 }
+                    { key: "surfaceFriction", label: "Surface Friction", min: 0, max: 4, step: 0.05 }
                 ], selectedFlipper, rebuildSimulation);
                 const selectedActions = create("div", "lab-actions");
                 const deleteSelected = create("button", "", "Delete Selected");

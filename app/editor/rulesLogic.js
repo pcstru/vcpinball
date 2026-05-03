@@ -21,6 +21,124 @@
         const getPendingEdgeSourceNodeId = options.getPendingEdgeSourceNodeId;
         const setPendingEdgeSourceNodeId = options.setPendingEdgeSourceNodeId;
         const setInspectorTab = options.setInspectorTab;
+        const SWITCH_ELEMENT_TYPES = ["lane", "scoreZone", "spinner", "gate", "valve", "drain", "launcher", "dropTarget", "bumper", "kicker", "trough"];
+        const LAMP_ELEMENT_TYPES = ["light", "arrowLight", "boxLight"];
+
+        /*
+         * What: Return switch-capable table elements in stable table order.
+         * Why: template generation should stay deterministic and use existing objects.
+         */
+        function listSwitchElements() {
+            return (state.table.elements || []).filter(function keep(element) {
+                return element && element.id && SWITCH_ELEMENT_TYPES.indexOf(element.type) >= 0;
+            });
+        }
+
+        /*
+         * What: Return lamp elements in stable table order.
+         * Why: logic templates often need reasonable defaults for progress/feedback lamps.
+         */
+        function listLampElements() {
+            return (state.table.elements || []).filter(function keep(element) {
+                return element && element.id && LAMP_ELEMENT_TYPES.indexOf(element.type) >= 0;
+            });
+        }
+
+        function lampRefForElement(element) {
+            if (!element) return "";
+            return element.lampId || element.id || "";
+        }
+
+        function uniqueIds(values) {
+            const out = [];
+            (values || []).forEach(function each(value) {
+                if (!value) return;
+                if (out.indexOf(value) >= 0) return;
+                out.push(value);
+            });
+            return out;
+        }
+
+        function selectedSwitchId() {
+            const selected = getSelected ? getSelected() : null;
+            if (!selected || !selected.id) return "";
+            return SWITCH_ELEMENT_TYPES.indexOf(selected.type) >= 0 ? selected.id : "";
+        }
+
+        function selectedLampId() {
+            const selected = getSelected ? getSelected() : null;
+            if (!selected || !selected.id) return "";
+            if (LAMP_ELEMENT_TYPES.indexOf(selected.type) < 0) return "";
+            return lampRefForElement(selected);
+        }
+
+        function pickSwitchIds(limit, preferSelected) {
+            const selectedId = preferSelected ? selectedSwitchId() : "";
+            const ordered = uniqueIds([selectedId].concat(listSwitchElements().map(function map(element) { return element.id; })));
+            return ordered.slice(0, Math.max(0, limit || 0));
+        }
+
+        function pickLampIds(limit, preferSelected) {
+            const selectedId = preferSelected ? selectedLampId() : "";
+            const ordered = uniqueIds([selectedId].concat(listLampElements().map(function map(element) { return lampRefForElement(element); })));
+            return ordered.slice(0, Math.max(0, limit || 0));
+        }
+
+        function findGoLampId() {
+            const lamps = listLampElements();
+            const goLamp = lamps.find(function find(lamp) {
+                const haystack = ((lamp.name || "") + " " + (lamp.text || "") + " " + (lamp.label || "") + " " + (lamp.id || "") + " " + (lamp.lampId || "")).toLowerCase();
+                return haystack.indexOf("go") >= 0;
+            });
+            if (goLamp) return lampRefForElement(goLamp);
+            return pickLampIds(1, true)[0] || "";
+        }
+
+        function findCollectSwitchId() {
+            const elements = state.table.elements || [];
+            const collect = elements.find(function find(element) { return element && element.type === "trough" && element.id; }) ||
+                elements.find(function find(element) { return element && element.type === "drain" && element.id; }) ||
+                listSwitchElements()[0] ||
+                null;
+            return collect ? collect.id : "";
+        }
+
+        function ensureTemplateVariable(rules, baseId, name, defaultValue) {
+            const existing = (rules.variables || []).find(function find(variable) {
+                return variable && (variable.id === baseId || variable.name === name);
+            });
+            if (existing) return existing.id || baseId;
+            let nextId = baseId;
+            let nextIndex = 2;
+            while ((rules.variables || []).some(function has(variable) { return variable && variable.id === nextId; })) {
+                nextId = baseId + "_" + nextIndex;
+                nextIndex += 1;
+            }
+            rules.variables.push({ id: nextId, name: name, properties: { value: !!defaultValue } });
+            return nextId;
+        }
+
+        function ensureTemplateTrigger(rules, baseId, switchId, everySeconds) {
+            if (!switchId) return "";
+            const bySwitch = (rules.triggers || []).find(function find(trigger) {
+                return trigger && trigger.switchId === switchId && trigger.type === "interval";
+            });
+            if (bySwitch) return bySwitch.switchId;
+            let triggerId = baseId;
+            let nextIndex = 2;
+            while ((rules.triggers || []).some(function has(trigger) { return trigger && trigger.id === triggerId; })) {
+                triggerId = baseId + "_" + nextIndex;
+                nextIndex += 1;
+            }
+            rules.triggers.push({
+                id: triggerId,
+                type: "interval",
+                everySeconds: everySeconds,
+                switchId: switchId,
+                enabled: true
+            });
+            return switchId;
+        }
 
         function applyNormalizedPatch(target, patch, normalizer) {
             Object.keys(patch || {}).forEach(function each(key) {
@@ -229,6 +347,134 @@
             setSelectedGraphNodeId(stepNode.id);
             setSelectedLogicNode(stepNode.id);
             if (firstSwitch) setSelectedId(firstSwitch);
+            setPendingEdgeSourceNodeId(null);
+            setInspectorTab("logic");
+            markTableDirty();
+            refresh("all");
+        }
+
+        /*
+         * What: Add opinionated, schema-valid starter templates for common rule flows.
+         * Why: logic authoring needs quick-start patterns without requiring raw graph edits.
+         */
+        function addRuleTemplate(kind) {
+            const templateKind = String(kind || "").trim().toLowerCase();
+            if (!templateKind) {
+                addSequenceRule();
+                return;
+            }
+            pushUndo();
+            const rules = ensureRulesEngine();
+            const createdRuleIds = [];
+            const switches = pickSwitchIds(4, true);
+            const lamps = pickLampIds(6, true);
+            function pushRule(rule) {
+                const normalized = Pin.editorTools.clone(rule || {});
+                if (!normalized.id) normalized.id = makeRuleId();
+                if (!normalized.name) normalized.name = "Sequence";
+                normalized.type = "sequence";
+                if (typeof normalized.enabled !== "boolean") normalized.enabled = true;
+                if (typeof normalized.ordered !== "boolean") normalized.ordered = true;
+                if (!Array.isArray(normalized.steps)) normalized.steps = [];
+                if (!Array.isArray(normalized.stepLampIds)) normalized.stepLampIds = [];
+                if (!Array.isArray(normalized.actions)) normalized.actions = [];
+                if (!Array.isArray(normalized.conditions)) normalized.conditions = [];
+                if (typeof normalized.resetOnDrain !== "boolean") normalized.resetOnDrain = true;
+                if (typeof normalized.resetOnComplete !== "boolean") normalized.resetOnComplete = true;
+                if (typeof normalized.resetOnWrongOrder !== "boolean") normalized.resetOnWrongOrder = false;
+                if (!normalized.awardEvent) normalized.awardEvent = "ruleAwarded";
+                rules.sequenceRules.push(normalized);
+                createdRuleIds.push(normalized.id);
+            }
+
+            if (templateKind === "simpleevent") {
+                pushRule({
+                    name: "Simple Event",
+                    steps: switches.slice(0, 1),
+                    awardPoints: 50
+                });
+            } else if (templateKind === "combo") {
+                const comboSteps = switches.slice(0, 3);
+                pushRule({
+                    name: "Combo",
+                    ordered: true,
+                    steps: comboSteps,
+                    stepLampIds: lamps.slice(0, comboSteps.length),
+                    awardPoints: Math.max(100, comboSteps.length * 50),
+                    resetOnWrongOrder: true
+                });
+            } else if (templateKind === "lightprogress") {
+                const stepSwitch = switches[0] || "";
+                const stagedLamps = lamps.slice(0, 3);
+                const stepCount = Math.max(1, stagedLamps.length || 3);
+                pushRule({
+                    name: "Light Progress",
+                    ordered: true,
+                    steps: Array(stepCount).fill(stepSwitch).filter(Boolean),
+                    stepLampIds: stagedLamps,
+                    awardPoints: 100
+                });
+            } else if (templateKind === "timedmode") {
+                const lampId = findGoLampId();
+                const variableId = ensureTemplateVariable(rules, "var_mode_flash", "Mode Flash", false);
+                const tickSwitchId = ensureTemplateTrigger(rules, "timer_mode_flash", "tick.mode.flash", 0.5);
+                pushRule({
+                    name: "Timed Mode Flash",
+                    ordered: true,
+                    steps: tickSwitchId ? [tickSwitchId] : [],
+                    actions: [
+                        { actionType: "toggleVariableProperty", variableId: variableId, property: "value" },
+                        lampId ? { actionType: "setLampFromVariable", lampId: lampId, variableId: variableId, property: "value" } : null
+                    ].filter(Boolean),
+                    awardPoints: 0
+                });
+            } else if (templateKind === "collectbonus") {
+                const buildSteps = pickSwitchIds(2, true);
+                const collectSwitch = findCollectSwitchId();
+                const goLampId = findGoLampId();
+                const variableId = ensureTemplateVariable(rules, "var_bonus_ready", "Bonus Ready", false);
+                pushRule({
+                    name: "Build Bonus",
+                    ordered: false,
+                    steps: buildSteps,
+                    stepLampIds: lamps.slice(0, buildSteps.length),
+                    actions: [
+                        { actionType: "setVariableProperty", variableId: variableId, property: "value", value: true },
+                        goLampId ? { actionType: "setLampFromVariable", lampId: goLampId, variableId: variableId, property: "value" } : null
+                    ].filter(Boolean),
+                    awardPoints: 0,
+                    resetOnComplete: false
+                });
+                pushRule({
+                    name: "Collect Bonus",
+                    ordered: true,
+                    steps: collectSwitch ? [collectSwitch] : [],
+                    conditions: [
+                        { source: "variable", variableId: variableId, property: "value", operator: "truthy" }
+                    ],
+                    actions: [
+                        { actionType: "setVariableProperty", variableId: variableId, property: "value", value: false },
+                        goLampId ? { actionType: "setLampFromVariable", lampId: goLampId, variableId: variableId, property: "value" } : null
+                    ].filter(Boolean),
+                    awardPoints: 1000
+                });
+            } else {
+                pushRule({
+                    name: "Simple Event",
+                    steps: switches.slice(0, 1),
+                    awardPoints: 50
+                });
+            }
+
+            rebuildGraphsFromRules();
+            const selectedRuleId = createdRuleIds[0] || null;
+            if (selectedRuleId) {
+                setSelectedRuleId(selectedRuleId);
+                const graph = (getLogicGraphs() || []).find(function find(item) { return item && item.sourceRuleId === selectedRuleId; }) || null;
+                setSelectedGraphId(graph ? graph.id : null);
+            }
+            setSelectedGraphNodeId(null);
+            setSelectedLogicNode(null);
             setPendingEdgeSourceNodeId(null);
             setInspectorTab("logic");
             markTableDirty();
@@ -597,6 +843,51 @@
             return { ok: true };
         }
 
+        /*
+         * Add new table elements from an assistant patch.
+         * Why: layout-plus-logic requests often need new lamps or inserts before
+         * the rest of the patch can wire rules, timers, and variables to them.
+         */
+        function applyAddElements(operation) {
+            const elements = operation.elements || [];
+            if (!Array.isArray(elements) || !elements.length) {
+                return { ok: false, message: "addElements needs a non-empty elements list." };
+            }
+            const existingIds = {};
+            (state.table.elements || []).forEach(function each(element) {
+                if (element && element.id) existingIds[element.id] = true;
+            });
+            const pendingIds = {};
+            for (let i = 0; i < elements.length; i++) {
+                const element = Pin.editorTools.clone(elements[i] || {});
+                if (!element.id) return { ok: false, message: "addElements entry is missing id." };
+                if (!element.type) return { ok: false, message: "addElements entry '" + element.id + "' is missing type." };
+                if (existingIds[element.id]) return { ok: false, message: "Element id already exists: " + element.id };
+                if (pendingIds[element.id]) return { ok: false, message: "Duplicate addElements id: " + element.id };
+                pendingIds[element.id] = true;
+                if (!Pin.editorModel || !Pin.editorModel.createDefaultElement || !Pin.editorModel.createDefaultElement(element.type, function noop() { return "__probe"; })) {
+                    return { ok: false, message: "Unsupported element type for addElements: " + element.type };
+                }
+                if (element.type === "light") {
+                    if (typeof element.x !== "number" || typeof element.y !== "number" || typeof element.radius !== "number") {
+                        return { ok: false, message: "Light '" + element.id + "' needs numeric x, y, and radius." };
+                    }
+                }
+                if (element.type === "arrowLight") {
+                    if (typeof element.x !== "number" || typeof element.y !== "number" || typeof element.w !== "number" || typeof element.h !== "number") {
+                        return { ok: false, message: "Arrow light '" + element.id + "' needs numeric x, y, w, and h." };
+                    }
+                }
+                if (element.type === "boxLight") {
+                    if (typeof element.x !== "number" || typeof element.y !== "number" || typeof element.w !== "number" || typeof element.h !== "number") {
+                        return { ok: false, message: "Box light '" + element.id + "' needs numeric x, y, w, and h." };
+                    }
+                }
+                state.table.elements.push(element);
+            }
+            return { ok: true };
+        }
+
         function applyAssistantPatch(patch) {
             if (!patch || !Array.isArray(patch.operations) || !patch.operations.length) {
                 return { ok: false, message: "Assistant patch has no operations." };
@@ -724,6 +1015,11 @@
                     if (!result.ok) return fail(result);
                     continue;
                 }
+                if (operation.op === "addElements") {
+                    const result = applyAddElements(operation);
+                    if (!result.ok) return fail(result);
+                    continue;
+                }
                 return fail({ ok: false, message: "Unsupported assistant operation: " + operation.op });
             }
             rebuildGraphsFromRules();
@@ -753,6 +1049,7 @@
             assignSelectedToLogicNode: assignSelectedToLogicNode,
             assignElementIdToLogicNode: assignElementIdToLogicNode,
             addSequenceRule: addSequenceRule,
+            addRuleTemplate: addRuleTemplate,
             addLogicStep: addLogicStep,
             deleteGraphEdge: deleteGraphEdge,
             patchGraphNode: patchGraphNode,
