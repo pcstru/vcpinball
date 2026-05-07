@@ -1,4 +1,8 @@
 (function registerPath(Pin) {
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
     Pin.elements.register("path", {
         compile: function compile(el) {
             const thickness = typeof el.thickness === "number" ? el.thickness : ((el.lineWidth || (el.role === "wall" ? 6 : 4)) * 0.5);
@@ -25,7 +29,9 @@
             const segments = (runtime && runtime.drawSegments) || Pin.geometry.pathToSegments(el.anchors || [], !!el.closed, 1);
             ctx.save();
             const color = el.color || (el.role === "slingshot" ? "#ff8800" : "rgba(160,160,220,0.85)");
+            const transparency = clamp(typeof el.transparency === "number" ? el.transparency : 1, 0, 1);
             ctx.strokeStyle = color;
+            ctx.globalAlpha = transparency;
             ctx.lineWidth = el.lineWidth || (el.role === "slingshot" ? 4 : Math.max(3, (el.thickness || 6)));
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
@@ -51,6 +57,6 @@
             }
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["role", "color", "closed", "thickness", "restitution"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["role", "color", "transparency", "closed", "thickness", "restitution"] }
     });
 })(window.Pin);

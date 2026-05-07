@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-store">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>Generic Pinball: Design + Play</title>
     <link rel="stylesheet" href="app/editor/editor.css">
 </head>
@@ -71,6 +68,6 @@
     <script src="app/logic/compile.js"></script>
     <script src="app/logic/page.js"></script>
 
-    <script src="app/main.js?v=20260506-play-launch-clean"></script>
+    <script src="app/main.js"></script>
 </body>
 </html>

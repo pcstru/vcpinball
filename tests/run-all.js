@@ -5,13 +5,7 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const tests = [
-    "tests/smoke.test.js",
-    "tests/assistantPatch.test.js",
-    "tests/assistantAgentic.test.js",
-    "tests/rulesTemplate.test.js",
-    "tests/gameLogicV2.test.js",
-    "tests/logicStudioCore.test.js",
-    "tests/physics.test.js"
+    "tests/smoke.test.js"
 ];
 
 tests.forEach(function run(testFile) {

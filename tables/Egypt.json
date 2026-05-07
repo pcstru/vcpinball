@@ -1,0 +1,1747 @@
+{
+  "version": 1,
+  "name": "PyramidBuild",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 12,
+    "gravity": 0.2,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "launcher": {
+    "x": 358.9972454149302,
+    "y": 818.8556386927564,
+    "dir": {
+      "x": 0,
+      "y": -1
+    },
+    "maxPower": 42,
+    "top": 693.8556386927564,
+    "bottom": 843.8556386927564,
+    "width": 38,
+    "maxRetract": 65,
+    "springStrength": 1
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "feat_pyramid_build_mode",
+      "name": "Pyramid Build Mode",
+      "description": "Build the pyramid by completing Targ1-3 to open Tomb Bonus for 30 seconds. Collecting Tomb Bonus advances one brick; next brick flashes. On final brick, COMPLETE flashes.",
+      "goal": "Light all pyramid bricks and flash COMPLETE.",
+      "objects": [
+        "dropTarget_vtf300",
+        "dropTarget_qifwv5",
+        "dropTarget_8ax6de",
+        "trough_bbpbjn",
+        "arrowLight_6j50ti",
+        "boxLight_c0qfor",
+        "boxLight_8j7w4z",
+        "boxLight_gxvdhr",
+        "boxLight_hsmih7",
+        "boxLight_fzcsxf",
+        "boxLight_lrkb1e",
+        "boxLight_9ingl1",
+        "boxLight_3ffv1r",
+        "boxLight_fcxiwk",
+        "boxLight_m91bk0",
+        "boxLight_xnwh4c",
+        "boxLight_44fo7m",
+        "boxLight_ni20m0",
+        "boxLight_ul3psu",
+        "boxLight_13op2r",
+        "boxLight_65rg5o",
+        "boxLight_l51jq2"
+      ],
+      "states": [
+        "targ1_lit",
+        "targ2_lit",
+        "targ3_lit",
+        "tomb_open",
+        "tomb_timer",
+        "pyramid_progress",
+        "blink_phase",
+        "game_complete"
+      ],
+      "rules": [
+        "blink_phase_set_1",
+        "blink_phase_set_0",
+        "hit_targ1_light",
+        "hit_targ2_light",
+        "hit_targ3_light",
+        "open_tomb_from_targ1",
+        "open_tomb_from_targ2",
+        "open_tomb_from_targ3",
+        "tomb_countdown",
+        "tomb_timeout_close",
+        "collect_tomb_advance",
+        "collect_tomb_complete"
+      ],
+      "lamps": [
+        "dropTarget_vtf300",
+        "dropTarget_qifwv5",
+        "dropTarget_8ax6de",
+        "arrowLight_6j50ti",
+        "boxLight_c0qfor",
+        "boxLight_8j7w4z",
+        "boxLight_gxvdhr",
+        "boxLight_hsmih7",
+        "boxLight_fzcsxf",
+        "boxLight_lrkb1e",
+        "boxLight_9ingl1",
+        "boxLight_3ffv1r",
+        "boxLight_fcxiwk",
+        "boxLight_m91bk0",
+        "boxLight_xnwh4c",
+        "boxLight_44fo7m",
+        "boxLight_ni20m0",
+        "boxLight_ul3psu",
+        "boxLight_13op2r",
+        "boxLight_65rg5o",
+        "boxLight_l51jq2"
+      ]
+    }
+  ],
+  "images": [
+    {
+      "id": "image_hvgend",
+      "src": "tables/Egypt.png",
+      "mode": "both",
+      "opacity": 1,
+      "fit": "contain",
+      "scale": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 21.894512076491655,
+          "y": 153.72679015675652,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 66.96453814649934,
+          "y": 58.657538079194204,
+          "inHandle": {
+            "x": -34,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 48,
+            "y": -22
+          }
+        },
+        {
+          "x": 250.89896886463887,
+          "y": 12.341748605510002,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 414.1255497668289,
+          "y": 53.782191818806396,
+          "inHandle": {
+            "x": -48,
+            "y": -22
+          },
+          "outHandle": {
+            "x": 34,
+            "y": 0
+          }
+        },
+        {
+          "x": 481.121534465489,
+          "y": 143.97609763598092,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 481.121534465489,
+          "y": 224.41931093237977
+        },
+        {
+          "x": 481.121534465489,
+          "y": 869.1838538686678
+        },
+        {
+          "x": 18.240185638382926,
+          "y": 872.8403635639587
+        },
+        {
+          "x": 18.240185638382926,
+          "y": 218.32512810689502
+        }
+      ],
+      "name": "outerWall",
+      "color": "#d87e18",
+      "transparency": 0.1
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 358.9972454149302,
+      "top": 693.8556386927564,
+      "bottom": 843.8556386927564,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 82.43621762540586,
+        "y": 725.3739612188366
+      },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 315.12756474918837,
+        "y": 725.3739612188365
+      },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466",
+      "name": "rf"
+    },
+    {
+      "id": "boxLight_8j7w4z",
+      "type": "boxLight",
+      "level": 0,
+      "x": 190,
+      "y": 256.5236552781195,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_gxvdhr",
+      "type": "boxLight",
+      "level": 0,
+      "x": 239.09760279677675,
+      "y": 257.4265916135765,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_hsmih7",
+      "type": "boxLight",
+      "level": 0,
+      "x": 290,
+      "y": 256.5236552781195,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_fzcsxf",
+      "type": "boxLight",
+      "level": 0,
+      "x": 340,
+      "y": 255.78974696197008,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_lrkb1e",
+      "type": "boxLight",
+      "level": 0,
+      "x": 390,
+      "y": 256.3950032879208,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_9ingl1",
+      "type": "boxLight",
+      "level": 0,
+      "x": 218.1853151955788,
+      "y": 225.1844906360193,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_3ffv1r",
+      "type": "boxLight",
+      "level": 0,
+      "x": 269.395105065193,
+      "y": 227.60551593982234,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_fcxiwk",
+      "type": "boxLight",
+      "level": 0,
+      "x": 318.1853151955788,
+      "y": 227.60551593982237,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_m91bk0",
+      "type": "boxLight",
+      "level": 0,
+      "x": 367.5804202607717,
+      "y": 225.7897469619701,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_xnwh4c",
+      "type": "boxLight",
+      "level": 0,
+      "x": 239.39510506519292,
+      "y": 195.78974696197005,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_44fo7m",
+      "type": "boxLight",
+      "level": 0,
+      "x": 289.3951050651929,
+      "y": 197.00025961387158,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_ni20m0",
+      "type": "boxLight",
+      "level": 0,
+      "x": 340,
+      "y": 197.6055159398223,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_ul3psu",
+      "type": "boxLight",
+      "level": 0,
+      "x": 258.7902101303859,
+      "y": 167.6055159398223,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_13op2r",
+      "type": "boxLight",
+      "level": 0,
+      "x": 318.1853151955788,
+      "y": 168.21077226577307,
+      "w": 40,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_65rg5o",
+      "type": "boxLight",
+      "level": 0,
+      "x": 288.79021013038584,
+      "y": 138.21077226577307,
+      "w": 60,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "boxLight_l51jq2",
+      "type": "boxLight",
+      "level": 0,
+      "x": 287.58042026077175,
+      "y": 110.63179756957602,
+      "w": 20,
+      "h": 20,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#cbd629",
+      "transparency": 1,
+      "name": "PBrick"
+    },
+    {
+      "id": "path_0kdzbm",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 383.9094559364855,
+          "y": 851.7174515235457
+        },
+        {
+          "x": 380.6233102458686,
+          "y": 660.6851493744639,
+          "inHandle": {
+            "x": 4.840878068858274,
+            "y": 10.795885785480323
+          },
+          "outHandle": {
+            "x": -4.840878068858274,
+            "y": -10.795885785480323
+          }
+        },
+        {
+          "x": 483.9094559364855,
+          "y": 461.7174515235457,
+          "outHandle": {
+            "x": 0,
+            "y": -130
+          },
+          "inHandle": {
+            "x": 0,
+            "y": 130
+          }
+        }
+      ],
+      "color": "#c0841b",
+      "name": "path_0kdzbm",
+      "transparency": 0.1
+    },
+    {
+      "id": "path_02iz9b",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 335.1275647491884,
+          "y": 842.9362880886426
+        },
+        {
+          "x": 335.1275647491884,
+          "y": 692.9362880886426
+        }
+      ],
+      "color": "#d87e18",
+      "name": "path_02iz9b",
+      "transparency": 0.1
+    },
+    {
+      "id": "path_7p5m0g",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 378.42936083168007,
+          "y": 584.5411895457199,
+          "outHandle": {
+            "x": 40,
+            "y": 0
+          },
+          "inHandle": {
+            "x": -40,
+            "y": 0
+          }
+        },
+        {
+          "x": 442.6913471237825,
+          "y": 402.93628808864264,
+          "outHandle": {
+            "x": -4.043043469207532,
+            "y": -82.75950611849362
+          },
+          "inHandle": {
+            "x": 4.043043469207532,
+            "y": 82.75950611849362
+          }
+        }
+      ],
+      "color": "#d87e18",
+      "name": "path_7p5m0g",
+      "transparency": 0.1
+    },
+    {
+      "id": "dropTarget_qifwv5",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 409.60070015111677,
+      "y": 485.2132185769734,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.5,
+      "name": "Targ2"
+    },
+    {
+      "id": "dropTarget_vtf300",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 385.68715064645033,
+      "y": 544.952645750051,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.5,
+      "name": "Targ1"
+    },
+    {
+      "id": "dropTarget_8ax6de",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 420.14803172211055,
+      "y": 422.4749257208574,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.5,
+      "name": "Targ3"
+    },
+    {
+      "id": "trough_bbpbjn",
+      "type": "trough",
+      "level": 0,
+      "x": 61.237103203011856,
+      "y": 393.7395312034047,
+      "radius": 20,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 4,
+      "ejectAngle": -0.8599875766729603,
+      "color": "#88aaff",
+      "pitColor": "#08101f",
+      "name": "TombBonus"
+    },
+    {
+      "id": "path_v9kd4h",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 81.58184389893425,
+          "y": 700.9844078852882
+        },
+        {
+          "x": 18.240185638382926,
+          "y": 536.4414715971997,
+          "outHandle": {
+            "x": -1.2181088127029103,
+            "y": -138.94736842105254
+          },
+          "inHandle": {
+            "x": 1.2181088127029103,
+            "y": 138.94736842105254
+          }
+        }
+      ],
+      "color": "#d87e18",
+      "name": "path_v9kd4h",
+      "transparency": 0.2
+    },
+    {
+      "id": "path_lva5z1",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 285.7602833576088,
+          "y": 72.07783560462936
+        },
+        {
+          "x": 433.15144969466104,
+          "y": 246.37146441349364
+        },
+        {
+          "x": 434.369558507364,
+          "y": 276.8423785409175
+        },
+        {
+          "x": 151.7683139602886,
+          "y": 276.8423785409175
+        },
+        {
+          "x": 149.3320963348828,
+          "y": 242.71495471820276
+        },
+        {
+          "x": 285.7602833576088,
+          "y": 72.07783560462936
+        }
+      ],
+      "color": "#9f7419",
+      "name": "path_lva5z1",
+      "transparency": 0.2
+    },
+    {
+      "id": "bumper_47nf92",
+      "type": "bumper",
+      "x": 91.83463060639488,
+      "y": 126.07988820194169,
+      "radius": 30.07780927324443,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "transparency": 0.5,
+      "color": "#a7b828",
+      "name": "bumper_47nf92"
+    },
+    {
+      "id": "arrowLight_6j50ti",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 110.48098457667481,
+      "y": 338.85995044513874,
+      "w": 86,
+      "h": 34,
+      "angle": 2.3146917997491787,
+      "lampId": "",
+      "text": "GO",
+      "label": "",
+      "color": "#66ddff",
+      "transparency": 0.3,
+      "name": "TombOpen"
+    },
+    {
+      "id": "boxLight_c0qfor",
+      "type": "boxLight",
+      "level": 0,
+      "x": 294.52668429006144,
+      "y": 356.57190285467846,
+      "w": 84.95313851852643,
+      "h": 19.47473423515214,
+      "angle": 0,
+      "cornerRadius": 2,
+      "lampId": "",
+      "text": "COMPLETE!",
+      "label": "",
+      "color": "#d4b621",
+      "transparency": 1,
+      "name": "Complete"
+    },
+    {
+      "id": "path_ufnbep",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 20.60692406413931,
+          "y": 346.6974703670549
+        },
+        {
+          "x": 46.28903673471459,
+          "y": 353.6724942218638
+        },
+        {
+          "x": 47.02281138244532,
+          "y": 361.74883763269514
+        },
+        {
+          "x": 36.38307899034985,
+          "y": 372.39492667424554
+        },
+        {
+          "x": 30.1459944846387,
+          "y": 384.1423352718184
+        },
+        {
+          "x": 29.045332513042624,
+          "y": 398.0923829814362
+        },
+        {
+          "x": 35.28241701875376,
+          "y": 409.83979157900905
+        },
+        {
+          "x": 44.454600115387784,
+          "y": 419.75166758321114
+        },
+        {
+          "x": 59.13009307000224,
+          "y": 423.0556262512785
+        },
+        {
+          "x": 77.84134658713566,
+          "y": 419.01745454586285
+        },
+        {
+          "x": 87.7473043315004,
+          "y": 408.73847202298657
+        },
+        {
+          "x": 96.55260010426906,
+          "y": 399.56080905613277
+        },
+        {
+          "x": 106.09167052476847,
+          "y": 398.0923829814362
+        },
+        {
+          "x": 117.0982902407293,
+          "y": 406.5358329109417
+        },
+        {
+          "x": 118.56583953619072,
+          "y": 420.85298713923356
+        },
+        {
+          "x": 117.46517756459464,
+          "y": 436.6385674422221
+        },
+        {
+          "x": 107.19233249636456,
+          "y": 447.65176300244667
+        },
+        {
+          "x": 94.35127616107692,
+          "y": 455.3609998946039
+        },
+        {
+          "x": 74.5393606723474,
+          "y": 464.5386628614576
+        },
+        {
+          "x": 58.39631842227151,
+          "y": 472.615006272289
+        },
+        {
+          "x": 44.08771279152243,
+          "y": 480.69134968312034
+        },
+        {
+          "x": 31.613543780100155,
+          "y": 490.23611916864826
+        },
+        {
+          "x": 24.642684626658294,
+          "y": 496.844036504783
+        },
+        {
+          "x": 18.405600120947156,
+          "y": 503.0848473222436
+        }
+      ],
+      "color": "#f09414",
+      "name": "path_ufnbep",
+      "transparency": 0.01
+    },
+    {
+      "id": "drain_rryume",
+      "type": "drain",
+      "level": 0,
+      "x": 200,
+      "y": 840,
+      "w": 150,
+      "h": 24,
+      "name": "drain_rryume"
+    },
+    {
+      "id": "gate_zk1o38",
+      "type": "gate",
+      "level": 0,
+      "x": 384.74345157236235,
+      "y": 660.3312232088896,
+      "length": 52.92062995151484,
+      "angle": 2.6299735506756456,
+      "direction": "forward",
+      "open": false,
+      "locked": false,
+      "swingStartAngle": 2.6179938779914944,
+      "swingEndAngle": 4.71238898038469,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#b18f16",
+      "pinColor": "#c2660f",
+      "name": "gate_zk1o38"
+    }
+  ],
+  "rulesEngine": {
+    "switchMap": [
+      {
+        "id": "timer_100ms",
+        "sourceElementId": "timer_100ms",
+        "kind": "timer"
+      },
+      {
+        "id": "timer_1s",
+        "sourceElementId": "timer_1s",
+        "kind": "timer"
+      },
+      {
+        "id": "dropTarget_vtf300",
+        "sourceElementId": "dropTarget_vtf300",
+        "kind": "element"
+      },
+      {
+        "id": "dropTarget_qifwv5",
+        "sourceElementId": "dropTarget_qifwv5",
+        "kind": "element"
+      },
+      {
+        "id": "dropTarget_8ax6de",
+        "sourceElementId": "dropTarget_8ax6de",
+        "kind": "element"
+      },
+      {
+        "id": "trough_bbpbjn",
+        "sourceElementId": "trough_bbpbjn",
+        "kind": "element"
+      }
+    ],
+    "sequenceRules": [],
+    "triggers": [
+      {
+        "id": "blink_phase_set_1",
+        "kind": "action",
+        "trigger": "timer_100ms",
+        "condition": "blink_phase == 0",
+        "effects": [
+          {
+            "type": "set",
+            "target": "blink_phase",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "blink_phase_set_0",
+        "kind": "action",
+        "trigger": "timer_100ms",
+        "condition": "blink_phase == 1",
+        "effects": [
+          {
+            "type": "set",
+            "target": "blink_phase",
+            "value": 0
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "hit_targ1_light",
+        "kind": "action",
+        "trigger": "dropTarget_vtf300",
+        "condition": "!tomb_open && !game_complete && !targ1_lit",
+        "effects": [
+          {
+            "type": "set",
+            "target": "targ1_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "hit_targ2_light",
+        "kind": "action",
+        "trigger": "dropTarget_qifwv5",
+        "condition": "!tomb_open && !game_complete && !targ2_lit",
+        "effects": [
+          {
+            "type": "set",
+            "target": "targ2_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "hit_targ3_light",
+        "kind": "action",
+        "trigger": "dropTarget_8ax6de",
+        "condition": "!tomb_open && !game_complete && !targ3_lit",
+        "effects": [
+          {
+            "type": "set",
+            "target": "targ3_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "open_tomb_from_targ1",
+        "kind": "action",
+        "trigger": "dropTarget_vtf300",
+        "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
+        "effects": [
+          {
+            "type": "set",
+            "target": "tomb_open",
+            "value": true
+          },
+          {
+            "type": "set",
+            "target": "tomb_timer",
+            "value": 30
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "open_tomb_from_targ2",
+        "kind": "action",
+        "trigger": "dropTarget_qifwv5",
+        "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
+        "effects": [
+          {
+            "type": "set",
+            "target": "tomb_open",
+            "value": true
+          },
+          {
+            "type": "set",
+            "target": "tomb_timer",
+            "value": 30
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "open_tomb_from_targ3",
+        "kind": "action",
+        "trigger": "dropTarget_8ax6de",
+        "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
+        "effects": [
+          {
+            "type": "set",
+            "target": "tomb_open",
+            "value": true
+          },
+          {
+            "type": "set",
+            "target": "tomb_timer",
+            "value": 30
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "tomb_countdown",
+        "kind": "action",
+        "trigger": "timer_1s",
+        "condition": "tomb_open && tomb_timer > 0",
+        "effects": [
+          {
+            "type": "add",
+            "target": "tomb_timer",
+            "value": -1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "tomb_timeout_close",
+        "kind": "action",
+        "trigger": "timer_1s",
+        "condition": "tomb_open && tomb_timer <= 1",
+        "effects": [
+          {
+            "type": "set",
+            "target": "tomb_open",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "tomb_timer",
+            "value": 0
+          },
+          {
+            "type": "set",
+            "target": "targ1_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "targ2_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "targ3_lit",
+            "value": false
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "collect_tomb_advance",
+        "kind": "action",
+        "trigger": "trough_bbpbjn",
+        "condition": "tomb_open && !game_complete && pyramid_progress < 15",
+        "effects": [
+          {
+            "type": "add",
+            "target": "pyramid_progress",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "tomb_open",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "tomb_timer",
+            "value": 0
+          },
+          {
+            "type": "set",
+            "target": "targ1_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "targ2_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "targ3_lit",
+            "value": false
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "collect_tomb_complete",
+        "kind": "action",
+        "trigger": "trough_bbpbjn",
+        "condition": "tomb_open && !game_complete && pyramid_progress == 15",
+        "effects": [
+          {
+            "type": "add",
+            "target": "pyramid_progress",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "game_complete",
+            "value": true
+          },
+          {
+            "type": "set",
+            "target": "tomb_open",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "tomb_timer",
+            "value": 0
+          },
+          {
+            "type": "set",
+            "target": "targ1_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "targ2_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "targ3_lit",
+            "value": false
+          }
+        ],
+        "enabled": true
+      }
+    ],
+    "variables": [
+      {
+        "id": "targ1_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "targ2_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "targ3_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "tomb_open",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "tomb_timer",
+        "type": "int",
+        "initial": 0,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "pyramid_progress",
+        "type": "int",
+        "initial": 0,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "blink_phase",
+        "type": "int",
+        "initial": 0,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "game_complete",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      }
+    ],
+    "logicGraphs": {
+      "logicDocument": {
+        "logicVersion": 1,
+        "switchRegistry": [
+          {
+            "id": "timer_100ms",
+            "name": "Timer 100ms",
+            "kind": "timer",
+            "sourceElementId": "timer_100ms",
+            "intervalMs": 100
+          },
+          {
+            "id": "timer_1s",
+            "name": "Timer 1s",
+            "kind": "timer",
+            "sourceElementId": "timer_1s",
+            "intervalMs": 1000
+          },
+          {
+            "id": "dropTarget_vtf300",
+            "name": "Targ1",
+            "kind": "element",
+            "sourceElementId": "dropTarget_vtf300"
+          },
+          {
+            "id": "dropTarget_qifwv5",
+            "name": "Targ2",
+            "kind": "element",
+            "sourceElementId": "dropTarget_qifwv5"
+          },
+          {
+            "id": "dropTarget_8ax6de",
+            "name": "Targ3",
+            "kind": "element",
+            "sourceElementId": "dropTarget_8ax6de"
+          },
+          {
+            "id": "trough_bbpbjn",
+            "name": "TombBonus",
+            "kind": "element",
+            "sourceElementId": "trough_bbpbjn"
+          }
+        ],
+        "stateTable": [
+          {
+            "id": "targ1_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "targ2_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "targ3_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "tomb_open",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "tomb_timer",
+            "type": "int",
+            "initial": 0
+          },
+          {
+            "id": "pyramid_progress",
+            "type": "int",
+            "initial": 0
+          },
+          {
+            "id": "blink_phase",
+            "type": "int",
+            "initial": 0
+          },
+          {
+            "id": "game_complete",
+            "type": "bool",
+            "initial": false
+          }
+        ],
+        "computedState": [],
+        "lampBindings": [
+          {
+            "lampId": "dropTarget_vtf300",
+            "expr": "targ1_lit"
+          },
+          {
+            "lampId": "dropTarget_qifwv5",
+            "expr": "targ2_lit"
+          },
+          {
+            "lampId": "dropTarget_8ax6de",
+            "expr": "targ3_lit"
+          },
+          {
+            "lampId": "arrowLight_6j50ti",
+            "expr": "tomb_open && blink_phase == 1"
+          },
+          {
+            "lampId": "boxLight_8j7w4z",
+            "expr": "pyramid_progress > 0 || (!game_complete && pyramid_progress == 0 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_gxvdhr",
+            "expr": "pyramid_progress > 1 || (!game_complete && pyramid_progress == 1 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_hsmih7",
+            "expr": "pyramid_progress > 2 || (!game_complete && pyramid_progress == 2 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_fzcsxf",
+            "expr": "pyramid_progress > 3 || (!game_complete && pyramid_progress == 3 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_lrkb1e",
+            "expr": "pyramid_progress > 4 || (!game_complete && pyramid_progress == 4 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_9ingl1",
+            "expr": "pyramid_progress > 5 || (!game_complete && pyramid_progress == 5 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_3ffv1r",
+            "expr": "pyramid_progress > 6 || (!game_complete && pyramid_progress == 6 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_fcxiwk",
+            "expr": "pyramid_progress > 7 || (!game_complete && pyramid_progress == 7 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_m91bk0",
+            "expr": "pyramid_progress > 8 || (!game_complete && pyramid_progress == 8 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_xnwh4c",
+            "expr": "pyramid_progress > 9 || (!game_complete && pyramid_progress == 9 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_44fo7m",
+            "expr": "pyramid_progress > 10 || (!game_complete && pyramid_progress == 10 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_ni20m0",
+            "expr": "pyramid_progress > 11 || (!game_complete && pyramid_progress == 11 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_ul3psu",
+            "expr": "pyramid_progress > 12 || (!game_complete && pyramid_progress == 12 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_13op2r",
+            "expr": "pyramid_progress > 13 || (!game_complete && pyramid_progress == 13 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_65rg5o",
+            "expr": "pyramid_progress > 14 || (!game_complete && pyramid_progress == 14 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_l51jq2",
+            "expr": "pyramid_progress > 15 || (!game_complete && pyramid_progress == 15 && blink_phase == 1)"
+          },
+          {
+            "lampId": "boxLight_c0qfor",
+            "expr": "game_complete && blink_phase == 1"
+          }
+        ],
+        "actionRules": [
+          {
+            "id": "blink_phase_set_1",
+            "trigger": "timer_100ms",
+            "condition": "blink_phase == 0",
+            "effects": [
+              {
+                "type": "set",
+                "target": "blink_phase",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "blink_phase_set_0",
+            "trigger": "timer_100ms",
+            "condition": "blink_phase == 1",
+            "effects": [
+              {
+                "type": "set",
+                "target": "blink_phase",
+                "value": 0
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "hit_targ1_light",
+            "trigger": "dropTarget_vtf300",
+            "condition": "!tomb_open && !game_complete && !targ1_lit",
+            "effects": [
+              {
+                "type": "set",
+                "target": "targ1_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "hit_targ2_light",
+            "trigger": "dropTarget_qifwv5",
+            "condition": "!tomb_open && !game_complete && !targ2_lit",
+            "effects": [
+              {
+                "type": "set",
+                "target": "targ2_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "hit_targ3_light",
+            "trigger": "dropTarget_8ax6de",
+            "condition": "!tomb_open && !game_complete && !targ3_lit",
+            "effects": [
+              {
+                "type": "set",
+                "target": "targ3_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "open_tomb_from_targ1",
+            "trigger": "dropTarget_vtf300",
+            "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
+            "effects": [
+              {
+                "type": "set",
+                "target": "tomb_open",
+                "value": true
+              },
+              {
+                "type": "set",
+                "target": "tomb_timer",
+                "value": 30
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "open_tomb_from_targ2",
+            "trigger": "dropTarget_qifwv5",
+            "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
+            "effects": [
+              {
+                "type": "set",
+                "target": "tomb_open",
+                "value": true
+              },
+              {
+                "type": "set",
+                "target": "tomb_timer",
+                "value": 30
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "open_tomb_from_targ3",
+            "trigger": "dropTarget_8ax6de",
+            "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
+            "effects": [
+              {
+                "type": "set",
+                "target": "tomb_open",
+                "value": true
+              },
+              {
+                "type": "set",
+                "target": "tomb_timer",
+                "value": 30
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "tomb_countdown",
+            "trigger": "timer_1s",
+            "condition": "tomb_open && tomb_timer > 0",
+            "effects": [
+              {
+                "type": "add",
+                "target": "tomb_timer",
+                "value": -1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "tomb_timeout_close",
+            "trigger": "timer_1s",
+            "condition": "tomb_open && tomb_timer <= 1",
+            "effects": [
+              {
+                "type": "set",
+                "target": "tomb_open",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "tomb_timer",
+                "value": 0
+              },
+              {
+                "type": "set",
+                "target": "targ1_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "targ2_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "targ3_lit",
+                "value": false
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "collect_tomb_advance",
+            "trigger": "trough_bbpbjn",
+            "condition": "tomb_open && !game_complete && pyramid_progress < 15",
+            "effects": [
+              {
+                "type": "add",
+                "target": "pyramid_progress",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "tomb_open",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "tomb_timer",
+                "value": 0
+              },
+              {
+                "type": "set",
+                "target": "targ1_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "targ2_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "targ3_lit",
+                "value": false
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "collect_tomb_complete",
+            "trigger": "trough_bbpbjn",
+            "condition": "tomb_open && !game_complete && pyramid_progress == 15",
+            "effects": [
+              {
+                "type": "add",
+                "target": "pyramid_progress",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "game_complete",
+                "value": true
+              },
+              {
+                "type": "set",
+                "target": "tomb_open",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "tomb_timer",
+                "value": 0
+              },
+              {
+                "type": "set",
+                "target": "targ1_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "targ2_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "targ3_lit",
+                "value": false
+              }
+            ],
+            "enabled": true
+          }
+        ],
+        "resetRules": []
+      }
+    }
+  }
+}

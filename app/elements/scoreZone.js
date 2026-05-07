@@ -9,7 +9,7 @@
                     restitution: typeof el.restitution === "number" ? el.restitution : undefined,
                     onHit: function onHit(ball, hit, world) {
                         const score = Pin.rules && Pin.rules.resolveElementScore ?
-                            Pin.rules.resolveElementScore(world, el, 500) :
+                            Pin.rules.resolveElementScore(world, el, (el.score || 500)) :
                             (el.score || 500);
                         if (Pin.events) {
                             Pin.events.emit(world, { type: "score", sourceId: el.id, elementType: el.type, points: score });

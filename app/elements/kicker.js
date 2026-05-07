@@ -91,7 +91,7 @@
 
     function emitKick(el, ball, hit, world) {
         const score = Pin.rules && Pin.rules.resolveElementScore ?
-            Pin.rules.resolveElementScore(world, el, 0) :
+            Pin.rules.resolveElementScore(world, el, (el.score || 0)) :
             (el.score || 0);
         ball.vx += hit.nx * (el.kickPower || 14);
         ball.vy += hit.ny * (el.kickPower || 14);

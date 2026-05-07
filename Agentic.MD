@@ -1,178 +1,230 @@
-# Agentic Assistant Design (v1)
+# Agentic Assistant Design (Current)
 
 ## Summary
-Add a new Assistant subtab named `Agentic` for multi-step, tool-driven table editing that can perform CRUD on table objects and logic with stronger orchestration than the existing chat flow.
 
-The Agentic mode builds on the current assistant runtime, patch schema, validation pipeline, and undo model. It introduces explicit execution controls so authors can choose between:
-- fully automatic application of validated changes
-- per-change approval before apply
+Assistant and Agentic support must treat the current logic system as feature-first authoring, not as a raw rulesEngine editor.
 
-v1 scope is table objects plus table logic. It does not include editor settings management, raw file operations, or arbitrary non-table workflows.
+The browser build currently keeps external AI execution disabled. The visible Assistant and Agentic tabs are UI placeholders/guidance surfaces. Any future agentic execution must work through structured, validated table patches and must preserve the current user-facing model:
 
-## Goals
-- Improve reliability for multi-step tasks that require iterative lookup, resolve, and edit.
-- Keep mutation safety tied to the existing structured patch + validation contract.
-- Preserve current Assistant Chat behavior while adding an advanced agentic path.
-- Enable smaller/cheaper models by constraining context shape and tool outputs.
+- table geometry is edited in `#design`
+- gameplay logic is authored in `#logic`
+- logic starts from `features`, not raw variables/triggers/effects
+- `rulesEngine` remains the compiled/runtime compatibility payload
 
-## Non-Goals (v1)
-- Replacing the existing Chat subtab.
-- Direct free-form table mutation outside structured patch operations.
-- Autonomous editing of local files outside table state.
-- Background long-running jobs across browser sessions.
+## Current Logic Model
 
-## UX Surface
-- Assistant subtabs become: `Chat`, `Agentic`, `Provider`.
-- Agentic subtab includes:
-  - conversation area
-  - execution log/audit stream
-  - pending/applied patch batches
-  - controls:
-    - `Fully Auto` (checkbox)
-    - `Approve Each Batch` (checkbox)
-    - `Run` / `Stop`
-    - `Apply Pending` / `Reject Pending`
-    - `Rollback Last` (reuse undo)
+The logic editor owns:
 
-### Execution Modes
-- If `Fully Auto = true` and `Approve Each Batch = false`:
-  - only preview-clean patch batches (preview succeeds and projected issues = 0) are applied automatically.
-  - if preview fails or projected issues are non-zero, the batch is parked as pending manual apply.
-- If `Approve Each Batch = true`:
-  - every mutation batch pauses for explicit user approval.
-- If both are false:
-  - agent may plan and prepare patch batches, but apply remains manual (review flow).
+- `table.features[]`: human editorial grouping for gameplay features
+- logic document source under `table.rulesEngine.logicGraphs.logicDocument`
+- switch registry
+- stored state
+- computed/derived state
+- action rules
+- reset rules
+- lamp bindings
+- scoring behavior
+- simulation/test events
 
-`Approve Each Batch` takes precedence over `Fully Auto` when both are enabled.
+The logic editor must not own:
 
-## Architecture
+- playfield positions
+- object shapes
+- walls
+- physics tuning
+- flipper setup
+- launcher setup
+- device geometry
 
-### Reuse Existing Components
-- Provider settings and model selection from the current Assistant runtime.
-- Existing table query tools (`get_table_summary`, `get_selected_context`, `list_elements`, `get_element`, `list_rules`, `get_rule`, `get_validation_issues`).
-- Existing patch schema and allowed operations.
-- Existing patch executor (`applyAssistantPatch`) and rollback/undo.
-- Existing rule/table validation.
+It may show table objects only as read-only references for wiring gameplay meaning.
 
-### New Runtime Layer
-Add an Agentic controller (logical module) that manages a bounded multi-step loop:
-1. inspect context
-2. plan next action
-3. call read tools
-4. produce patch batch
-5. validate
-6. apply or request approval
-7. re-check and continue/finish
+## Feature Layer
 
-This layer does not bypass structured patches. All mutations still flow through patch validation and apply.
+`table.features[]` is the human-facing layer. It is editorial structure, not a second runtime engine.
 
-### Suggested State Additions
-- `assistant.agentic`:
-  - `enabled`/tab state
-  - `mode`: auto vs approve
-  - `running`: bool
-  - `currentTaskPlan`: short plan text + steps
-  - `batches`: list of proposed/applied/rejected patch batches
-  - `auditLog`: compact per-step records
-  - `stopRequested`: bool
+Feature shape:
 
-## CRUD Contract (v1)
-Agentic mutations must be expressed only through supported operations:
-- `addElements`
-- `patchElements`
-- `addSequenceRule`, `updateSequenceRule`, `deleteSequenceRule`
-- `addSwitchMap`, `updateSwitchMap`, `deleteSwitchMap`
-- `addVariable`, `updateVariable`, `deleteVariable`
-- `addTrigger`, `updateTrigger`, `deleteTrigger`
-- layout ops when relevant (`alignHorizontal`, `distributeHorizontal`, `matchWidth`, `matchHeight`)
+```json
+{
+  "id": "lhs_bonus",
+  "name": "Left Bonus",
+  "description": "Hit all three left targets to make the left bonus lane collectable.",
+  "goal": "Light all three left targets, then collect the left bonus lane.",
+  "objects": ["dropTarget_1", "dropTarget_2", "lane_lhs_bonus"],
+  "states": ["lhs_1_lit", "lhs_2_lit", "lhs_complete", "lhs_bonus_ready"],
+  "rules": ["A_LHS_1", "A_LHS_2", "A_BONUS_COLLECT_L"],
+  "lamps": ["lhs_1_lit", "lhs_bonus_arrow"]
+}
+```
 
-No other write path is permitted.
+`parts` may appear as a legacy/compatibility list. Prefer `objects`, `states`, `rules`, and `lamps` for new work.
 
-## Agent Loop Specification
+## UI Spine
 
-### Stage 1: Task Plan
-- Produce a concise plan before mutation.
-- Plan lists target ids, intended operations, and completion criteria.
+The logic workspace has three main panes:
 
-### Stage 2: Resolve & Inspect
-- Use read tools to resolve ids and inspect exact element/rule shapes.
-- Prefer compact listings; fetch full object payload only when needed.
+- left: table signal browser/reference list
+- center: logic workspace
+- right: inspector
 
-### Stage 3: Build Batch
-- Generate one bounded patch batch at a time.
-- Batch should be coherent and reversible.
-- Use stable ids; avoid speculative creations.
-- For per-object staged progression (example: one switch/object advancing several stage lamps), prefer one ordered sequence rule with repeated step IDs and aligned `stepLampIds` rather than multiple one-step stage rules.
-- When building lamp actions, target canonical lamp ids: use `lampId` where defined; only use element ids for lights that do not define `lampId`.
+Top sections:
 
-### Stage 4: Validate
-- Run table/rules validation before apply.
-- Run pre-apply patch preview against a cloned table and show projected issue count in batch cards.
-- If validation fails:
-  - revise batch or stop with explicit blocker.
+- `Features`
+- `Rules`
+- `State`
+- `Feedback`
+- `Simulator`
+- `Diagnostics`
 
-### Stage 5: Apply / Approve
-- Auto mode: apply batch after validation.
-- Approval mode: present diff summary + wait for user acceptance.
+Default section is `Features`.
 
-### Stage 6: Verify
-- Re-read impacted entities and check success criteria.
-- Continue loop only if remaining tasks exist.
+The left pane lists imported references:
 
-### Stage 7: Finish
-- Emit a concise completion summary with:
-  - applied batches
-  - warnings/issues
-  - rollback hint
+- switches with usage badges
+- lamps with binding badges
+- state with writer counts
 
-## Safety Rules
-- Never mutate outside structured patches.
-- Never apply unvalidated mutation batches.
-- Keep each batch small enough for rollback clarity.
-- On apply failure, stop and report exact failed operation.
-- Keep an explicit audit trail of step -> tool call -> patch -> outcome.
-- Respect stop/cancel immediately between loop steps.
+The center pane should be scoped by selected feature when possible. Rules, State, and Feedback have an `All Features` / feature selector. The inspector shows precise details and downstream consequences.
 
-## Context Strategy (for Smaller Models)
-- Start each step from compact summaries, not full table dumps.
-- Include only:
-  - active selection
-  - relevant nearby/resolved ids
-  - impacted rules/variables/triggers
-  - recent batch outcomes
-- Avoid replaying full conversation history every step.
-- Persist minimal structured memory for task state (target ids, unresolved blockers, finished subgoals).
+## Authoring Vocabulary
 
-## Implementation Notes
-- Add `Agentic` tab wiring in the inspector panel tab list.
-- Add event handlers in editor runtime for agentic run/stop/approve/apply.
-- Extend assistant runtime with an agentic controller function set while preserving existing chat send flow.
-- Reuse existing patch summarizer for human review cards.
-- Keep provider/model settings shared across Chat and Agentic to avoid duplicate config state.
+Use pinball meaning in all assistant responses and agentic plans:
 
-## Testing Plan
+- Feature
+- Signal
+- State
+- Derived state
+- Rule
+- Effect
+- Feedback binding
+- Reset rule
+- Test sequence
 
-### Unit/Runtime
-- Agentic loop can:
-  - inspect -> generate batch -> validate -> apply in auto mode
-  - inspect -> generate batch -> wait approval in approval mode
-- Validation failures do not mutate table.
-- Apply failures stop loop and preserve audit details.
-- Stop signal halts further mutation.
+Avoid making users work in raw storage terms:
 
-### Integration
-- Existing Chat subtab behavior unchanged.
-- Undo/Rollback works after agentic applies.
-- Patch summary matches applied batch content.
+- variables
+- triggers
+- switchMap
+- effects arrays
+- rulesEngine internals
+- graph nodes/edges
 
-### Scenarios
-- Add lights and wire sequence rule/actions.
-- Progressive bumper scoring with conditions/variables.
-- Update + delete + recreate mixed CRUD in multiple batches.
-- Ambiguous id resolution produces blocker instead of unsafe mutation.
+Those terms are allowed only in diagnostics or implementation summaries.
 
-## Open Questions for v2
-- Optional dry-run mode with projected validation outcome only.
-- Batch diff visualization improvements.
-- Split-model pipeline (small model for inspect/resolve, larger model for patch synthesis).
-- Persisted task sessions between reloads.
+## Current Runtime Flow
+
+Logic source is stored as a normalized logic document in:
+
+```text
+table.rulesEngine.logicGraphs.logicDocument
+```
+
+Compilation writes runtime-compatible fields:
+
+- `rulesEngine.switchMap`
+- `rulesEngine.sequenceRules`
+- `rulesEngine.triggers`
+- `rulesEngine.variables`
+- `rulesEngine.logicGraphs.logicDocument`
+
+At play time, events resolve physical element IDs to logical switch IDs. The logic simulator fires switch rules, mutates state, awards score, and updates lamp state.
+
+## Agentic Mutation Contract
+
+Future agentic mutations must use structured table patches only. Direct free-form JSON rewrites are not permitted.
+
+Allowed table/design edits:
+
+- table metadata updates
+- image layer edits
+- element add/update/delete
+- level edits
+
+Allowed logic edits:
+
+- add/update/delete `table.features[]`
+- update `rulesEngine.logicGraphs.logicDocument.switchRegistry`
+- update stored state
+- update computed state
+- update action rules
+- update reset rules
+- update lamp bindings
+
+After every mutation:
+
+1. normalize table
+2. validate table
+3. validate logic document
+4. simulate relevant switch events when possible
+5. report downstream impact
+
+## Agentic Planning Rules
+
+When asked to create or change game logic:
+
+1. Start by identifying the feature, not the rule row.
+2. Resolve involved physical objects from table references.
+3. Define needed state and derived state.
+4. Define rules in readable form: When / If / Then.
+5. Define feedback: lamps/arrows/lit targets.
+6. Define resets, especially drain/volatile clears.
+7. Add or update `table.features[]` to group the work.
+8. Compile and validate through the existing logic document path.
+9. Run simulator events that prove the behavior.
+
+Example feature plan:
+
+```text
+Feature: Left Bonus
+Purpose: Hit three left targets, then collect the left bonus lane.
+Inputs: LHS Target 1, LHS Target 2, LHS Target 3, LHS Bonus Lane
+State: lhs_1_lit, lhs_2_lit, lhs_3_lit, lhs_bonus_ready
+Rules:
+- When LHS Target 1 is hit, set lhs_1_lit true and score 500.
+- When LHS Bonus Lane is entered and lhs_bonus_ready is true, score 3000 and clear target state.
+Feedback: bind target lamps and bonus arrow to state.
+Reset: drain resets volatile target state.
+```
+
+## Assistant Chat Behavior
+
+Current static build:
+
+- Chat stores local transcript only.
+- External provider/model calls are disabled.
+- Patch application is disabled.
+- Chat response should point users to `#logic` for feature-first authoring.
+
+Do not state that logic is removed. The current logic system is active and feature-first.
+
+## Agentic UI Behavior
+
+Current static build:
+
+- Agentic controls are visible as planned execution UI.
+- Run/stop/apply are disabled/no-op in runtime.
+- Copy must describe Agentic as planned/disabled, not as a working executor.
+
+When implementation resumes, agentic execution should be feature-aware and should not resurrect old sequence-rule-first language.
+
+## Testing Expectations
+
+Minimum checks after assistant/agentic or logic model edits:
+
+- `npm test`
+- table normalization keeps `features: []`
+- feature metadata validates structurally
+- `#logic` still opens with `Features` as the default section
+- rule inspector still shows downstream `Affects` rows
+- simulator can fire logical switches without changing table geometry
+
+## Deprecated Guidance
+
+Older references to these as the primary authoring model are stale:
+
+- `sequenceRules` as the central UI unit
+- variables/triggers as user-facing first-class concepts
+- graph editing as the default logic UI
+- "logic system removed"
+
+Keep compatibility with the compiled fields, but do not present them as the main authoring experience.

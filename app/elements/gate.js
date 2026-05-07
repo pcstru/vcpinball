@@ -36,6 +36,39 @@
         return angle > limits.min + 0.001;
     }
 
+    function normalizeDirection(value) {
+        const raw = String(value || "").toLowerCase();
+        if (raw === "reverse") return "reverse";
+        if (raw === "twoway" || raw === "two-way" || raw === "two_way" || raw === "both") return "twoWay";
+        return "forward";
+    }
+
+    function directionAllows(el, world, pushDirection) {
+        const configured = Pin.rules && Pin.rules.resolveElementProperty ?
+            Pin.rules.resolveElementProperty(world, el, "direction", el.direction || "forward") :
+            (el.direction || "forward");
+        const direction = normalizeDirection(configured);
+        if (direction === "twoWay") return true;
+        if (direction === "reverse") return pushDirection < 0;
+        return pushDirection > 0;
+    }
+
+    function isOpen(el, world) {
+        if (Pin.rules && Pin.rules.resolveElementProperty) {
+            return !!Pin.rules.resolveElementProperty(world, el, "open", !!el.open);
+        }
+        return !!el.open;
+    }
+
+    function forcedOpenAngle(el, world, limits) {
+        const configured = Pin.rules && Pin.rules.resolveElementProperty ?
+            Pin.rules.resolveElementProperty(world, el, "direction", el.direction || "forward") :
+            (el.direction || "forward");
+        const direction = normalizeDirection(configured);
+        if (direction === "reverse") return limits.min;
+        return limits.max;
+    }
+
     function buildGeometry(el, state) {
         const pivotX = typeof el.x === "number" ? el.x : (typeof el.x1 === "number" ? el.x1 : 0);
         const pivotY = typeof el.y === "number" ? el.y : (typeof el.y1 === "number" ? el.y1 : 0);
@@ -88,8 +121,12 @@
             const returnStrength = typeof el.returnStrength === "number" ? el.returnStrength : 24;
             const damping = typeof el.returnDamping === "number" ? el.returnDamping : 8;
             const locked = isLocked(el, world);
+            const open = !locked && isOpen(el, world);
             if (locked) {
                 state.angle = 0;
+                state.angularVelocity = 0;
+            } else if (open) {
+                state.angle = forcedOpenAngle(el, world, limits);
                 state.angularVelocity = 0;
             } else {
                 state.angularVelocity = (state.angularVelocity || 0) - (state.angle || 0) * returnStrength * dt;
@@ -127,18 +164,20 @@
                 thickness: typeof el.thickness === "number" ? el.thickness : 3,
                 oneWay: function oneWay(ball, hitWorld) {
                     if (isLocked(el, hitWorld || world)) return false;
+                    if (isOpen(el, hitWorld || world)) return true;
                     const pushDirection = resolvePushDirection(ball);
+                    if (!directionAllows(el, hitWorld || world, pushDirection)) return false;
                     const gateState = Pin.elements.getState ? Pin.elements.getState(hitWorld || world, el, { angle: 0, angularVelocity: 0 }) : state;
                     const passable = canSwing(gateState, pushDirection, limits);
                     if (passable) kickGate(el, hitWorld || world, ball, pushDirection);
                     return passable;
                 },
                 onHit: function onHit(ball, hit, hitWorld) {
-                    if (!isLocked(el, hitWorld || world) && world && Pin.elements.getState) {
+                    if (!isLocked(el, hitWorld || world) && !isOpen(el, hitWorld || world) && world && Pin.elements.getState) {
                         const state = Pin.elements.getState(hitWorld || world, el, { angle: 0, angularVelocity: 0 });
                         const pushDirection = resolvePushDirection(ball);
                         const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-                        if (canSwing(state, pushDirection, limits)) {
+                        if (directionAllows(el, hitWorld || world, pushDirection) && canSwing(state, pushDirection, limits)) {
                             applyGateImpulse(el, state, speed, pushDirection, limits);
                         } else {
                             state.angularVelocity = 0;
@@ -173,6 +212,6 @@
             ctx.fill();
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "length", "angle", "locked", "swingStartAngle", "swingEndAngle", "returnStrength", "returnDamping", "thickness", "restitution", "color", "pinColor"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "length", "angle", "direction", "open", "locked", "swingStartAngle", "swingEndAngle", "returnStrength", "returnDamping", "thickness", "restitution", "color", "pinColor"] }
     });
 })(window.Pin);

@@ -4,7 +4,10 @@
         spinner: true,
         gate: true,
         valve: true,
-        launcher: true
+        launcher: true,
+        light: true,
+        arrowLight: true,
+        boxLight: true
     };
 
     function createRuntime() {

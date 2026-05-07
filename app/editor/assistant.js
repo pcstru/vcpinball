@@ -1,297 +1,397 @@
 /*
- * Assistant runtime for the design editor.
- * Why: keep the visible UI chat-first while giving the model enough table context
- * to propose reviewable patches that can be applied and rolled back.
+ * What: Minimal assistant state container for table/design guidance.
+ * Why: Chat and Agentic UI currently provide local guidance while external AI
+ *      execution remains disabled in this static build.
  */
 (function initEditorAssistant(Pin) {
     const SETTINGS_KEY = "pin.assistant.settings";
-    const DEFAULT_SETTINGS = {
-        providerLabel: "LM Studio",
-        baseUrl: "http://127.0.0.1:1234/v1",
-        model: "",
-        apiKey: "",
-        maxSteps: 4
-    };
-    const DEFAULT_PICKS = {
-        steps: [],
-        target: "",
-        stepLamps: [],
-        targetLamp: ""
-    };
-    const DEFAULT_LAYOUT_PICKS = [];
-    const MAX_LOG_ENTRIES = 80;
-    const AUTHORING_CONTRACT = [
-        "Authoring contract:",
-        "- Use only current table objects and exact ids returned by tools.",
-        "- Prefer structured patches over explanations when the request is actionable.",
-        "- For lane layout, lane elements use x/y center coordinates and w/h size fields.",
-        "- Score-producing elements use the property name score. Do not invent baseScore; use score.",
-        "- Rule actions can use element actions, variable actions, and lamp actions. Variables live in rulesEngine.variables and timers live in rulesEngine.triggers.",
-        "- Timer triggers emit normal switch IDs, so sequence steps may use trigger switch IDs like tick.flash.",
-        "- Rules may also use conditions. Conditions can compare variables, element scores/properties, world score, or constants with eq/ne/gt/gte/lt/lte/truthy/falsy.",
-        "- Logic variables are invisible runtime state, not table elements. Use setVariableProperty, addVariableProperty, toggleVariableProperty, resetVariableProperty, setLamp, clearLamp, or setLampFromVariable when needed.",
-        "- For staged per-object progression (for example, one switch/object advancing several stage lamps), prefer one ordered sequence rule with repeated step IDs and aligned stepLampIds instead of multiple one-step stage rules; this prevents one hit from advancing multiple stages in a single frame.",
-        "- In lamp actions, reference the lamp's gameplay id (lampId) when present; do not use light element ids unless that light has no lampId.",
-        "- Flippers use pivot, length, restAngle, activeAngle, flipSpeed, flipAccel, returnSpeed, returnAccel, strikeBoost, surfaceRestitution, surfaceFriction, and thickness. Legacy tip fields may exist on older tables but are optional.",
-        "- Gate is the current rotating gate mechanism. Gate supports locked; when locked it acts as a wall and cannot swing.",
-        "- Drain is an out-of-play removal sensor. Trough is a circular saucer/pit with radius, holdSeconds, reactivateDelay, ejectPower, and ejectAngle.",
-        "- Launcher is selectable and uses x, top, bottom, width, maxPower, maxRetract, pullSpeed, returnSpeed, and springStrength.",
-        "- Presentation lamps use light, arrowLight, or boxLight. All support lampId, text, label, and color; arrowLight uses w, h, and angle; boxLight uses w, h, angle, and cornerRadius.",
-        "- Progressive bumper logic is supported with sequenceRules plus variables and actions. Use score for the bumper's base/default score, and use setElementScore to raise later hit values.",
-        "- Do not invent geometry fields for elements that do not expose them.",
-        "- If the request is under-specified, explain the blocker briefly instead of guessing.",
-        "- Do not output raw replacement table JSON. Use complete element objects only inside addElements when the patch needs new table objects.",
-        "- For layout requests, reason in terms of editor operations first, not freehand coordinate math."
-    ].join("\n");
+    const AGENTIC_MODE_KEY = "pin.assistant.agenticMode";
 
     function clone(value) {
-        return JSON.parse(JSON.stringify(value));
+        return JSON.parse(JSON.stringify(value == null ? {} : value));
     }
 
-    function loadSettings() {
+    function readJson(key, fallback) {
+        /* What: Read assistant settings from browser storage.
+         * Why: Provider configuration should survive editor refreshes in the static app.
+         */
+        if (typeof localStorage === "undefined") return clone(fallback);
         try {
-            const raw = localStorage.getItem(SETTINGS_KEY);
-            if (!raw) return clone(DEFAULT_SETTINGS);
-            return Object.assign({}, DEFAULT_SETTINGS, JSON.parse(raw));
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : clone(fallback);
         } catch (err) {
-            return clone(DEFAULT_SETTINGS);
+            console.warn("Ignoring corrupt assistant storage for " + key + ".", err);
+            return clone(fallback);
         }
     }
 
-    function saveSettings(settings) {
+    function writeJson(key, value) {
+        /* What: Persist assistant settings to browser storage.
+         * Why: The provider pane has explicit Save controls and should keep the saved draft.
+         */
+        if (typeof localStorage === "undefined") return;
         try {
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-        } catch (err) {}
-    }
-
-    function stripTrailingSlash(value) {
-        return String(value || "").replace(/\/+$/, "");
-    }
-
-    function summarizeElement(element) {
-        if (!element) return null;
-        const summary = {
-            id: element.id,
-            name: element.name || "",
-            type: element.type,
-            level: typeof element.level === "number" ? element.level : 0,
-            pivot: element.pivot ? { x: element.pivot.x, y: element.pivot.y } : undefined,
-            label: element.label || "",
-            text: element.text || "",
-            lampId: element.lampId || ""
-        };
-        [
-            "x", "y", "w", "h", "width", "top", "bottom", "radius", "length", "angle", "cornerRadius",
-            "restAngle", "activeAngle", "flipSpeed", "flipAccel", "returnSpeed", "returnAccel",
-            "strikeBoost", "surfaceRestitution", "surfaceFriction", "thickness", "maxPower", "maxRetract",
-            "pullSpeed", "springStrength", "power", "kickPower", "score", "restitution",
-            "friction", "holdSeconds", "reactivateDelay", "ejectPower", "ejectAngle", "maxAngle",
-            "returnStrength", "returnDamping", "levelFrom", "levelTo", "zStart", "zEnd"
-        ].forEach(function copyNumber(key) {
-            if (typeof element[key] === "number") summary[key] = element[key];
-        });
-        [
-            "side", "control", "role", "direction", "color", "pitColor", "pinColor",
-            "surfaceId", "lampId"
-        ].forEach(function copyString(key) {
-            if (typeof element[key] === "string" && element[key]) summary[key] = element[key];
-        });
-        ["closed", "enabled", "locked"].forEach(function copyBoolean(key) {
-            if (typeof element[key] === "boolean") summary[key] = element[key];
-        });
-        ["anchors", "leftAnchors", "rightAnchors"].forEach(function countAnchors(key) {
-            if (Array.isArray(element[key])) summary[key + "Count"] = element[key].length;
-        });
-        return summary;
-    }
-
-    function summarizeElementFull(element) {
-        if (!element) return null;
-        return clone(element);
-    }
-
-    function getElementKnowledge() {
-        return {
-            patchOperation: "Use addElements with { elements: [complete element objects] } to create new table objects, and use patchElements with { patches: [{ id, patch }] } for direct element property edits.",
-            score: "Use score for default contact scoring. Do not use baseScore.",
-            gate: "Use gate for rotating gate mechanisms. Valve is legacy and should not be proposed for new table edits. Gate locked=true makes it act as a wall.",
-            trough: "Use trough for a round saucer/pit: radius, holdSeconds, reactivateDelay, ejectPower, ejectAngle, color, pitColor.",
-            drain: "Use drain for bottom out-of-play removal: x, y, w, h, color.",
-            flipper: "Use flipper material fields: surfaceRestitution/surfaceFriction plus strikeBoost. Legacy tipRestitution/tipFriction/tipStrikeBoost may appear in older tables.",
-            launcher: "Launcher geometry is x/top/bottom/width; power is maxPower/maxRetract/pullSpeed/returnSpeed/springStrength.",
-            presentation: "Use light for circular lamps, arrowLight for scalable rotated arrow lamps, and boxLight for rotated rounded text boxes. All use lampId and optional text.",
-            logic: "Rules can use sequenceRules plus logicGraphs. Timers are rulesEngine.triggers and emit normal switch IDs. Variables are rulesEngine.variables runtime state. Rules may use conditions with eq/ne/gt/gte/lt/lte/truthy/falsy. Action nodes can use element, variable, and lamp action types."
-        };
-    }
-
-    function summarizeRule(rule) {
-        if (!rule) return null;
-        return {
-            id: rule.id,
-            name: rule.name || "",
-            enabled: rule.enabled !== false,
-            ordered: !!rule.ordered,
-            steps: clone(rule.steps || []),
-            stepLampIds: clone(rule.stepLampIds || []),
-            targetSwitchId: rule.targetSwitchId || "",
-            targetLampId: rule.targetLampId || "",
-            windowSeconds: typeof rule.windowSeconds === "number" ? rule.windowSeconds : 0,
-            awardPoints: typeof rule.awardPoints === "number" ? rule.awardPoints : 0,
-            awardEvent: rule.awardEvent || "",
-            conditions: clone(rule.conditions || []),
-            actions: clone(rule.actions || []),
-            resetOnDrain: rule.resetOnDrain !== false,
-            resetOnComplete: rule.resetOnComplete !== false,
-            resetOnWrongOrder: !!rule.resetOnWrongOrder
-        };
-    }
-
-    function summarizeGraph(graph) {
-        if (!graph) return null;
-        return {
-            id: graph.id,
-            name: graph.name || "",
-            sourceRuleId: graph.sourceRuleId || "",
-            nodeCount: (graph.nodes || []).length,
-            edgeCount: (graph.edges || []).length
-        };
-    }
-
-    function summarizeNode(node) {
-        if (!node) return null;
-        return {
-            id: node.id,
-            type: node.type,
-            label: node.label || "",
-            switchId: node.switchId || "",
-            lampId: node.lampId || "",
-            sourceId: node.sourceId || "",
-            targetId: node.targetId || "",
-            value: typeof node.value === "number" ? node.value : undefined,
-            windowSeconds: typeof node.windowSeconds === "number" ? node.windowSeconds : undefined,
-            awardPoints: typeof node.awardPoints === "number" ? node.awardPoints : undefined,
-            variableId: node.variableId || "",
-            property: node.property || "",
-            operator: node.operator || "",
-            actionType: node.actionType || "",
-            lampId: node.lampId || ""
-        };
-    }
-
-    function distanceBetween(a, b) {
-        if (!a || !b) return Number.POSITIVE_INFINITY;
-        const ax = typeof a.x === "number" ? a.x : (a.pivot ? a.pivot.x : null);
-        const ay = typeof a.y === "number" ? a.y : (a.pivot ? a.pivot.y : null);
-        const bx = typeof b.x === "number" ? b.x : (b.pivot ? b.pivot.x : null);
-        const by = typeof b.y === "number" ? b.y : (b.pivot ? b.pivot.y : null);
-        if (ax == null || ay == null || bx == null || by == null) return Number.POSITIVE_INFINITY;
-        const dx = ax - bx;
-        const dy = ay - by;
-        return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    function normalizeResponseContent(content) {
-        if (Array.isArray(content)) {
-            return content.map(function map(part) {
-                if (typeof part === "string") return part;
-                if (part && typeof part.text === "string") return part.text;
-                return "";
-            }).join("\n").trim();
+            localStorage.setItem(key, JSON.stringify(value == null ? {} : value));
+        } catch (err) {
+            console.warn("Unable to save assistant storage for " + key + ".", err);
         }
-        return typeof content === "string" ? content.trim() : "";
     }
 
-    function tryParseJson(text) {
-        if (!text) return null;
+    function normalizeSettings(settings) {
+        /* What: Normalize provider settings into the shape used by the provider pane.
+         * Why: Saved values come from form inputs and should round-trip predictably.
+         */
+        settings = settings || {};
+        return {
+            providerLabel: settings.providerLabel == null ? "" : String(settings.providerLabel),
+            baseUrl: settings.baseUrl == null ? "" : String(settings.baseUrl),
+            model: settings.model == null ? "" : String(settings.model),
+            apiKey: settings.apiKey == null ? "" : String(settings.apiKey),
+            maxSteps: typeof settings.maxSteps === "number" && Number.isFinite(settings.maxSteps) ? settings.maxSteps : 4
+        };
+    }
+
+    function normalizeAgenticMode(mode) {
+        /* What: Normalize Agentic execution mode flags.
+         * Why: The Agentic pane persists independent boolean controls.
+         */
+        mode = mode || {};
+        return {
+            fullyAuto: mode.fullyAuto !== false,
+            approveEachChange: !!mode.approveEachChange
+        };
+    }
+
+    function toModelsEndpoint(baseUrl) {
+        /* What: Build an OpenAI-compatible models endpoint from provider base URL.
+         * Why: Provider settings may be entered as root, /v1, or direct /models URLs.
+         */
+        const raw = String(baseUrl || "").trim();
+        if (!raw) return "";
+        if (/\/models\/?$/i.test(raw)) return raw.replace(/\/+$/, "");
+        return raw.replace(/\/+$/, "") + "/models";
+    }
+
+    function toChatEndpoint(baseUrl) {
+        /* What: Build an OpenAI-compatible chat endpoint from provider base URL.
+         * Why: Providers may expose root, /v1, or direct /chat/completions URLs.
+         */
+        const raw = String(baseUrl || "").trim();
+        if (!raw) return "";
+        if (/\/chat\/completions\/?$/i.test(raw)) return raw.replace(/\/+$/, "");
+        return raw.replace(/\/+$/, "") + "/chat/completions";
+    }
+
+    function safeString(value) {
+        return value == null ? "" : String(value);
+    }
+
+
+    function extractPatchJson(text) {
+        /* What: Parse a patch object from model output.
+         * Why: Providers often wrap JSON in prose or code fences.
+         */
+        const raw = safeString(text).trim();
+        if (!raw) return null;
         try {
-            return JSON.parse(text);
+            return JSON.parse(raw);
         } catch (err) {}
-        const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-        if (fenced && fenced[1]) {
-            try {
-                return JSON.parse(fenced[1].trim());
-            } catch (err) {}
+        const fence = raw.match(/```json\s*([\s\S]*?)```/i) || raw.match(/```\s*([\s\S]*?)```/i);
+        if (fence && fence[1]) {
+            try { return JSON.parse(fence[1].trim()); } catch (err) {}
         }
-        const arrayStart = text.indexOf("[");
-        const arrayEnd = text.lastIndexOf("]");
-        if (arrayStart >= 0 && arrayEnd > arrayStart) {
-            try {
-                return JSON.parse(text.slice(arrayStart, arrayEnd + 1));
-            } catch (err) {}
-        }
-        const start = text.indexOf("{");
-        const end = text.lastIndexOf("}");
-        if (start >= 0 && end > start) {
-            try {
-                return JSON.parse(text.slice(start, end + 1));
-            } catch (err) {}
+        const firstBrace = raw.indexOf("{");
+        const lastBrace = raw.lastIndexOf("}");
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+            const candidate = raw.slice(firstBrace, lastBrace + 1);
+            try { return JSON.parse(candidate); } catch (err) {}
         }
         return null;
     }
 
-    function makeSchema() {
-        return {
-            type: "object",
-            properties: {
-                message: { type: "string" },
-                patch: {
-                    anyOf: [
-                        { type: "null" },
-                        {
-                            type: "object",
-                            properties: {
-                                type: { type: "string" },
-                                description: { type: "string" },
-                                operations: {
-                                    type: "array",
-                                    items: {
-                                        type: "object",
-                                        properties: {
-                                            op: { type: "string" },
-                                            rule: { type: "object" },
-                                            variable: { type: "object" },
-                                            trigger: { type: "object" },
-                                            elements: { type: "array", items: { type: "object" } },
-                                            id: { type: "string" },
-                                            ids: { type: "array", items: { type: "string" } },
-                                            value: { type: "number" },
-                                            patch: { type: "object" },
-                                            mapping: { type: "object" },
-                                            index: { type: "number" }
-                                        },
-                                        required: ["op"]
-                                    }
-                                }
-                            },
-                            required: ["type", "operations"]
-                        }
-                    ]
-                }
-            },
-            required: ["message", "patch"]
+    function isPlainObject(value) {
+        return !!value && typeof value === "object" && !Array.isArray(value);
+    }
+
+    function validatePatchContract(patch) {
+        /* What: Validate assistant patch shape before preview/apply.
+         * Why: Early structural checks provide clearer repair signals for model retries.
+         */
+        const issues = [];
+        if (!isPlainObject(patch)) {
+            issues.push("Patch must be a JSON object.");
+            return { ok: false, issues: issues };
+        }
+
+        const allowedKeys = {
+            tablePatch: true,
+            addElements: true,
+            patchElements: true,
+            removeElements: true,
+            addFeatures: true,
+            patchFeatures: true,
+            removeFeatures: true,
+            logicDocPatch: true
         };
+        Object.keys(patch).forEach(function each(key) {
+            if (!allowedKeys[key]) issues.push("Unsupported patch key: " + key);
+        });
+
+        function expectArrayOfObjects(key) {
+            if (patch[key] == null) return;
+            if (!Array.isArray(patch[key])) {
+                issues.push(key + " must be an array.");
+                return;
+            }
+            patch[key].forEach(function each(item, index) {
+                if (!isPlainObject(item)) issues.push(key + "[" + index + "] must be an object.");
+            });
+        }
+
+        function expectArrayOfStrings(key) {
+            if (patch[key] == null) return;
+            if (!Array.isArray(patch[key])) {
+                issues.push(key + " must be an array.");
+                return;
+            }
+            patch[key].forEach(function each(item, index) {
+                if (typeof item !== "string") issues.push(key + "[" + index + "] must be a string id.");
+            });
+        }
+
+        if (patch.tablePatch != null && !isPlainObject(patch.tablePatch)) {
+            issues.push("tablePatch must be an object.");
+        }
+        expectArrayOfObjects("addElements");
+        expectArrayOfObjects("addFeatures");
+        expectArrayOfStrings("removeElements");
+        expectArrayOfStrings("removeFeatures");
+
+        if (patch.patchElements != null) {
+            if (!Array.isArray(patch.patchElements)) issues.push("patchElements must be an array.");
+            else patch.patchElements.forEach(function each(change, index) {
+                if (!isPlainObject(change)) {
+                    issues.push("patchElements[" + index + "] must be an object.");
+                    return;
+                }
+                if (typeof change.id !== "string" || !change.id) issues.push("patchElements[" + index + "].id must be a string.");
+                if (!isPlainObject(change.patch)) issues.push("patchElements[" + index + "].patch must be an object.");
+            });
+        }
+
+        if (patch.patchFeatures != null) {
+            if (!Array.isArray(patch.patchFeatures)) issues.push("patchFeatures must be an array.");
+            else patch.patchFeatures.forEach(function each(change, index) {
+                if (!isPlainObject(change)) {
+                    issues.push("patchFeatures[" + index + "] must be an object.");
+                    return;
+                }
+                if (typeof change.id !== "string" || !change.id) issues.push("patchFeatures[" + index + "].id must be a string.");
+                if (!isPlainObject(change.patch)) issues.push("patchFeatures[" + index + "].patch must be an object.");
+            });
+        }
+
+        function validateFeatureObject(feature, pathPrefix) {
+            if (!isPlainObject(feature)) {
+                issues.push(pathPrefix + " must be an object.");
+                return;
+            }
+            unknownKeys(feature, {
+                id: true,
+                name: true,
+                description: true,
+                goal: true,
+                objects: true,
+                states: true,
+                rules: true,
+                lamps: true,
+                parts: true
+            });
+            if (feature.id != null && (typeof feature.id !== "string" || !feature.id)) issues.push(pathPrefix + ".id must be a non-empty string when present.");
+            if (feature.name != null && typeof feature.name !== "string") issues.push(pathPrefix + ".name must be a string when present.");
+            if (feature.description != null && typeof feature.description !== "string") issues.push(pathPrefix + ".description must be a string when present.");
+            if (feature.goal != null && typeof feature.goal !== "string") issues.push(pathPrefix + ".goal must be a string when present.");
+            ["objects", "states", "rules", "lamps", "parts"].forEach(function each(key) {
+                if (feature[key] == null) return;
+                if (!Array.isArray(feature[key])) {
+                    issues.push(pathPrefix + "." + key + " must be an array when present.");
+                    return;
+                }
+                feature[key].forEach(function eachEntry(value, entryIndex) {
+                    if (typeof value !== "string") issues.push(pathPrefix + "." + key + "[" + entryIndex + "] must be a string.");
+                });
+            });
+        }
+
+        (Array.isArray(patch.addFeatures) ? patch.addFeatures : []).forEach(function each(feature, index) {
+            validateFeatureObject(feature, "addFeatures[" + index + "]");
+        });
+        (Array.isArray(patch.patchFeatures) ? patch.patchFeatures : []).forEach(function each(change, index) {
+            if (!change || !isPlainObject(change) || !isPlainObject(change.patch)) return;
+            validateFeatureObject(change.patch, "patchFeatures[" + index + "].patch");
+        });
+
+        function unknownKeys(obj, allowedMap) {
+            Object.keys(obj || {}).forEach(function each(key) {
+                if (!allowedMap[key]) issues.push("Unsupported key: " + key);
+            });
+        }
+
+        if (patch.logicDocPatch != null) {
+            if (!isPlainObject(patch.logicDocPatch)) issues.push("logicDocPatch must be an object.");
+            else {
+                const logicPatch = patch.logicDocPatch;
+                const allowedLogicKeys = {
+                    logicVersion: true,
+                    switchRegistry: true,
+                    stateTable: true,
+                    computedState: true,
+                    lampBindings: true,
+                    actionRules: true,
+                    resetRules: true
+                };
+                Object.keys(logicPatch).forEach(function each(key) {
+                    if (!allowedLogicKeys[key]) issues.push("logicDocPatch contains unsupported key: " + key);
+                });
+                ["switchRegistry", "stateTable", "computedState", "lampBindings", "actionRules", "resetRules"].forEach(function each(key) {
+                    const value = logicPatch[key];
+                    if (value == null) return;
+                    if (!Array.isArray(value)) issues.push("logicDocPatch." + key + " must be an array.");
+                });
+                if (logicPatch.logicVersion != null && logicPatch.logicVersion !== 1) {
+                    issues.push("logicDocPatch.logicVersion must be 1 when present.");
+                }
+
+                (Array.isArray(logicPatch.switchRegistry) ? logicPatch.switchRegistry : []).forEach(function each(row, index) {
+                    if (!isPlainObject(row)) {
+                        issues.push("logicDocPatch.switchRegistry[" + index + "] must be an object.");
+                        return;
+                    }
+                    unknownKeys(row, { id: true, name: true, sourceElementId: true, kind: true, intervalMs: true });
+                    if (!row.id || typeof row.id !== "string") issues.push("logicDocPatch.switchRegistry[" + index + "].id must be a string.");
+                    if (!row.sourceElementId || typeof row.sourceElementId !== "string") issues.push("logicDocPatch.switchRegistry[" + index + "].sourceElementId must be a string.");
+                    if (row.intervalMs != null && (!Number.isFinite(Number(row.intervalMs)) || Number(row.intervalMs) <= 0)) {
+                        issues.push("logicDocPatch.switchRegistry[" + index + "].intervalMs must be a positive number when present.");
+                    }
+                });
+
+                (Array.isArray(logicPatch.stateTable) ? logicPatch.stateTable : []).forEach(function each(row, index) {
+                    if (!isPlainObject(row)) {
+                        issues.push("logicDocPatch.stateTable[" + index + "] must be an object.");
+                        return;
+                    }
+                    unknownKeys(row, { id: true, name: true, type: true, initial: true, volatile: true });
+                    if (!row.id || typeof row.id !== "string") issues.push("logicDocPatch.stateTable[" + index + "].id must be a string.");
+                    if (row.type != null && row.type !== "bool" && row.type !== "int") issues.push("logicDocPatch.stateTable[" + index + "].type must be 'bool' or 'int'.");
+                });
+
+                (Array.isArray(logicPatch.computedState) ? logicPatch.computedState : []).forEach(function each(row, index) {
+                    if (!isPlainObject(row)) {
+                        issues.push("logicDocPatch.computedState[" + index + "] must be an object.");
+                        return;
+                    }
+                    unknownKeys(row, { id: true, name: true, type: true, expr: true });
+                    if (!row.id || typeof row.id !== "string") issues.push("logicDocPatch.computedState[" + index + "].id must be a string.");
+                    if (typeof row.expr !== "string") issues.push("logicDocPatch.computedState[" + index + "].expr must be a string.");
+                });
+
+                (Array.isArray(logicPatch.lampBindings) ? logicPatch.lampBindings : []).forEach(function each(row, index) {
+                    if (!isPlainObject(row)) {
+                        issues.push("logicDocPatch.lampBindings[" + index + "] must be an object.");
+                        return;
+                    }
+                    unknownKeys(row, { lampId: true, expr: true });
+                    if (!row.lampId || typeof row.lampId !== "string") issues.push("logicDocPatch.lampBindings[" + index + "].lampId must be a string.");
+                    if (typeof row.expr !== "string") issues.push("logicDocPatch.lampBindings[" + index + "].expr must be a string (not expression).");
+                });
+
+                (Array.isArray(logicPatch.actionRules) ? logicPatch.actionRules : []).forEach(function each(rule, index) {
+                    if (!isPlainObject(rule)) {
+                        issues.push("logicDocPatch.actionRules[" + index + "] must be an object.");
+                        return;
+                    }
+                    unknownKeys(rule, { id: true, name: true, trigger: true, condition: true, effects: true, enabled: true });
+                    if (!rule.id || typeof rule.id !== "string") issues.push("logicDocPatch.actionRules[" + index + "].id must be a string.");
+                    if (!rule.trigger || typeof rule.trigger !== "string") issues.push("logicDocPatch.actionRules[" + index + "].trigger must be a string switch id.");
+                    if (rule.condition != null && typeof rule.condition !== "string") issues.push("logicDocPatch.actionRules[" + index + "].condition must be a string.");
+                    if (!Array.isArray(rule.effects)) {
+                        issues.push("logicDocPatch.actionRules[" + index + "].effects must be an array.");
+                        return;
+                    }
+                    rule.effects.forEach(function eachEffect(effect, effectIndex) {
+                        if (!isPlainObject(effect)) {
+                            issues.push("logicDocPatch.actionRules[" + index + "].effects[" + effectIndex + "] must be an object.");
+                            return;
+                        }
+                        unknownKeys(effect, { type: true, target: true, value: true });
+                        if (typeof effect.type !== "string") {
+                            issues.push("logicDocPatch.actionRules[" + index + "].effects[" + effectIndex + "].type must be a string.");
+                            return;
+                        }
+                        if (["set", "add", "reset", "setElementProperty", "clearElementProperty"].indexOf(effect.type) >= 0 && typeof effect.target !== "string") {
+                            issues.push("logicDocPatch.actionRules[" + index + "].effects[" + effectIndex + "].target must be a string for " + effect.type + ".");
+                        }
+                        if (effect.type === "set" && effect.value == null) {
+                            issues.push("logicDocPatch.actionRules[" + index + "].effects[" + effectIndex + "].value is required for set.");
+                        }
+                        if (effect.type === "add" && typeof effect.value !== "number") {
+                            issues.push("logicDocPatch.actionRules[" + index + "].effects[" + effectIndex + "].value must be numeric for add.");
+                        }
+                        if (effect.type === "score" && typeof effect.value !== "number") {
+                            issues.push("logicDocPatch.actionRules[" + index + "].effects[" + effectIndex + "].value must be numeric for score.");
+                        }
+                        if (["set", "add", "score", "reset", "setElementProperty", "clearElementProperty"].indexOf(effect.type) < 0) {
+                            issues.push("logicDocPatch.actionRules[" + index + "].effects[" + effectIndex + "].type must be one of: set, add, score, reset, setElementProperty, clearElementProperty.");
+                        }
+                    });
+                });
+
+                (Array.isArray(logicPatch.resetRules) ? logicPatch.resetRules : []).forEach(function each(rule, index) {
+                    if (!isPlainObject(rule)) {
+                        issues.push("logicDocPatch.resetRules[" + index + "] must be an object.");
+                        return;
+                    }
+                    unknownKeys(rule, { id: true, name: true, trigger: true, scope: true, resets: true });
+                    if (!rule.id || typeof rule.id !== "string") issues.push("logicDocPatch.resetRules[" + index + "].id must be a string.");
+                    if (!rule.trigger || typeof rule.trigger !== "string") issues.push("logicDocPatch.resetRules[" + index + "].trigger must be a string switch id.");
+                    if (!Array.isArray(rule.resets)) issues.push("logicDocPatch.resetRules[" + index + "].resets must be an array of state ids.");
+                });
+
+                const switchIds = {};
+                (Array.isArray(logicPatch.switchRegistry) ? logicPatch.switchRegistry : []).forEach(function each(row) {
+                    if (row && typeof row.id === "string" && row.id) switchIds[row.id] = true;
+                });
+                if (Object.keys(switchIds).length) {
+                    (Array.isArray(logicPatch.actionRules) ? logicPatch.actionRules : []).forEach(function each(rule, index) {
+                        if (!rule || typeof rule.trigger !== "string") return;
+                        if (!switchIds[rule.trigger]) {
+                            issues.push("logicDocPatch.actionRules[" + index + "].trigger must reference an id present in logicDocPatch.switchRegistry.");
+                        }
+                    });
+                    (Array.isArray(logicPatch.resetRules) ? logicPatch.resetRules : []).forEach(function each(rule, index) {
+                        if (!rule || typeof rule.trigger !== "string") return;
+                        if (!switchIds[rule.trigger]) {
+                            issues.push("logicDocPatch.resetRules[" + index + "].trigger must reference an id present in logicDocPatch.switchRegistry.");
+                        }
+                    });
+                }
+            }
+        }
+
+        return { ok: issues.length === 0, issues: issues };
     }
 
-    function clipLogText(value, limit) {
-        const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
-        if (!text) return "";
-        return text.length > (limit || 6000) ? text.slice(0, limit || 6000) + "\n...[truncated]" : text;
-    }
-
-    function displayElementRef(element) {
-        if (!element) return "";
-        const name = element.name || element.label || "";
-        return name ? name + " (" + element.id + ")" : element.id;
-    }
 
     function create(options) {
+        const storedSettings = normalizeSettings(readJson(SETTINGS_KEY, {}));
+        const storedAgenticMode = normalizeAgenticMode(readJson(AGENTIC_MODE_KEY, {}));
         const state = {
-            settings: loadSettings(),
+            settings: storedSettings,
             messages: [],
             draft: "",
             agenticDraft: "",
-            agenticFullyAuto: true,
-            agenticApproveEachChange: false,
+            agenticFullyAuto: storedAgenticMode.fullyAuto,
+            agenticApproveEachChange: storedAgenticMode.approveEachChange,
             agenticRunning: false,
             agenticStopRequested: false,
             agenticBatches: [],
@@ -302,1184 +402,510 @@
             lastPatch: null,
             logs: [],
             logOpen: false,
-            picks: clone(DEFAULT_PICKS),
-            layoutPicks: clone(DEFAULT_LAYOUT_PICKS),
-            connectionStatus: "Not tested",
-            availableModels: [],
-            skillText: ""
+            picks: { steps: [], target: "", stepLamps: [], targetLamp: "" },
+            layoutPicks: [],
+            connectionStatus: "Disabled",
+            availableModels: []
         };
-        const refresh = options.refresh;
+
+        function refresh() {
+            if (options && options.refresh) options.refresh("inspector");
+        }
 
         function snapshot() {
-            return {
-                settings: clone(state.settings),
-                messages: clone(state.messages),
-                draft: state.draft,
-                agenticDraft: state.agenticDraft,
-                agenticFullyAuto: state.agenticFullyAuto,
-                agenticApproveEachChange: state.agenticApproveEachChange,
-                agenticRunning: state.agenticRunning,
-                agenticStopRequested: state.agenticStopRequested,
-                agenticBatches: clone(state.agenticBatches),
-                agenticPendingPatch: clone(state.agenticPendingPatch),
-                agenticPendingBatchId: state.agenticPendingBatchId || "",
-                busy: state.busy,
-                error: state.error,
-                lastPatch: clone(state.lastPatch),
-                lastPatchSummary: summarizePatch(state.lastPatch),
-                logs: clone(state.logs),
-                logOpen: state.logOpen,
-                picks: clone(state.picks),
-                layoutPicks: summarizeLayoutPicks(),
-                connectionStatus: state.connectionStatus,
-                availableModels: clone(state.availableModels)
-            };
+            return clone(state);
         }
 
-        /**
-         * Append one bounded assistant trace entry.
-         * Why: invalid provider/model output needs to be inspectable in the UI
-         * without turning the assistant path into a server-side debugging system.
-         */
-        function logEntry(stage, detail) {
+        function setSettings(nextSettings) {
+            state.settings = normalizeSettings(nextSettings);
+            writeJson(SETTINGS_KEY, state.settings);
+            state.connectionStatus = "Saved";
+            refresh();
+        }
+        function setDraft(value) { state.draft = value || ""; }
+        function setAgenticDraft(value) { state.agenticDraft = value || ""; }
+        function setAgenticMode(nextMode) {
+            const mode = normalizeAgenticMode(nextMode);
+            state.agenticFullyAuto = mode.fullyAuto;
+            state.agenticApproveEachChange = mode.approveEachChange;
+            writeJson(AGENTIC_MODE_KEY, mode);
+            refresh();
+        }
+        function clearConversation() { state.messages = []; refresh(); }
+        function addSelectedPick() {}
+        function removePick() {}
+        function clearPicks() {}
+        function addSelectedLayoutPick() {}
+        function removeLayoutPick() {}
+        function clearLayoutPicks() {}
+        function loadModels() {
+            /* What: Populate provider model options for the provider pane.
+             * Why: Even in static mode, the UI should provide deterministic feedback.
+             */
+            state.busy = true;
+            state.error = "";
+            state.connectionStatus = "Loading models...";
+            refresh();
+            return Promise.resolve().then(function finishLoad() {
+                const settings = state.settings || {};
+                const hasBaseUrl = !!String(settings.baseUrl || "").trim();
+                const hasApiKey = !!String(settings.apiKey || "").trim();
+                if (!hasBaseUrl || !hasApiKey) {
+                    const missing = [];
+                    if (!hasBaseUrl) missing.push("baseUrl");
+                    if (!hasApiKey) missing.push("apiKey");
+                    state.availableModels = [];
+                    state.connectionStatus = "Missing required provider settings: " + missing.join(", ");
+                    return [];
+                }
+                if (typeof fetch !== "function") {
+                    state.availableModels = [];
+                    state.connectionStatus = "Model loading unavailable (no fetch)";
+                    return [];
+                }
+                const endpoint = toModelsEndpoint(settings.baseUrl);
+                const headers = {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + String(settings.apiKey || "").trim()
+                };
+                return fetch(endpoint, { method: "GET", headers: headers }).then(function parseResponse(response) {
+                    if (!response.ok) throw new Error("HTTP " + response.status + " from " + endpoint);
+                    return response.json();
+                }).then(function parseModels(payload) {
+                    const rows = payload && Array.isArray(payload.data) ? payload.data : [];
+                    const configured = settings.model ? String(settings.model) : "";
+                    const seen = {};
+                    const models = [];
+                    rows.forEach(function each(row) {
+                        const id = row && row.id != null ? String(row.id) : "";
+                        if (!id || seen[id]) return;
+                        seen[id] = true;
+                        models.push({ id: id, label: id });
+                    });
+                    if (configured && !seen[configured]) {
+                        models.unshift({ id: configured, label: configured });
+                    }
+                    state.availableModels = models;
+                    state.connectionStatus = models.length ? "Models loaded" : "No models returned";
+                    return models;
+                });
+            }).catch(function onError(err) {
+                state.error = err && err.message ? String(err.message) : "Failed to load models.";
+                state.connectionStatus = "Model load failed";
+                state.availableModels = [];
+                return [];
+            }).finally(function done() {
+                state.busy = false;
+                refresh();
+            });
+        }
+        function testConnection() {
+            /* What: Validate provider settings shape in static mode.
+             * Why: The button should communicate a concrete pass/fail result.
+             */
+            state.busy = true;
+            state.error = "";
+            state.connectionStatus = "Testing...";
+            refresh();
+            return Promise.resolve().then(function finishTest() {
+                const settings = state.settings || {};
+                const hasBaseUrl = !!String(settings.baseUrl || "").trim();
+                const hasApiKey = !!String(settings.apiKey || "").trim();
+                if (hasBaseUrl && hasApiKey) {
+                    state.connectionStatus = "Configuration valid (static mode)";
+                } else {
+                    const missing = [];
+                    if (!hasBaseUrl) missing.push("baseUrl");
+                    if (!hasApiKey) missing.push("apiKey");
+                    state.connectionStatus = "Missing required provider settings: " + missing.join(", ");
+                }
+            }).catch(function onError(err) {
+                state.error = err && err.message ? String(err.message) : "Connection test failed.";
+                state.connectionStatus = "Test failed";
+            }).finally(function done() {
+                state.busy = false;
+                refresh();
+            });
+        }
+
+        function appendLog(kind, detail) {
             state.logs.push({
                 at: new Date().toISOString(),
-                stage: stage,
-                detail: clipLogText(detail, 8000)
+                kind: kind,
+                detail: detail
             });
-            if (state.logs.length > MAX_LOG_ENTRIES) state.logs.splice(0, state.logs.length - MAX_LOG_ENTRIES);
-        }
-
-        function persistSettings() {
-            saveSettings(state.settings);
-        }
-
-        function setSettings(patch) {
-            Object.keys(patch || {}).forEach(function each(key) {
-                state.settings[key] = patch[key];
-            });
-            persistSettings();
-            refresh("inspector");
-        }
-
-        function setDraft(value) {
-            state.draft = value || "";
-        }
-
-        function setAgenticDraft(value) {
-            state.agenticDraft = value || "";
-        }
-
-        function setAgenticMode(patch) {
-            if (!patch || typeof patch !== "object") return;
-            if (typeof patch.fullyAuto === "boolean") state.agenticFullyAuto = patch.fullyAuto;
-            if (typeof patch.approveEachChange === "boolean") state.agenticApproveEachChange = patch.approveEachChange;
-            refresh("inspector");
-        }
-
-        function clearConversation() {
-            state.messages = [];
-            state.error = "";
-            state.lastPatch = null;
-            state.agenticBatches = [];
-            state.agenticPendingPatch = null;
-            state.agenticPendingBatchId = "";
-            refresh("inspector");
-        }
-
-        function openLog() {
-            state.logOpen = true;
-            refresh("inspector");
-        }
-
-        function closeLog() {
-            state.logOpen = false;
-            refresh("inspector");
-        }
-
-        function clearLog() {
-            state.logs = [];
-            refresh("inspector");
-        }
-
-        function getElementById(id) {
-            const table = options.getTable();
-            return ((table && table.elements) || []).find(function find(element) { return element.id === id; }) || null;
-        }
-
-        function summarizePickedState() {
-            return {
-                steps: state.picks.steps.map(function map(id) { return summarizeElement(getElementById(id)); }).filter(Boolean),
-                target: summarizeElement(getElementById(state.picks.target)),
-                stepLamps: state.picks.stepLamps.map(function map(id) { return summarizeElement(getElementById(id)); }).filter(Boolean),
-                targetLamp: summarizeElement(getElementById(state.picks.targetLamp))
-            };
-        }
-
-        function summarizeLayoutPicks() {
-            return state.layoutPicks.map(function map(id) {
-                return summarizeElement(getElementById(id));
-            }).filter(Boolean);
-        }
-
-        function describeElementId(id) {
-            if (!id) return "(none)";
-            return displayElementRef(getElementById(id)) || id;
-        }
-
-        function describeLampRef(id) {
-            if (!id) return "(none)";
-            const element = getElementById(id) || ((options.getTable().elements || []).find(function find(entry) {
-                return entry && (entry.type === "light" || entry.type === "arrowLight" || entry.type === "boxLight") && ((entry.lampId || entry.id) === id);
-            }) || null);
-            return displayElementRef(element) || id;
         }
 
         function summarizePatch(patch) {
-            if (!patch || !Array.isArray(patch.operations)) return [];
-            const lines = [];
-            patch.operations.forEach(function each(operation) {
-                if (!operation || !operation.op) return;
-                if (operation.op === "addSequenceRule") {
-                    const rule = operation.rule || {};
-                    lines.push("Add sequence " + (rule.name || rule.id || "Sequence"));
-                    lines.push("  Steps: " + ((rule.steps || []).map(describeElementId).join(" -> ") || "(none)"));
-                    if ((rule.stepLampIds || []).length) {
-                        lines.push("  Step lamps: " + rule.stepLampIds.map(describeLampRef).join(" -> "));
-                    }
-                    lines.push("  Target: " + describeElementId(rule.targetSwitchId));
-                    if (rule.targetLampId) lines.push("  Target lamp: " + describeLampRef(rule.targetLampId));
-                    if (typeof rule.windowSeconds === "number") lines.push("  Window: " + rule.windowSeconds + "s");
-                    if (typeof rule.awardPoints === "number") lines.push("  Award: " + rule.awardPoints + " points");
-                    if (rule.awardEvent) lines.push("  Event: " + rule.awardEvent);
-                    return;
-                }
-                if (operation.op === "updateSequenceRule") {
-                    lines.push("Update sequence " + (operation.id || "(unknown)"));
-                    const patchFields = operation.patch || {};
-                    Object.keys(patchFields).forEach(function eachKey(key) {
-                        let value = patchFields[key];
-                        if (key === "steps") value = (value || []).map(describeElementId).join(" -> ");
-                        else if (key === "stepLampIds") value = (value || []).map(describeLampRef).join(" -> ");
-                        else if (key === "targetSwitchId") value = describeElementId(value);
-                        else if (key === "targetLampId") value = describeLampRef(value);
-                        lines.push("  " + key + ": " + String(value));
-                    });
-                    return;
-                }
-                if (operation.op === "deleteSequenceRule") {
-                    lines.push("Delete sequence " + (operation.id || "(unknown)"));
-                    return;
-                }
-                if (operation.op === "addSwitchMap") {
-                    const mapping = operation.mapping || {};
-                    lines.push("Add switch map " + (mapping.sourceId || "(source)") + " -> " + (mapping.switchId || "(switch)"));
-                    return;
-                }
-                if (operation.op === "updateSwitchMap") {
-                    lines.push("Update switch map #" + operation.index);
-                    Object.keys(operation.patch || {}).forEach(function eachKey(key) {
-                        lines.push("  " + key + ": " + String(operation.patch[key]));
-                    });
-                    return;
-                }
-                if (operation.op === "deleteSwitchMap") {
-                    lines.push("Delete switch map #" + operation.index);
-                    return;
-                }
-                if (operation.op === "addVariable") {
-                    const variable = operation.variable || {};
-                    lines.push("Add variable " + (variable.name || variable.id || "(variable)"));
-                    return;
-                }
-                if (operation.op === "updateVariable") {
-                    lines.push("Update variable " + (operation.id || "(unknown)"));
-                    Object.keys(operation.patch || {}).forEach(function eachKey(key) {
-                        lines.push("  " + key + ": " + JSON.stringify(operation.patch[key]));
-                    });
-                    return;
-                }
-                if (operation.op === "deleteVariable") {
-                    lines.push("Delete variable " + (operation.id || "(unknown)"));
-                    return;
-                }
-                if (operation.op === "addTrigger") {
-                    const trigger = operation.trigger || {};
-                    lines.push("Add trigger " + (trigger.id || "(trigger)") + " -> " + (trigger.switchId || "(switch)"));
-                    return;
-                }
-                if (operation.op === "addElements") {
-                    lines.push("Add elements");
-                    (operation.elements || []).forEach(function eachElement(element) {
-                        const summary = [];
-                        if (element && element.type) summary.push("type=" + element.type);
-                        if (typeof element.x === "number") summary.push("x=" + element.x);
-                        if (typeof element.y === "number") summary.push("y=" + element.y);
-                        if (typeof element.radius === "number") summary.push("radius=" + element.radius);
-                        if (typeof element.w === "number") summary.push("w=" + element.w);
-                        if (typeof element.h === "number") summary.push("h=" + element.h);
-                        if (element && element.lampId) summary.push("lampId=" + element.lampId);
-                        lines.push("  " + ((element && element.id) || "(new element)") + (summary.length ? ": " + summary.join(", ") : ""));
-                    });
-                    return;
-                }
-                if (operation.op === "updateTrigger") {
-                    lines.push("Update trigger " + (operation.id || "(unknown)"));
-                    Object.keys(operation.patch || {}).forEach(function eachKey(key) {
-                        lines.push("  " + key + ": " + JSON.stringify(operation.patch[key]));
-                    });
-                    return;
-                }
-                if (operation.op === "deleteTrigger") {
-                    lines.push("Delete trigger " + (operation.id || "(unknown)"));
-                    return;
-                }
-                if (operation.op === "alignHorizontal") {
-                    lines.push("Align horizontally: " + (operation.ids || []).map(describeElementId).join(", "));
-                    return;
-                }
-                if (operation.op === "distributeHorizontal") {
-                    lines.push("Distribute horizontally: " + (operation.ids || []).map(describeElementId).join(", "));
-                    return;
-                }
-                if (operation.op === "matchWidth") {
-                    lines.push("Match width for: " + (operation.ids || []).map(describeElementId).join(", "));
-                    if (typeof operation.value === "number") lines.push("  Width: " + operation.value);
-                    return;
-                }
-                if (operation.op === "matchHeight") {
-                    lines.push("Match height for: " + (operation.ids || []).map(describeElementId).join(", "));
-                    if (typeof operation.value === "number") lines.push("  Height: " + operation.value);
-                    return;
-                }
-                if (operation.op === "patchElements") {
-                    lines.push("Patch explicit element fields");
-                    const patches = operation.patches || ((operation.patch && operation.patch.patches) || []);
-                    patches.forEach(function eachPatch(entry) {
-                        lines.push("  " + describeElementId(entry.id) + ": " + Object.keys(entry.patch || {}).map(function map(key) {
-                            return key + "=" + entry.patch[key];
-                        }).join(", "));
-                    });
-                    return;
-                }
-                lines.push("Operation: " + operation.op);
-            });
-            return lines;
+            const out = [];
+            if (!patch || typeof patch !== "object") return out;
+            if (Array.isArray(patch.addElements) && patch.addElements.length) out.push("Add elements: " + patch.addElements.length);
+            if (Array.isArray(patch.patchElements) && patch.patchElements.length) out.push("Patch elements: " + patch.patchElements.length);
+            if (Array.isArray(patch.removeElements) && patch.removeElements.length) out.push("Remove elements: " + patch.removeElements.length);
+            if (Array.isArray(patch.addFeatures) && patch.addFeatures.length) out.push("Add features: " + patch.addFeatures.length);
+            if (Array.isArray(patch.patchFeatures) && patch.patchFeatures.length) out.push("Patch features: " + patch.patchFeatures.length);
+            if (Array.isArray(patch.removeFeatures) && patch.removeFeatures.length) out.push("Remove features: " + patch.removeFeatures.length);
+            if (patch.tablePatch && typeof patch.tablePatch === "object") out.push("Patch table fields");
+            if (patch.logicDocPatch && typeof patch.logicDocPatch === "object") out.push("Patch logic document");
+            return out;
         }
 
-        function makeContextSummary() {
-            const selected = options.getSelected ? options.getSelected() : null;
-            const selectedRule = options.getSelectedRule ? options.getSelectedRule() : null;
-            const selectedGraph = options.getSelectedGraph ? options.getSelectedGraph() : null;
-            const selectedNode = options.getSelectedLogicNode ? options.getSelectedLogicNode() : null;
-            const table = options.getTable();
-            const rulesEngine = (table && table.rulesEngine) || {};
-            const nearby = selected ? (table.elements || [])
-                .filter(function filter(element) { return element && element.id !== selected.id; })
-                .map(function map(element) {
-                    return {
-                        element: element,
-                        distance: distanceBetween(selected, element)
-                    };
-                })
-                .sort(function sort(a, b) { return a.distance - b.distance; })
-                .slice(0, 8)
-                .map(function map(entry) {
-                    const summary = summarizeElement(entry.element);
-                    summary.distance = Number.isFinite(entry.distance) ? Math.round(entry.distance * 10) / 10 : null;
-                    return summary;
-                }) : [];
-            return {
-                knowledge: getElementKnowledge(),
-                table: {
-                    name: table.name,
-                    playfield: clone(table.playfield || {}),
-                    selectedObject: summarizeElement(selected),
-                    selectedRule: summarizeRule(selectedRule),
-                    selectedGraph: summarizeGraph(selectedGraph),
-                    selectedLogicNode: summarizeNode(selectedNode),
-                    elementCount: (table.elements || []).length
-                },
-                nearbyElements: nearby,
-                picks: summarizePickedState(),
-                layoutPicks: summarizeLayoutPicks(),
-                elements: (table.elements || []).map(summarizeElement),
-                rules: (rulesEngine.sequenceRules || []).map(summarizeRule),
-                triggers: clone(rulesEngine.triggers || []),
-                variables: clone(rulesEngine.variables || []),
-                logicGraphs: (rulesEngine.logicGraphs || []).map(summarizeGraph),
-                validationIssues: options.getValidationIssues ? options.getValidationIssues() : [],
-                activeTab: options.getActiveTab ? options.getActiveTab() : "properties"
+        function ensureProviderReady() {
+            const settings = state.settings || {};
+            const baseUrl = safeString(settings.baseUrl).trim();
+            const apiKey = safeString(settings.apiKey).trim();
+            const model = safeString(settings.model).trim();
+            if (!baseUrl || !apiKey || !model) {
+                const missing = [];
+                if (!baseUrl) missing.push("baseUrl");
+                if (!apiKey) missing.push("apiKey");
+                if (!model) missing.push("model");
+                return { ok: false, message: "Missing required provider settings: " + missing.join(", ") };
+            }
+            if (typeof fetch !== "function") return { ok: false, message: "Fetch unavailable in this environment." };
+            return { ok: true, settings: settings };
+        }
+
+        function createPatchRequestPrompt(task, table, selected) {
+            const switchTypes = {
+                lane: true,
+                dropTarget: true,
+                bumper: true,
+                scoreZone: true,
+                drain: true,
+                spinner: true,
+                kicker: true,
+                trough: true,
+                gate: true
             };
-        }
-
-        function buildTools() {
-            return [
-                {
-                    type: "function",
-                    function: {
-                        name: "get_table_summary",
-                        description: "Return a compact summary of the current table, element fields, rules, selection, validation issues, and authoring knowledge.",
-                        parameters: { type: "object", properties: {} }
-                    }
-                },
-                {
-                    type: "function",
-                    function: {
-                        name: "get_selected_context",
-                        description: "Return the selected object, selected rule, selected graph node, and nearby useful elements.",
-                        parameters: { type: "object", properties: {} }
-                    }
-                },
-                {
-                    type: "function",
-                    function: {
-                        name: "get_picked_context",
-                        description: "Return the explicitly picked step objects, target object, and lamps for guided sequence building.",
-                        parameters: { type: "object", properties: {} }
-                    }
-                },
-                {
-                    type: "function",
-                    function: {
-                        name: "get_layout_picks",
-                        description: "Return the explicitly picked layout objects for alignment and sizing tasks.",
-                        parameters: { type: "object", properties: {} }
-                    }
-                },
-                {
-                    type: "function",
-                    function: {
-                        name: "list_elements",
-                        description: "List elements, optionally filtered by type or level.",
-                        parameters: {
-                            type: "object",
-                            properties: {
-                                type: { type: "string" },
-                                level: { type: "number" }
-                            }
-                        }
-                    }
-                },
-                {
-                    type: "function",
-                    function: {
-                        name: "get_element",
-                        description: "Return one full element by id, including all current editable properties.",
-                        parameters: {
-                            type: "object",
-                            properties: { id: { type: "string" } },
-                            required: ["id"]
-                        }
-                    }
-                },
-                {
-                    type: "function",
-                    function: {
-                        name: "list_rules",
-                        description: "List existing sequence rules.",
-                        parameters: { type: "object", properties: {} }
-                    }
-                },
-                {
-                    type: "function",
-                    function: {
-                        name: "get_rule",
-                        description: "Return one sequence rule by id.",
-                        parameters: {
-                            type: "object",
-                            properties: { id: { type: "string" } },
-                            required: ["id"]
-                        }
-                    }
-                },
-                {
-                    type: "function",
-                    function: {
-                        name: "get_validation_issues",
-                        description: "Return current playability and rule validation issues.",
-                        parameters: { type: "object", properties: {} }
-                    }
-                }
-            ];
-        }
-
-        function executeToolCall(name, args) {
-            const table = options.getTable();
-            const rulesEngine = (table && table.rulesEngine) || {};
-            if (name === "get_table_summary") {
-                return makeContextSummary();
-            }
-            if (name === "get_selected_context") {
-                const context = makeContextSummary();
-                return {
-                    selectedObject: context.table.selectedObject,
-                    selectedRule: context.table.selectedRule,
-                    selectedGraph: context.table.selectedGraph,
-                    selectedLogicNode: context.table.selectedLogicNode,
-                    nearbyElements: context.nearbyElements
+            const lampTypes = {
+                light: true,
+                arrowLight: true,
+                boxLight: true,
+                dropTarget: true
+            };
+            const elements = Array.isArray(table && table.elements) ? table.elements : [];
+            const logicDoc = table &&
+                table.rulesEngine &&
+                table.rulesEngine.logicGraphs &&
+                table.rulesEngine.logicGraphs.logicDocument
+                ? table.rulesEngine.logicGraphs.logicDocument
+                : {
+                    logicVersion: 1,
+                    switchRegistry: [],
+                    stateTable: [],
+                    computedState: [],
+                    lampBindings: [],
+                    actionRules: [],
+                    resetRules: []
                 };
-            }
-            if (name === "get_picked_context") {
-                return summarizePickedState();
-            }
-            if (name === "get_layout_picks") {
-                return summarizeLayoutPicks();
-            }
-            if (name === "list_elements") {
-                return (table.elements || []).filter(function filter(element) {
-                    if (args.type && element.type !== args.type) return false;
-                    if (typeof args.level === "number" && (element.level || 0) !== args.level) return false;
-                    return true;
-                }).map(summarizeElement);
-            }
-            if (name === "get_element") {
-                return summarizeElementFull((table.elements || []).find(function find(element) { return element.id === args.id; }) || null);
-            }
-            if (name === "list_rules") {
-                return (rulesEngine.sequenceRules || []).map(summarizeRule);
-            }
-            if (name === "get_rule") {
-                return summarizeRule((rulesEngine.sequenceRules || []).find(function find(rule) { return rule.id === args.id; }) || null);
-            }
-            if (name === "get_validation_issues") {
-                const ruleIssues = Pin.rules && Pin.rules.validate ? Pin.rules.validate(table) : [];
-                return {
-                    table: options.getValidationIssues ? options.getValidationIssues() : [],
-                    rules: Array.isArray(ruleIssues) ? ruleIssues : (ruleIssues.issues || [])
-                };
-            }
-            return { error: "Unknown tool " + name };
-        }
-
-        /**
-         * Build the first-pass prompt.
-         * Why: this pass is allowed to inspect tools and think about the task,
-         * but it should not be forced into strict JSON too early.
-         */
-        function buildSystemPrompt() {
-            const skillText = state.skillText ? ("\n\nTBSpec skill:\n" + state.skillText) : "";
+            const compact = {
+                name: table && table.name || "",
+                features: Array.isArray(table && table.features) ? table.features : [],
+                selected: selected ? { id: selected.id, type: selected.type, name: selected.name || selected.label || "" } : null,
+                elements: elements.map(function map(el) {
+                    return { id: el.id, type: el.type, name: el.name || el.label || el.text || "" };
+                }),
+                switchCandidates: elements.filter(function filter(el) {
+                    return el && el.id && switchTypes[el.type];
+                }).map(function map(el) {
+                    return { id: el.id, type: el.type, name: el.name || el.label || el.id };
+                }),
+                lampCandidates: elements.filter(function filter(el) {
+                    return el && el.id && lampTypes[el.type];
+                }).map(function map(el) {
+                    const lampId = el.type === "dropTarget" ? String(el.id) : String(el.lampId || el.id);
+                    return { lampId: lampId, sourceElementId: el.id, type: el.type, name: el.name || el.label || el.text || lampId };
+                }),
+                timerSwitches: [
+                    { id: "timer_100ms", kind: "timer", intervalMs: 100 },
+                    { id: "timer_1s", kind: "timer", intervalMs: 1000 }
+                ],
+                logicDoc: logicDoc
+            };
             return [
-                "You are an assistant embedded in a pinball table editor.",
-                "Your main job is to help author table logic and table layout.",
-                "You can also help with layout when explicit layout picks are provided.",
-                "You may use tools to inspect the current table before answering.",
-                "Do not invent element ids or lamp ids. Use only ids returned by tools.",
-                "Do not ask the user to edit raw JSON by hand when you can propose a structured patch.",
-                "Prefer concise, practical answers focused on the current table.",
-                "The expected outcome is a clear intended edit or a short blocker explanation if a valid edit cannot be formed.",
-                "When the user is asking for an edit, do not answer like a tutorial.",
-                "Do not produce replacement JSON objects for edit requests.",
-                "Do not claim the sequence-rule schema is missing when rulesEngine, sequenceRules, variables, conditions, and actions are already present in context.",
-                "For progressive scoring requests on an existing bumper, use the bumper's current id plus resolved lamp ids, variables, conditions, and setElementScore actions rather than blocking on schema.",
-                "Translate user phrases like 'base score' into the real element field score.",
-                "For layout requests, identify the exact target ids and state the intended editor operations.",
-                "Good first-pass layout wording is like: 'Target ids: laneA, laneB, laneC. Intended operations: alignHorizontal, matchWidth, matchHeight.'",
-                "Good first-pass logic wording is like: 'Target ids: switchA and lamps lamp_stage_a, lamp_stage_b, lamp_stage_c. Intended operations: one ordered sequence rule with repeated step ids and aligned stepLampIds.'",
-                "Bad wording is freehand geometry advice, average-coordinate calculations, or illustrative JSON.",
-                AUTHORING_CONTRACT,
-                skillText
+                "You are a patch generator for a pinball table editor.",
+                "Return ONLY JSON patch object with optional keys:",
+                "tablePatch, addElements, patchElements, removeElements, addFeatures, patchFeatures, removeFeatures, logicDocPatch.",
+                "Feature schema (for addFeatures/patchFeatures.patch): id, name, description, goal, objects[], states[], rules[], lamps[] (optional parts[] legacy).",
+                "Prefer feature-first updates: add/patch feature metadata when creating or changing gameplay logic.",
+                "When editing logic, write into logicDocPatch using current schema keys only:",
+                "logicVersion, switchRegistry, stateTable, computedState, lampBindings, actionRules, resetRules.",
+                "Strict logic schema:",
+                "- lampBindings rows use { lampId, expr } (NOT expression).",
+                "- actionRules rows use { id, trigger, condition, effects, enabled } (NOT when).",
+                "- action effect rows use { type, target?, value? } where type in set|add|score|reset|setElementProperty|clearElementProperty (NOT setState).",
+                "- resetRules rows use { id, trigger, scope, resets } (NOT effects).",
+                "- actionRules.trigger and resetRules.trigger must be switch IDs from switchRegistry.",
+                "- Never use state ids as triggers.",
+                "- Built-in timer switches available: timer_100ms and timer_1s.",
+                "Do not output legacy graph/sequence node edits.",
+                "For wiring tasks, always generate complete arrays in logicDocPatch for any lists you modify.",
+                "When wiring a target to light when hit, ensure all of these are present:",
+                "1) switchRegistry row mapping trigger switch id/sourceElementId",
+                "2) stateTable bool state (example: target_id_lit)",
+                "3) lampBindings row with lampId and expr = that state id",
+                "4) actionRules row triggered by switch id, sets state true.",
+                "If asked for timeout behavior, only implement it when a real timer/tick-like switch already exists in switchRegistry; never invent synthetic timeout trigger ids.",
+                "For timeout behavior, prefer this valid pattern: int counter state + timer_1s add rule + threshold condition rule + drain/collect reset rule clearing counter/state.",
+                "Keep existing unrelated logic rows unchanged.",
+                "Do not include markdown.",
+                "Respect feature-first logic authoring.",
+                "Task:",
+                safeString(task),
+                "Table context:",
+                JSON.stringify(compact)
             ].join("\n");
         }
 
-        /**
-         * Build the second-pass prompt.
-         * Why: this pass exists purely to emit the supported patch envelope as
-         * strict JSON. We keep format discipline here instead of adding local
-         * JSON repair code for every bad assistant shape.
-         */
-        function buildExtractionPrompt() {
-            return [
-                "You are a strict JSON patch normalizer for a pinball table editor.",
-                "Convert the prior assistant output into one supported response object.",
-                "You are compiling rough notes into a patch, not reviewing or improving the writing.",
-                "Return strict JSON only. No markdown. No commentary.",
-                "If no valid patch can be formed, return patch null and a short blocker message.",
-                "Never return raw element objects, JSON Patch arrays, or prose-only advice.",
-                "Return exactly one JSON object with keys: message, patch.",
-                "Allowed patch operations only:",
-                "- addSequenceRule { rule }",
-                "- updateSequenceRule { id, patch }",
-                "- deleteSequenceRule { id }",
-                "- addSwitchMap { mapping }",
-                "- updateSwitchMap { index, patch }",
-                "- deleteSwitchMap { index }",
-                "- addVariable { variable }",
-                "- updateVariable { id, patch }",
-                "- deleteVariable { id }",
-                "- addTrigger { trigger }",
-                "- updateTrigger { id, patch }",
-                "- deleteTrigger { id }",
-                "- addElements { elements: [complete element objects] }",
-                "- alignHorizontal { ids }",
-                "- distributeHorizontal { ids }",
-                "- matchWidth { ids, value? }",
-                "- matchHeight { ids, value? }",
-                "- patchElements { patches: [{ id, patch }] }",
-                "Use only ids and fields already present in the provided context.",
-                "Use addElements when the request requires creating new lights or other supported table objects.",
-                "Each addElements entry must include a stable id, a supported type, and the concrete fields that type needs.",
-                "For current supported element properties, use the Current editor context knowledge section and the element summaries.",
-                "For score edits, emit patchElements patches that set score, never baseScore.",
-                "If the user says 'base score', translate that to the existing element score field.",
-                "Do not return a blocker saying the sequence-rule schema is unavailable when sequenceRules, variables, conditions, and actions are present in context.",
-                "For per-object staged progression, prefer one ordered sequence rule with repeated step ids and aligned stepLampIds. Use variable/action rules only for state that cannot be represented by sequence progress alone.",
-                "If object or lamp names are explicitly given, resolve them from current elements by exact name, label, id, or lampId match before claiming ambiguity.",
-                "For trough edits, emit patchElements patches using radius, holdSeconds, reactivateDelay, ejectPower, ejectAngle, color, or pitColor.",
-                "For flipper physics/material edits, emit patchElements patches using surfaceRestitution, surfaceFriction, strikeBoost, flipAccel, returnAccel, flipSpeed, or returnSpeed. Legacy tipRestitution/tipFriction/tipStrikeBoost are optional compatibility fields.",
-                "For launcher edits, emit patchElements patches using x, top, bottom, width, maxPower, maxRetract, pullSpeed, returnSpeed, or springStrength.",
-                "For horizontal alignment requests, prefer alignHorizontal with the resolved ids.",
-                "For 'same size' requests on rectangular elements such as lanes, prefer matchWidth and matchHeight.",
-                "Use patchElements only when the edit cannot be represented by the higher-level layout operations.",
-                "If the first-pass text contains raw objects or coordinate suggestions, do not copy that shape. Extract the intent and emit the supported patch format.",
-                "If the original request says there are three lanes and one is selected, resolve the other lane ids from the provided context when possible.",
-                "Do not explain averages, spacing, or geometry unless the patch must use explicit field edits.",
-                "Example valid response:",
-                JSON.stringify({
-                    message: "Align the three lanes horizontally and match their size.",
-                    patch: {
-                        type: "layoutPatch",
-                        operations: [
-                            { op: "alignHorizontal", ids: ["laneA", "laneB", "laneC"] },
-                            { op: "matchWidth", ids: ["laneA", "laneB", "laneC"] },
-                            { op: "matchHeight", ids: ["laneA", "laneB", "laneC"] }
-                        ]
+        function requestPatch(taskText, repairNote) {
+            const ready = ensureProviderReady();
+            if (!ready.ok) return Promise.resolve({ ok: false, message: ready.message });
+            const settings = ready.settings;
+            const table = options && options.getTable ? options.getTable() : {};
+            const selected = options && options.getSelected ? options.getSelected() : null;
+            const endpoint = toChatEndpoint(settings.baseUrl);
+            const body = {
+                model: settings.model,
+                temperature: 0.1,
+                messages: [
+                    { role: "system", content: "Generate safe structured patch JSON only." },
+                    {
+                        role: "user",
+                        content: createPatchRequestPrompt(taskText, table, selected) +
+                            (repairNote ? ("\nRepair note:\n" + repairNote) : "")
                     }
-                }),
-                "Example valid logic response:",
-                JSON.stringify({
-                    message: "Advance one bumper through three lamp stages, then set a completion variable and reset on drain.",
-                    patch: {
-                        type: "logicPatch",
-                        operations: [
-                            { op: "addVariable", variable: { id: "switch_a_complete", name: "Switch A Complete", properties: { value: false } } },
-                            { op: "addSequenceRule", rule: { id: "switch_a_progress", steps: ["switchA", "switchA", "switchA"], stepLampIds: ["lamp_stage_a", "lamp_stage_b", "lamp_stage_c"], conditions: [], actions: [{ actionType: "setVariableProperty", variableId: "switch_a_complete", property: "value", value: true }], resetOnDrain: true, resetOnComplete: false, resetOnWrongOrder: false } }
-                        ]
-                    }
-                }),
-                "Example blocker response:",
-                JSON.stringify({
-                    message: "I could not resolve which objects should be aligned.",
-                    patch: null
-                }),
-                "Required response schema:",
-                JSON.stringify(makeSchema())
-            ].join("\n");
-        }
-
-        async function ensureSkillText() {
-            if (state.skillText) return state.skillText;
-            try {
-                const response = await fetch("TBSpec.MD");
-                if (response.ok) {
-                    const text = await response.text();
-                    state.skillText = text.slice(0, 24000);
-                }
-            } catch (err) {}
-            return state.skillText;
-        }
-
-        function addSelectedPick(kind) {
-            const selected = options.getSelected ? options.getSelected() : null;
-            if (!selected) return;
-            if (kind === "step") {
-                if (state.picks.steps.indexOf(selected.id) < 0) state.picks.steps.push(selected.id);
-            } else if (kind === "target") {
-                state.picks.target = selected.id;
-            } else if (kind === "stepLamp") {
-                if (state.picks.stepLamps.indexOf(selected.id) < 0) state.picks.stepLamps.push(selected.id);
-            } else if (kind === "targetLamp") {
-                state.picks.targetLamp = selected.id;
-            }
-            refresh("inspector");
-        }
-
-        function removePick(kind, id) {
-            if (kind === "step") {
-                state.picks.steps = state.picks.steps.filter(function keep(entry) { return entry !== id; });
-            } else if (kind === "target") {
-                state.picks.target = "";
-            } else if (kind === "stepLamp") {
-                state.picks.stepLamps = state.picks.stepLamps.filter(function keep(entry) { return entry !== id; });
-            } else if (kind === "targetLamp") {
-                state.picks.targetLamp = "";
-            }
-            refresh("inspector");
-        }
-
-        function clearPicks() {
-            state.picks = clone(DEFAULT_PICKS);
-            refresh("inspector");
-        }
-
-        function addSelectedLayoutPick() {
-            const selected = options.getSelected ? options.getSelected() : null;
-            if (!selected) return;
-            if (state.layoutPicks.indexOf(selected.id) < 0) state.layoutPicks.push(selected.id);
-            refresh("inspector");
-        }
-
-        function removeLayoutPick(id) {
-            state.layoutPicks = state.layoutPicks.filter(function keep(entry) { return entry !== id; });
-            refresh("inspector");
-        }
-
-        function clearLayoutPicks() {
-            state.layoutPicks = clone(DEFAULT_LAYOUT_PICKS);
-            refresh("inspector");
-        }
-
-        /**
-         * Post a chat completion request to the configured provider.
-         * Why: both assistant passes share the same transport, but only the
-         * first pass should expose tools.
-         */
-        async function postChat(messages, tools, temperature, extraOptions) {
-            const baseUrl = stripTrailingSlash(state.settings.baseUrl || "");
-            if (!baseUrl) throw new Error("Assistant base URL is not configured.");
-            if (!state.settings.model) throw new Error("Assistant model is not configured.");
-            const payload = {
-                model: state.settings.model,
-                messages: messages,
-                temperature: typeof temperature === "number" ? temperature : 0.2
+                ]
             };
-            if (Array.isArray(tools) && tools.length) {
-                payload.tools = tools;
-                payload.tool_choice = "auto";
-            }
-            Object.assign(payload, extraOptions || {});
-            const response = await fetchJson(baseUrl + "/chat/completions", payload);
-            return response;
-        }
-
-        async function fetchJson(url, body) {
-            const headers = { "Content-Type": "application/json" };
-            if (state.settings.apiKey) headers.Authorization = "Bearer " + state.settings.apiKey;
-            const response = await fetch(url, {
-                method: body ? "POST" : "GET",
+            const headers = {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + safeString(settings.apiKey).trim()
+            };
+            return fetch(endpoint, {
+                method: "POST",
                 headers: headers,
-                body: body ? JSON.stringify(body) : undefined
-            });
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error("Assistant request failed (" + response.status + "): " + text);
-            }
-            return response.json();
-        }
-
-        async function loadModels() {
-            const baseUrl = stripTrailingSlash(state.settings.baseUrl || "");
-            if (!baseUrl) throw new Error("Assistant base URL is not configured.");
-            const payload = await fetchJson(baseUrl + "/models");
-            const items = Array.isArray(payload && payload.data) ? payload.data : [];
-            state.availableModels = items.map(function map(item) {
-                return {
-                    id: item.id,
-                    label: item.id
-                };
-            });
-            if (!state.settings.model && state.availableModels[0]) {
-                state.settings.model = state.availableModels[0].id;
-                persistSettings();
-            }
-            logEntry("provider.models", {
-                baseUrl: baseUrl,
-                count: state.availableModels.length,
-                models: state.availableModels.map(function map(item) { return item.id; })
-            });
-            refresh("inspector");
-            return state.availableModels;
-        }
-
-        async function testConnection() {
-            state.connectionStatus = "Testing...";
-            state.error = "";
-            refresh("inspector");
-            try {
-                const models = await loadModels();
-                state.connectionStatus = models.length ?
-                    ("Connected: " + models.length + " model" + (models.length === 1 ? "" : "s")) :
-                    "Connected: no models returned";
-                logEntry("provider.test.ok", {
-                    baseUrl: stripTrailingSlash(state.settings.baseUrl || ""),
-                    model: state.settings.model || "",
-                    status: state.connectionStatus
-                });
-            } catch (err) {
-                state.connectionStatus = "Connection failed";
-                state.error = err && err.message ? err.message : String(err);
-                logEntry("provider.test.error", state.error);
-            }
-            refresh("inspector");
-        }
-
-        /**
-         * Run the first assistant pass.
-         * Why: let the model inspect the current table with tools and produce a
-         * compact working answer before we ask for strict JSON.
-         */
-        async function runAgent(userText) {
-            await ensureSkillText();
-            const tools = buildTools();
-            const apiMessages = [
-                { role: "system", content: buildSystemPrompt() },
-                { role: "system", content: "Current editor context:\n" + JSON.stringify(makeContextSummary(), null, 2) },
-                {
-                    role: "system",
-                    content: [
-                        "For edit requests, answer as short working notes.",
-                        "Prefer this shape:",
-                        "Target ids: id1, id2",
-                        "Intended operations: op1, op2",
-                        "Blocker: <only if needed>",
-                        "No tutorial prose. No replacement JSON. No coordinate math unless the edit truly requires patchElements."
-                    ].join("\n")
+                body: JSON.stringify(body)
+            }).then(function parseResponse(response) {
+                if (!response.ok) throw new Error("HTTP " + response.status + " from " + endpoint);
+                return response.json();
+            }).then(function parsePayload(payload) {
+                const content = payload &&
+                    payload.choices &&
+                    payload.choices[0] &&
+                    payload.choices[0].message &&
+                    payload.choices[0].message.content
+                    ? String(payload.choices[0].message.content)
+                    : "";
+                const patch = extractPatchJson(content);
+                if (!patch || typeof patch !== "object") {
+                    return { ok: false, message: "Model response did not include valid patch JSON.", raw: content };
                 }
-            ];
-            state.messages.forEach(function each(message) {
-                apiMessages.push({ role: message.role, content: message.content });
-            });
-            apiMessages.push({ role: "user", content: userText });
-            logEntry("pass1.request", {
-                model: state.settings.model,
-                maxSteps: Math.max(1, Number(state.settings.maxSteps) || 4),
-                userText: userText
-            });
-
-            for (let step = 0; step < Math.max(1, Number(state.settings.maxSteps) || 4); step++) {
-                const payload = await postChat(apiMessages, tools, 0.2);
-                const choice = payload && payload.choices && payload.choices[0] ? payload.choices[0] : null;
-                const assistantMessage = choice && choice.message ? choice.message : null;
-                if (!assistantMessage) throw new Error("Assistant returned no message.");
-                if (assistantMessage.tool_calls && assistantMessage.tool_calls.length) {
-                    logEntry("pass1.toolCalls", assistantMessage.tool_calls.map(function map(call) {
-                        return {
-                            id: call.id,
-                            name: call.function && call.function.name,
-                            arguments: call.function && call.function.arguments
-                        };
-                    }));
-                    apiMessages.push({
-                        role: "assistant",
-                        content: assistantMessage.content || "",
-                        tool_calls: assistantMessage.tool_calls
-                    });
-                    for (let i = 0; i < assistantMessage.tool_calls.length; i++) {
-                        const toolCall = assistantMessage.tool_calls[i];
-                        const rawArgs = toolCall.function && toolCall.function.arguments ? toolCall.function.arguments : "{}";
-                        let args = {};
-                        try { args = JSON.parse(rawArgs); } catch (err) {}
-                        const result = executeToolCall(toolCall.function.name, args || {});
-                        logEntry("pass1.toolResult", {
-                            name: toolCall.function.name,
-                            args: args || {},
-                            result: result
-                        });
-                        apiMessages.push({
-                            role: "tool",
-                            tool_call_id: toolCall.id,
-                            content: JSON.stringify(result)
-                        });
-                    }
-                    continue;
-                }
-                logEntry("pass1.response", assistantMessage.content || "");
-                return normalizeResponseContent(assistantMessage.content) || "";
-            }
-            throw new Error("Assistant exceeded tool step limit.");
-        }
-
-        /**
-         * Run the second assistant pass.
-         * Why: convert the first-pass working answer into the supported patch
-         * schema with strict JSON output and no tool use.
-         */
-        async function extractStructuredResponse(userText, firstPassText) {
-            const context = makeContextSummary();
-            const messages = [
-                { role: "system", content: buildExtractionPrompt() },
-                { role: "system", content: "Current editor context:\n" + JSON.stringify(context, null, 2) },
-                { role: "user", content: "Original user request:\n" + userText },
-                { role: "user", content: "Assistant working output to normalize:\n" + firstPassText }
-            ];
-            logEntry("pass2.request", {
-                userText: userText,
-                firstPassText: firstPassText
-            });
-            let payload;
-            try {
-                payload = await postChat(messages, null, 0, {
-                    response_format: {
-                        type: "json_schema",
-                        json_schema: {
-                            name: "assistant_patch_response",
-                            strict: true,
-                            schema: makeSchema()
-                        }
-                    }
-                });
-            } catch (err) {
-                logEntry("pass2.responseFormatFallback", err && err.message ? err.message : String(err));
-                payload = await postChat(messages, null, 0);
-            }
-            const choice = payload && payload.choices && payload.choices[0] ? payload.choices[0] : null;
-            const assistantMessage = choice && choice.message ? choice.message : null;
-            if (!assistantMessage) throw new Error("Assistant extraction pass returned no message.");
-            logEntry("pass2.response", assistantMessage.content || "");
-            return normalizeResponseContent(assistantMessage.content);
-        }
-
-        function normalizePatchCandidate(result) {
-            if (!result) return { message: "No response.", patch: null, error: "" };
-            if (result && result.patch && typeof result.message === "string") {
-                return validateStructuredPatch(result);
-            }
-            if (result && result.type && Array.isArray(result.operations)) {
-                return validateStructuredPatch({ message: "Patch extracted.", patch: result });
-            }
-            if (result && typeof result.message === "string") {
-                return { message: result.message, patch: null, error: "" };
-            }
-            return { message: "No response.", patch: null, error: "" };
-        }
-
-        function validateStructuredPatch(result) {
-            const patch = result.patch;
-            if (!patch || typeof patch !== "object" || !Array.isArray(patch.operations)) {
-                return { message: result.message || "Unsupported patch.", patch: null, error: "Assistant patch is not in the supported structured format." };
-            }
-            const allowed = {
-                addSequenceRule: true,
-                updateSequenceRule: true,
-                deleteSequenceRule: true,
-                addSwitchMap: true,
-                updateSwitchMap: true,
-                deleteSwitchMap: true,
-                addVariable: true,
-                updateVariable: true,
-                deleteVariable: true,
-                addTrigger: true,
-                updateTrigger: true,
-                deleteTrigger: true,
-                addElements: true,
-                alignHorizontal: true,
-                distributeHorizontal: true,
-                matchWidth: true,
-                matchHeight: true,
-                patchElements: true
-            };
-            for (let i = 0; i < patch.operations.length; i++) {
-                const operation = patch.operations[i] || {};
-                if (!allowed[operation.op]) {
-                    return {
-                        message: result.message || "Unsupported patch.",
-                        patch: null,
-                        error: "Assistant returned unsupported operation: " + operation.op
-                    };
-                }
-            }
-            return { message: result.message || "Patch ready.", patch: patch, error: "" };
-        }
-
-        async function send() {
-            const text = (state.draft || "").trim();
-            if (!text || state.busy) return;
-            return sendPrompt(text, true);
-        }
-
-        function pushAgenticBatch(record) {
-            state.agenticBatches.push(record);
-            if (state.agenticBatches.length > 40) {
-                state.agenticBatches.splice(0, state.agenticBatches.length - 40);
-            }
-        }
-
-        function markBatchStatus(batchId, patch) {
-            if (!batchId) return null;
-            for (let i = state.agenticBatches.length - 1; i >= 0; i--) {
-                const batch = state.agenticBatches[i];
-                if (!batch || batch.id !== batchId) continue;
-                if (patch && typeof patch === "object") {
-                    Object.keys(patch).forEach(function each(key) {
-                        batch[key] = patch[key];
-                    });
-                }
-                return batch;
-            }
-            return null;
-        }
-
-        function previewPatchValidation(patch) {
-            if (!patch || !options.previewPatch) return null;
-            try {
-                const previewResult = options.previewPatch(clone(patch));
-                if (!previewResult || previewResult.ok !== true) {
+                const contract = validatePatchContract(patch);
+                if (!contract.ok) {
                     return {
                         ok: false,
-                        error: previewResult && previewResult.message ? previewResult.message : "Patch preview failed.",
-                        issuesCount: null
+                        message: "Patch contract validation failed.",
+                        contractIssues: contract.issues,
+                        raw: content
                     };
                 }
-                return {
-                    ok: true,
-                    issuesCount: Array.isArray(previewResult.issues) ? previewResult.issues.length : 0
-                };
-            } catch (err) {
-                return {
-                    ok: false,
-                    error: err && err.message ? err.message : String(err),
-                    issuesCount: null
-                };
-            }
+                return { ok: true, patch: patch, raw: content };
+            }).catch(function onError(err) {
+                return { ok: false, message: err && err.message ? String(err.message) : "Patch request failed." };
+            });
         }
 
-        async function runAgentic() {
-            const text = (state.agenticDraft || "").trim();
-            if (!text || state.busy || state.agenticRunning) return;
+        function summarizePreviewIssues(preview) {
+            if (!preview) return "";
+            const issues = Array.isArray(preview.issues) ? preview.issues : [];
+            if (!issues.length) return preview.error ? String(preview.error) : "";
+            return issues.slice(0, 8).map(function map(issue) {
+                const sev = issue && issue.severity ? String(issue.severity) : "issue";
+                const msg = issue && issue.message ? String(issue.message) : "unknown";
+                return "[" + sev + "] " + msg;
+            }).join("\n");
+        }
+
+        function requestPatchWithRepair(taskText) {
+            /* What: Generate a patch with iterative preview-driven repair attempts.
+             * Why: Complex tasks often need multiple LLM passes to satisfy schema/validation.
+             */
+            const maxSteps = Math.max(1, Number((state.settings && state.settings.maxSteps) || 4));
+            let attempt = 0;
+            let lastFailure = "";
+
+            function failureMessage(kind) {
+                const label = kind || "validation";
+                return "Unable to produce a valid patch after " + String(maxSteps) + " attempt(s). Last " + label + " issues: " + lastFailure;
+            }
+
+            function iterate() {
+                attempt += 1;
+                const repairNote = lastFailure ? (
+                    "Previous patch failed validation. Fix these issues and return a full corrected patch JSON.\n" +
+                    lastFailure
+                ) : "";
+                return requestPatch(taskText, repairNote).then(function onPatch(result) {
+                    if (!result.ok) {
+                        if (Array.isArray(result.contractIssues) && result.contractIssues.length) {
+                            lastFailure = result.contractIssues.join("\n");
+                            if (attempt < maxSteps) return iterate();
+                            return {
+                                ok: false,
+                                message: failureMessage("contract"),
+                                contractIssues: result.contractIssues,
+                                raw: result.raw
+                            };
+                        }
+                        return result;
+                    }
+                    const preview = options && options.previewPatch ? options.previewPatch(result.patch) : { ok: true, issuesCount: 0 };
+                    result.preview = preview;
+                    if (preview && preview.ok && Number(preview.issuesCount || 0) === 0) {
+                        return result;
+                    }
+                    lastFailure = summarizePreviewIssues(preview) || (preview && preview.error) || "Unknown preview failure.";
+                    if (attempt >= maxSteps) {
+                        return {
+                            ok: false,
+                            message: failureMessage("preview"),
+                            lastPatch: result.patch,
+                            preview: preview
+                        };
+                    }
+                    return iterate();
+                });
+            }
+
+            return iterate();
+        }
+        function send() {
+            if (!state.draft.trim()) return;
+            const task = state.draft.trim();
+            state.messages.push({ role: "user", content: task });
+            state.busy = true;
+            state.error = "";
+            refresh();
+            return requestPatchWithRepair(task).then(function onPatch(result) {
+                if (!result.ok) {
+                    state.error = result.message || "Assistant request failed.";
+                    if (result.lastPatch) {
+                        state.lastPatch = result.lastPatch;
+                        state.lastPatchSummary = summarizePatch(result.lastPatch);
+                    }
+                    state.messages.push({ role: "assistant", content: "Failed: " + state.error });
+                    appendLog("chat_error", state.error);
+                    return;
+                }
+                const preview = result.preview || (options && options.previewPatch ? options.previewPatch(result.patch) : { ok: true, issuesCount: 0 });
+                state.lastPatch = result.patch;
+                state.lastPatchSummary = summarizePatch(result.patch);
+                const status = preview.ok ? "Patch ready." : ("Patch generated with preview errors (" + (preview.error || "unknown") + ").");
+                state.messages.push({ role: "assistant", content: status + " Review the Proposed Patch panel and click Apply." });
+                appendLog("chat_patch", JSON.stringify({
+                    summary: state.lastPatchSummary,
+                    preview: preview
+                }));
+            }).finally(function done() {
+                state.draft = "";
+                state.busy = false;
+                refresh();
+            });
+        }
+        function runAgentic() {
+            const task = safeString(state.agenticDraft).trim();
+            if (!task || state.busy || state.agenticRunning) return;
             state.busy = true;
             state.agenticRunning = true;
-            state.agenticStopRequested = false;
             state.error = "";
-            state.agenticPendingPatch = null;
-            state.agenticPendingBatchId = "";
-            state.messages.push({ role: "user", content: "[Agentic] " + text });
-            refresh("inspector");
-            try {
-                let prompt = text;
-                const maxBatches = Math.max(1, Number(state.settings.maxSteps) || 4);
-                for (let i = 0; i < maxBatches; i++) {
-                    if (state.agenticStopRequested) break;
-                    const firstPassText = await runAgent(prompt);
-                    const extractedText = await extractStructuredResponse(prompt, firstPassText);
-                    const extractedResult = tryParseJson(extractedText);
-                    const result = extractedResult ?
-                        normalizePatchCandidate(extractedResult) :
-                        {
-                            message: "Agentic extraction returned an invalid structured response.",
-                            patch: null,
-                            error: extractedText ? "Agentic extraction did not return valid JSON." : "Agentic extraction returned no content."
-                        };
-                    const assistantText = result && typeof result.message === "string" ? result.message : "No response.";
-                    state.messages.push({ role: "assistant", content: "[Agentic] " + assistantText });
-                    if (result && result.error) {
-                        state.error = result.error;
-                        break;
-                    }
-                    if (!result || !result.patch) break;
-                    const batch = {
-                        id: "batch_" + Date.now() + "_" + i,
-                        at: new Date().toISOString(),
-                        status: "proposed",
-                        message: assistantText,
-                        summary: summarizePatch(result.patch),
-                        patch: clone(result.patch)
-                    };
-                    const preview = previewPatchValidation(result.patch);
-                    if (preview) batch.preview = preview;
-                    if (!state.agenticApproveEachChange && state.agenticFullyAuto) {
-                        // Auto mode is intentionally strict: only auto-apply batches that preview cleanly.
-                        if (!preview || !preview.ok || (typeof preview.issuesCount === "number" && preview.issuesCount > 0)) {
-                            batch.status = "pending_manual_apply";
-                            batch.error = !preview ? "Auto-apply blocked: preview is unavailable." :
-                                (!preview.ok ? ("Auto-apply blocked: " + (preview.error || "preview failed.")) :
-                                    ("Auto-apply blocked: preview found " + preview.issuesCount + " issue(s)."));
-                            state.agenticPendingPatch = clone(result.patch);
-                            state.agenticPendingBatchId = batch.id;
-                            state.lastPatch = clone(result.patch);
-                            pushAgenticBatch(batch);
-                            state.error = batch.error;
-                            break;
-                        }
-                    }
-                    if (state.agenticApproveEachChange || !state.agenticFullyAuto) {
-                        batch.status = state.agenticApproveEachChange ? "pending_approval" : "pending_manual_apply";
-                        state.agenticPendingPatch = clone(result.patch);
-                        state.agenticPendingBatchId = batch.id;
-                        state.lastPatch = clone(result.patch);
-                        pushAgenticBatch(batch);
-                        break;
-                    }
-                    const applyResult = options.applyPatch ? options.applyPatch(result.patch) : { ok: false, message: "No apply handler available." };
-                    if (applyResult && applyResult.ok) {
-                        batch.status = "applied";
-                        batch.issues = (applyResult.issues || []).length;
-                        pushAgenticBatch(batch);
-                        state.lastPatch = null;
-                        prompt = "Continue the same user task. Prior patch applied. If complete, return patch null.";
-                        refresh("inspector");
-                        continue;
-                    }
-                    batch.status = "failed";
-                    batch.error = (applyResult && applyResult.message) || "Failed to apply patch.";
-                    pushAgenticBatch(batch);
-                    state.error = batch.error;
-                    break;
+            refresh();
+            return requestPatchWithRepair(task).then(function onPatch(result) {
+                if (!result.ok) {
+                    state.error = result.message || "Agentic request failed.";
+                    if (result.lastPatch) state.agenticPendingPatch = result.lastPatch;
+                    appendLog("agentic_error", state.error);
+                    return;
                 }
-            } catch (err) {
-                state.error = err && err.message ? err.message : String(err);
-                logEntry("agentic.error", state.error);
-            } finally {
-                state.agenticRunning = false;
-                state.agenticStopRequested = false;
+                const preview = result.preview || (options && options.previewPatch ? options.previewPatch(result.patch) : { ok: true, issuesCount: 0 });
+                const summary = summarizePatch(result.patch);
+                if (state.agenticApproveEachChange || !state.agenticFullyAuto || !preview.ok || (preview.issuesCount || 0) > 0) {
+                    state.agenticPendingPatch = result.patch;
+                    state.agenticPendingBatchId = "batch_" + Date.now();
+                    state.agenticBatches.push({
+                        status: "pending",
+                        at: new Date().toISOString(),
+                        summary: summary,
+                        preview: preview
+                    });
+                    appendLog("agentic_pending", JSON.stringify({ summary: summary, preview: preview }));
+                    return;
+                }
+                const applyResult = options && options.applyPatch ? options.applyPatch(result.patch) : { ok: false, message: "No applyPatch callback." };
+                state.agenticBatches.push({
+                    status: applyResult.ok ? "applied" : "failed",
+                    at: new Date().toISOString(),
+                    summary: summary,
+                    preview: preview,
+                    error: applyResult.ok ? "" : (applyResult.message || "Apply failed")
+                });
+                if (!applyResult.ok) state.error = applyResult.message || "Apply failed.";
+                appendLog("agentic_apply", JSON.stringify(applyResult));
+            }).finally(function done() {
                 state.busy = false;
-                refresh("inspector");
-            }
+                state.agenticRunning = false;
+                refresh();
+            });
         }
-
         function stopAgentic() {
             state.agenticStopRequested = true;
-            refresh("inspector");
+            state.agenticRunning = false;
+            state.busy = false;
+            refresh();
         }
-
         function applyAgenticPendingPatch() {
-            if (!state.agenticPendingPatch || !options.applyPatch) return { ok: false, message: "No pending agentic patch." };
-            const patch = clone(state.agenticPendingPatch);
-            const result = options.applyPatch(patch);
-            const linkedBatch = markBatchStatus(state.agenticPendingBatchId, {
-                status: result && result.ok ? "applied" : "failed",
-                issues: result && result.issues ? result.issues.length : 0,
-                error: result && !result.ok ? (result.message || "Failed to apply pending patch.") : ""
+            if (!state.agenticPendingPatch) return { ok: false, message: "No pending patch." };
+            const patch = state.agenticPendingPatch;
+            const applyResult = options && options.applyPatch ? options.applyPatch(patch) : { ok: false, message: "No applyPatch callback." };
+            const summary = summarizePatch(patch);
+            state.agenticBatches.push({
+                status: applyResult.ok ? "applied" : "failed",
+                at: new Date().toISOString(),
+                summary: summary,
+                error: applyResult.ok ? "" : (applyResult.message || "Apply failed")
             });
-            if (!linkedBatch) {
-                pushAgenticBatch({
-                    at: new Date().toISOString(),
-                    status: result && result.ok ? "applied" : "failed",
-                    summary: summarizePatch(patch),
-                    patch: patch,
-                    issues: result && result.issues ? result.issues.length : 0,
-                    error: result && !result.ok ? (result.message || "Failed to apply pending patch.") : ""
-                });
-            }
-            if (result && result.ok) {
+            if (applyResult.ok) {
                 state.agenticPendingPatch = null;
                 state.agenticPendingBatchId = "";
-                state.lastPatch = null;
-            } else if (result && result.message) {
-                state.error = result.message;
+            } else {
+                state.error = applyResult.message || "Apply failed.";
             }
-            if (linkedBatch && linkedBatch.preview && linkedBatch.preview.ok && typeof linkedBatch.issues === "number") {
-                linkedBatch.preview.afterApplyIssues = linkedBatch.issues;
-            }
-            refresh("inspector");
-            return result;
+            refresh();
+            return applyResult;
         }
-
         function rejectAgenticPendingPatch() {
-            if (!state.agenticPendingPatch) return { ok: false, message: "No pending agentic patch." };
-            markBatchStatus(state.agenticPendingBatchId, {
+            if (!state.agenticPendingPatch) return { ok: false, message: "No pending patch." };
+            state.agenticBatches.push({
                 status: "rejected",
-                error: ""
+                at: new Date().toISOString(),
+                summary: summarizePatch(state.agenticPendingPatch)
             });
             state.agenticPendingPatch = null;
             state.agenticPendingBatchId = "";
-            state.lastPatch = null;
-            refresh("inspector");
-            return { ok: true, message: "Pending patch rejected." };
+            refresh();
+            return { ok: true };
         }
-
-        /**
-         * Send one user prompt through the two-pass assistant pipeline.
-         * Why: the visible chat stays simple, while patch shaping is isolated to
-         * the strict extraction pass.
-         */
-        async function sendPrompt(text, consumeDraft) {
-            if (!text || state.busy) return;
-            state.busy = true;
-            state.error = "";
-            state.lastPatch = null;
-            state.messages.push({ role: "user", content: text });
-            logEntry("send.start", {
-                text: text,
-                selection: (options.getSelected && options.getSelected()) ? options.getSelected().id : "",
-                selectedRule: (options.getSelectedRule && options.getSelectedRule()) ? options.getSelectedRule().id : ""
-            });
-            if (consumeDraft) state.draft = "";
-            refresh("inspector");
-            try {
-                const firstPassText = await runAgent(text);
-                const extractedText = await extractStructuredResponse(text, firstPassText);
-                const extractedResult = tryParseJson(extractedText);
-                logEntry("pass2.parse", extractedResult ? { ok: true } : { ok: false, extractedText: extractedText });
-                const result = extractedResult ?
-                    normalizePatchCandidate(extractedResult) :
-                    {
-                        message: "Assistant returned an invalid structured response.",
-                        patch: null,
-                        error: extractedText ? "Assistant extraction did not return valid JSON." : "Assistant extraction returned no content."
-                    };
-                logEntry("patch.result", {
-                    message: result.message,
-                    hasPatch: !!(result && result.patch),
-                    error: result.error || ""
-                });
-                const assistantText = result && typeof result.message === "string" ? result.message : "No response.";
-                state.lastPatch = result && result.patch ? result.patch : null;
-                if (result && result.error) state.error = result.error;
-                state.messages.push({ role: "assistant", content: assistantText });
-            } catch (err) {
-                state.error = err && err.message ? err.message : String(err);
-                logEntry("send.error", state.error);
-            } finally {
-                state.busy = false;
-                refresh("inspector");
-            }
-        }
-
-        function quickPrompt(kind) {
-            const selected = options.getSelected ? options.getSelected() : null;
-            const selectedRule = options.getSelectedRule ? options.getSelectedRule() : null;
-            const validation = options.getValidationIssues ? options.getValidationIssues() : [];
-            if (kind === "build-selection") {
-                const target = selected ? (selected.name || selected.id) : "the current table";
-                return sendPrompt(
-                    "Inspect the current selection context and nearby elements. Help me build a simple playable logic sequence around " +
-                    target +
-                    ". Prefer an ordered sequence when it makes sense, use existing lights if available, and return a structured patch only if the references are valid.",
-                    false
-                );
-            }
-            if (kind === "build-picked-sequence") {
-                return sendPrompt(
-                    "Use the explicit picked context to build one sequence rule. Treat picked steps as the sequence steps in their current order, picked target as the timed target, picked step lamps as the step lamps in order, and picked target lamp as the target lamp. If the picked context is incomplete, explain exactly what is missing instead of guessing. Return a structured patch only when the references are valid.",
-                    false
-                );
-            }
-            if (kind === "layout-picked-objects") {
-                return sendPrompt(
-                    "Use the explicit layout picks to satisfy the layout request. If the user asked for horizontal alignment or same size, use the layout patch operations rather than prose. Only operate on the picked layout objects. If there are fewer than two layout picks, explain that briefly instead of guessing.",
-                    false
-                );
-            }
-            if (kind === "explain-validation") {
-                return sendPrompt(
-                    "Inspect the current validation issues and explain the most important ones in practical terms. If there is a safe structured patch that improves the logic setup, include it.",
-                    false
-                );
-            }
-            if (kind === "improve-rule") {
-                const ruleTarget = selectedRule ? (selectedRule.name || selectedRule.id) : "the current logic setup";
-                return sendPrompt(
-                    "Inspect " + ruleTarget + " and suggest a cleaner or more complete sequence setup using the current table objects and lamps. If a concrete improvement is possible, return a structured patch.",
-                    false
-                );
-            }
-        }
-
+        function quickPrompt() {}
         function applyLastPatch() {
-            if (!state.lastPatch || !options.applyPatch) return { ok: false, message: "No patch to apply." };
-            const result = options.applyPatch(state.lastPatch);
-            if (result && result.ok) {
-                state.messages.push({
-                    role: "assistant",
-                    content: "Applied patch: " + (state.lastPatch.description || state.lastPatch.type || "changes")
-                });
-                state.lastPatch = null;
-            } else if (result && result.message) {
-                state.error = result.message;
-            }
-            refresh("inspector");
+            if (!state.lastPatch) return { ok: false, message: "No assistant patch to apply." };
+            const result = options && options.applyPatch ? options.applyPatch(state.lastPatch) : { ok: false, message: "No applyPatch callback." };
+            if (!result.ok) state.error = result.message || "Patch apply failed.";
+            if (result.ok) state.lastPatch = null;
+            refresh();
             return result;
         }
+        function openLog() { state.logOpen = true; refresh(); }
+        function closeLog() { state.logOpen = false; refresh(); }
+        function clearLog() { state.logs = []; refresh(); }
 
         return {
             getState: snapshot,

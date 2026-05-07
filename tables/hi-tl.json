@@ -1,0 +1,2652 @@
+{
+  "version": 1,
+  "name": "Human In The Loop",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 14,
+    "gravity": 0.25,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "launcher": {
+    "x": 464.842050607606,
+    "y": 829.5575053217659,
+    "dir": {
+      "x": 0,
+      "y": -1
+    },
+    "maxPower": 42,
+    "top": 734.5575053217659,
+    "bottom": 854.5575053217659,
+    "width": 38,
+    "maxRetract": 65,
+    "springStrength": 1
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "feat_group_bonuses_and_global_bumper_boost",
+      "name": "3 Group Bonuses + Global Bumper Boost",
+      "description": "Implements three completion groups (T1 targets, T2 targets, and 3 lanes), group bonus collection through troughs, flashing bonus arrows when active, base scoring of 1 on scoring switches, and bumper boost to 5 points when all three groups are active.",
+      "goal": "Create lane/target progression with collectible bonuses and a temporary global bumper scoring multiplier condition.",
+      "objects": [
+        "dropTarget_uj96mp",
+        "dropTarget_bhkzh4",
+        "dropTarget_j0fo4f",
+        "dropTarget_e5isck",
+        "dropTarget_s9fga6",
+        "dropTarget_5l1v8j",
+        "lane_dygv85",
+        "lane_81dld4",
+        "lane_foxf5x",
+        "trough_81phwo",
+        "trough_425c15",
+        "trough_r0obo3",
+        "arrowLight_lfob7r",
+        "arrowLight_9xqs3d",
+        "arrowLight_bul5tq",
+        "light_zjxzqd",
+        "light_qhasfc",
+        "light_pdv9pb",
+        "bumper_glxqxx",
+        "bumper_xvpuq2",
+        "bumper_5p9b0r",
+        "drain_4vhmox"
+      ],
+      "states": [
+        "t1_a_lit",
+        "t1_b_lit",
+        "t1_c_lit",
+        "t2_a_lit",
+        "t2_b_lit",
+        "t2_c_lit",
+        "lane_a_lit",
+        "lane_b_lit",
+        "lane_c_lit",
+        "blink_phase",
+        "t1_bonus_ready",
+        "t2_bonus_ready",
+        "lane_bonus_ready",
+        "all_bonus_ready",
+        "blink_on"
+      ],
+      "rules": [
+        "r_t1_a_hit",
+        "r_t1_b_hit",
+        "r_t1_c_hit",
+        "r_t2_a_hit",
+        "r_t2_b_hit",
+        "r_t2_c_hit",
+        "r_lane_a_hit",
+        "r_lane_b_hit",
+        "r_lane_c_hit",
+        "r_bumper_glx_base",
+        "r_bumper_xvp_base",
+        "r_bumper_5p9_base",
+        "r_bumper_glx_boost",
+        "r_bumper_xvp_boost",
+        "r_bumper_5p9_boost",
+        "r_kicker_e5s_base",
+        "r_kicker_7gy_base",
+        "r_spinner_base",
+        "r_gate_base",
+        "r_pach_a_base",
+        "r_pach_b_base",
+        "r_collect_t1_bonus",
+        "r_collect_t2_bonus",
+        "r_collect_lane_bonus",
+        "r_blink_tick_add",
+        "r_blink_tick_wrap",
+        "r_drain_reset_all"
+      ],
+      "lamps": [
+        "dropTarget_uj96mp",
+        "dropTarget_bhkzh4",
+        "dropTarget_j0fo4f",
+        "dropTarget_e5isck",
+        "dropTarget_s9fga6",
+        "dropTarget_5l1v8j",
+        "light_zjxzqd",
+        "light_qhasfc",
+        "light_pdv9pb",
+        "arrowLight_lfob7r",
+        "arrowLight_9xqs3d",
+        "arrowLight_bul5tq"
+      ]
+    }
+  ],
+  "images": [
+    {
+      "id": "image_czlv6r",
+      "src": "tables\\hi-tl.png",
+      "mode": "both",
+      "opacity": 1,
+      "fit": "contain",
+      "scale": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "transparency": 0.01,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 110,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 65.68680170913787,
+          "y": 9.826917869981084,
+          "inHandle": {
+            "x": -52.30305618869767,
+            "y": 1.651924340192366
+          },
+          "outHandle": {
+            "x": 52.30305618869767,
+            "y": -1.651924340192366
+          }
+        },
+        {
+          "x": 144.9111784404398,
+          "y": 6.1736384054185685,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 330.17433633517663,
+          "y": 3.73811876237696,
+          "inHandle": {
+            "x": -164.37673130193906,
+            "y": -0.4709141274238249
+          },
+          "outHandle": {
+            "x": 164.37673130193906,
+            "y": 0.4709141274238249
+          }
+        },
+        {
+          "x": 490,
+          "y": 240,
+          "inHandle": {
+            "x": -7.506607082625635,
+            "y": -115.30660865788629
+          },
+          "outHandle": {
+            "x": 7.506607082625635,
+            "y": 115.30660865788629
+          }
+        },
+        {
+          "x": 490,
+          "y": 480
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 220
+        }
+      ],
+      "name": "outerWall"
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 464.842050607606,
+      "top": 734.5575053217659,
+      "bottom": 854.5575053217659,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 60,
+        "y": 790
+      },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "flipAccel": 440,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff0000",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 320,
+        "y": 790
+      },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "flipAccel": 440,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#42fff2",
+      "name": "rf"
+    },
+    {
+      "id": "drain_4vhmox",
+      "type": "drain",
+      "level": 0,
+      "x": 195.25729054190623,
+      "y": 870.7503780215294,
+      "w": 195.36619213888002,
+      "h": 17.59742148613259,
+      "name": "drain_4vhmox"
+    },
+    {
+      "id": "path_4x54yn",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 48.65917841082454,
+          "y": 408.3174056187183
+        },
+        {
+          "x": 163.73499963254048,
+          "y": 305.2769503222534
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_4x54yn"
+    },
+    {
+      "id": "dropTarget_uj96mp",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 82.34030930691574,
+      "y": 397.8983520827295,
+      "w": 14,
+      "h": 40,
+      "angle": 0.8028514559173915,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.5,
+      "name": "T1"
+    },
+    {
+      "id": "dropTarget_bhkzh4",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 119.69045723951089,
+      "y": 363.1505045672494,
+      "w": 14,
+      "h": 40,
+      "angle": 0.8028514559173915,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.5,
+      "name": "T1"
+    },
+    {
+      "id": "dropTarget_j0fo4f",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 157.75949275220353,
+      "y": 330.00000000000006,
+      "w": 14,
+      "h": 40,
+      "angle": 0.8028514559173915,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.5,
+      "name": "T1"
+    },
+    {
+      "id": "lane_dygv85",
+      "type": "lane",
+      "level": 0,
+      "x": 128.64958798609328,
+      "y": 162.40510673587107,
+      "w": 44.45534438278571,
+      "h": 41.573404942287425,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "name": "TLane1a",
+      "opacity": 0.1
+    },
+    {
+      "id": "lane_81dld4",
+      "type": "lane",
+      "level": 0,
+      "x": 185.27896597560803,
+      "y": 162.49311195469735,
+      "w": 43.46653608794941,
+      "h": 40.93984626250722,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "name": "TLane1b",
+      "opacity": 0.1
+    },
+    {
+      "id": "lane_foxf5x",
+      "type": "lane",
+      "level": 0,
+      "x": 240,
+      "y": 160,
+      "w": 45.39418345400719,
+      "h": 40.53821347406375,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "name": "TLane1c",
+      "opacity": 0.1
+    },
+    {
+      "id": "path_wwzqf8",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 437.3247092759936,
+          "y": 866.0004146410139
+        },
+        {
+          "x": 440.7619774566355,
+          "y": 356.10238639225764
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_wwzqf8"
+    },
+    {
+      "id": "path_t6a4j7",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 100.27994509350638,
+          "y": 104.51375541691687
+        },
+        {
+          "x": 97.99611974385122,
+          "y": 222.20983654253422
+        },
+        {
+          "x": 180.5599807501408,
+          "y": 307.71871963159174,
+          "inHandle": {
+            "x": -20,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 20,
+            "y": 0
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_t6a4j7"
+    },
+    {
+      "id": "path_azdwht",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 214.02985656629414,
+          "y": 127.95036501608129
+        },
+        {
+          "x": 213.96805580899016,
+          "y": 199.39074506325306
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_azdwht"
+    },
+    {
+      "id": "path_9mwl89",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 157.75258227056958,
+          "y": 129.17908014140093
+        },
+        {
+          "x": 158.65873798751963,
+          "y": 199.27938307265447
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_9mwl89"
+    },
+    {
+      "id": "path_9micji",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 271.0892223251608,
+          "y": 128.56472257874114
+        },
+        {
+          "x": 270.6706310062402,
+          "y": 197.9949869520356
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_9micji"
+    },
+    {
+      "id": "path_kiti2v",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 57.24805403829848,
+          "y": 103.9382638335689
+        },
+        {
+          "x": 57.094697530647785,
+          "y": 233.2146085221617
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_kiti2v"
+    },
+    {
+      "id": "path_34oiad",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 50.000000000000014,
+          "y": 408.04789487897006
+        },
+        {
+          "x": 61.3572942878473,
+          "y": 423.4879440475186
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_34oiad"
+    },
+    {
+      "id": "trough_425c15",
+      "type": "trough",
+      "level": 0,
+      "x": 408.77803063540495,
+      "y": 462.4417797068877,
+      "radius": 18,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 10,
+      "ejectAngle": 2.8131530228691757,
+      "color": "#88aaff",
+      "pitColor": "#08101f",
+      "name": "T2Trough",
+      "opacity": 0.2
+    },
+    {
+      "id": "path_vh7xn7",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 435.704639158967,
+          "y": 475.2286093241889
+        },
+        {
+          "x": 397.321280760919,
+          "y": 509.64971426216596
+        },
+        {
+          "x": 436.60757549442394,
+          "y": 490.57852702695686
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_vh7xn7"
+    },
+    {
+      "id": "path_et9sx3",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 387.39403264835414,
+          "y": 430.93227714823723
+        },
+        {
+          "x": 409.89403264835414,
+          "y": 423.68934450152784,
+          "outHandle": {
+            "x": 10.62414066772584,
+            "y": -0.6247539987621167
+          },
+          "inHandle": {
+            "x": -10.62414066772584,
+            "y": 0.6247539987621167
+          }
+        },
+        {
+          "x": 438.39403264835414,
+          "y": 438.9258723593176
+        },
+        {
+          "x": 439.15244041501495,
+          "y": 357.9056456901436,
+          "inHandle": {
+            "x": -0.3959129853381569,
+            "y": -20.02267521777088
+          },
+          "outHandle": {
+            "x": 0.3959129853381569,
+            "y": 20.02267521777088
+          }
+        },
+        {
+          "x": 372.39403264835414,
+          "y": 449.41593389375277,
+          "inHandle": {
+            "x": 12.54123821928863,
+            "y": -16.922776696696246
+          },
+          "outHandle": {
+            "x": -12.54123821928863,
+            "y": 16.922776696696246
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_et9sx3"
+    },
+    {
+      "id": "path_iyz8bz",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 441.0627969372023,
+          "y": 261.3443791256978,
+          "outHandle": {
+            "x": 0.741161884856524,
+            "y": -76.27223420931074
+          },
+          "inHandle": {
+            "x": -0.741161884856524,
+            "y": 76.27223420931074
+          }
+        },
+        {
+          "x": 351.64237818303525,
+          "y": 62.00188838459117,
+          "outHandle": {
+            "x": -86.01167503422948,
+            "y": -5.680016275845347
+          },
+          "inHandle": {
+            "x": 86.01167503422948,
+            "y": 5.680016275845347
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_iyz8bz"
+    },
+    {
+      "id": "dropTarget_e5isck",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 382.6630249427901,
+      "y": 94.93317441210895,
+      "w": 14,
+      "h": 40,
+      "angle": 2.3185579182584175,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.25,
+      "name": "T2"
+    },
+    {
+      "id": "dropTarget_s9fga6",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 411.88263284711894,
+      "y": 141.86788920009926,
+      "w": 14,
+      "h": 40,
+      "angle": 2.861466997904933,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.25,
+      "name": "T2"
+    },
+    {
+      "id": "dropTarget_5l1v8j",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 420.8822664412991,
+      "y": 200.0780986467161,
+      "w": 14,
+      "h": 40,
+      "angle": 3.0519766631469514,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.25,
+      "name": "T2"
+    },
+    {
+      "id": "bumper_glxqxx",
+      "type": "bumper",
+      "x": 270,
+      "y": 306.0058790321055,
+      "radius": 29.019690606816436,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "transparency": 0.2,
+      "name": "bumper_glxqxx"
+    },
+    {
+      "id": "kicker_e5sqr5",
+      "type": "kicker",
+      "level": 0,
+      "radius": 10,
+      "bandThickness": 4,
+      "restitution": 0.55,
+      "kickPower": 8,
+      "score": 250,
+      "color": "#3c7f96",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 399.923064175487,
+          "y": 672.2489080130125
+        },
+        {
+          "x": 409.87421661850004,
+          "y": 523.1134869489985
+        },
+        {
+          "x": 419.27929285171876,
+          "y": 707.1720486132007
+        }
+      ],
+      "name": "kicker_e5sqr5"
+    },
+    {
+      "id": "path_xult2h",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 60,
+          "y": 780,
+          "inHandle": {
+            "x": 36.01670033207248,
+            "y": 2.9987402074059446
+          },
+          "outHandle": {
+            "x": -36.01670033207248,
+            "y": -2.9987402074059446
+          }
+        },
+        {
+          "x": 10,
+          "y": 640,
+          "outHandle": {
+            "x": 0,
+            "y": -70
+          },
+          "inHandle": {
+            "x": 0,
+            "y": 70
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_xult2h"
+    },
+    {
+      "id": "path_whh4l1",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 322.0723683933845,
+          "y": 777.2812202667229
+        },
+        {
+          "x": 411.40520030249974,
+          "y": 723.0835510340145,
+          "inHandle": {
+            "x": -2.4281435500556654,
+            "y": 49.67538198832551
+          },
+          "outHandle": {
+            "x": 2.4281435500556654,
+            "y": -49.67538198832551
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_whh4l1"
+    },
+    {
+      "id": "trough_r0obo3",
+      "type": "trough",
+      "level": 0,
+      "x": 126.10305339344369,
+      "y": 300.43742628236527,
+      "radius": 11.181802057061185,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 2,
+      "ejectAngle": 2.4338169496026874,
+      "color": "#88aaff",
+      "pitColor": "#08101f",
+      "name": "TLaneTrough"
+    },
+    {
+      "id": "dropTarget_qd1wf2",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 135.20799949464302,
+      "y": 66.97917220575484,
+      "w": 15.462540346592084,
+      "h": 13.973162979189041,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.1,
+      "name": "PachencoMan"
+    },
+    {
+      "id": "path_lg6ath",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 10.349693198471094,
+          "y": 436.3456157572226
+        },
+        {
+          "x": 52.60620945420076,
+          "y": 496.9795531544897
+        },
+        {
+          "x": 10.349693198471094,
+          "y": 476.3191004117172,
+          "outHandle": {
+            "x": -18.880571092985594,
+            "y": -8.533665263319051
+          },
+          "inHandle": {
+            "x": 18.880571092985594,
+            "y": 8.533665263319051
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_lg6ath"
+    },
+    {
+      "id": "trough_81phwo",
+      "type": "trough",
+      "level": 0,
+      "x": 39.262268695040504,
+      "y": 522.4137194424594,
+      "radius": 18.13454898840117,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 10,
+      "ejectAngle": 0.3951938350726192,
+      "color": "#88aaff",
+      "pitColor": "#08101f",
+      "name": "T1Trough",
+      "opacity": 0.2
+    },
+    {
+      "id": "path_lslauu",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 0.01,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 11.837240829847946,
+          "y": 545.6571162740507
+        },
+        {
+          "x": 54.275248596324175,
+          "y": 562.7977508937888
+        },
+        {
+          "x": 9.128431823477117,
+          "y": 653.0116173134633,
+          "outHandle": {
+            "x": 0.9029363354569409,
+            "y": 71.26895447154266
+          },
+          "inHandle": {
+            "x": -0.9029363354569409,
+            "y": -71.26895447154266
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_lslauu"
+    },
+    {
+      "id": "spinner_zip3tv",
+      "type": "spinner",
+      "level": 0,
+      "x": 78.74994546265177,
+      "y": 277.7717168662039,
+      "radius": 11.0910693249832,
+      "angle": 0.026337373416920364,
+      "score": 100,
+      "name": "spinner_zip3tv"
+    },
+    {
+      "id": "dropTarget_uqzo0i",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 274.3160024462651,
+      "y": 66.32296914624655,
+      "w": 15.462540346592084,
+      "h": 13.973162979189041,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 0.1,
+      "name": "PachencoMan"
+    },
+    {
+      "id": "bumper_xvpuq2",
+      "type": "bumper",
+      "x": 208.65325424626175,
+      "y": 65.19741359873743,
+      "radius": 11.290709690072632,
+      "power": 4,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "transparency": 1,
+      "color": "#7f6029",
+      "name": "bumper_xvpuq2"
+    },
+    {
+      "id": "bumper_5p9b0r",
+      "type": "bumper",
+      "x": 66.67988307726345,
+      "y": 675.6112781826511,
+      "radius": 24,
+      "power": 8,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "transparency": 0.25,
+      "name": "bumper_5p9b0r"
+    },
+    {
+      "id": "arrowLight_lfob7r",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 90,
+      "y": 549.7671188275507,
+      "w": 58.05461618056668,
+      "h": 40.42817607925905,
+      "angle": 3.5202937712658473,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#38e935",
+      "transparency": 0.25,
+      "name": "T1BonusLight"
+    },
+    {
+      "id": "arrowLight_9xqs3d",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 371.41839547429487,
+      "y": 500.30138317891607,
+      "w": 40,
+      "h": 30,
+      "angle": -0.6293586926947086,
+      "lampId": "",
+      "text": "GO",
+      "label": "",
+      "color": "#38e935",
+      "transparency": 0.25,
+      "name": "T1BonusLight"
+    },
+    {
+      "id": "arrowLight_bul5tq",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 89.86779191604585,
+      "y": 331.2118854191915,
+      "w": 40,
+      "h": 30,
+      "angle": -0.6995324926779882,
+      "lampId": "",
+      "text": "GO",
+      "label": "",
+      "color": "#38e935",
+      "transparency": 0.25,
+      "name": "T3BonusLight"
+    },
+    {
+      "id": "gate_4usyda",
+      "type": "gate",
+      "level": 0,
+      "x": 489.8603966532264,
+      "y": 303.34837027244475,
+      "length": 64.9857007674977,
+      "angle": 2.332250469822689,
+      "direction": "forward",
+      "open": false,
+      "locked": false,
+      "swingStartAngle": 2.356194490192345,
+      "swingEndAngle": 4.71238898038469,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#6b777b",
+      "pinColor": "#36c9c0",
+      "name": "gate_4usyda"
+    },
+    {
+      "id": "path_vi1s45",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 1,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 190.02927271696237,
+          "y": 856.7841495635619
+        },
+        {
+          "x": 190.27927271696237,
+          "y": 859.7814993060779
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_vi1s45"
+    },
+    {
+      "id": "kicker_7gydfo",
+      "type": "kicker",
+      "level": 0,
+      "radius": 5,
+      "bandThickness": 4,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 250,
+      "color": "#3c7f96",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 364.9104739389823,
+          "y": 441.5872965785801
+        },
+        {
+          "x": 426.80530080938735,
+          "y": 365.8028017325496
+        },
+        {
+          "x": 373.4058423329595,
+          "y": 417.9425341866186
+        }
+      ],
+      "name": "kicker_7gydfo"
+    },
+    {
+      "id": "light_qhasfc",
+      "type": "light",
+      "level": 0,
+      "x": 185.83663608223884,
+      "y": 200.14828876615917,
+      "radius": 13,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#a7ecdb",
+      "transparency": 0.5,
+      "name": "TLaneLight-B"
+    },
+    {
+      "id": "light_pdv9pb",
+      "type": "light",
+      "level": 0,
+      "x": 242.79037677982356,
+      "y": 199.57236100968908,
+      "radius": 13,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#f7c864",
+      "transparency": 0.5,
+      "name": "TLaneLight-C"
+    },
+    {
+      "id": "light_zjxzqd",
+      "type": "light",
+      "level": 0,
+      "x": 128.69880922732196,
+      "y": 199.66647181117804,
+      "radius": 13,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#f79cc3",
+      "transparency": 0.5,
+      "name": "TLaneLight-A"
+    }
+  ],
+  "rulesEngine": {
+    "switchMap": [
+      {
+        "id": "timer_100ms",
+        "sourceElementId": "timer_100ms",
+        "kind": "timer"
+      },
+      {
+        "id": "timer_1s",
+        "sourceElementId": "timer_1s",
+        "kind": "timer"
+      },
+      {
+        "id": "drain_4vhmox",
+        "sourceElementId": "drain_4vhmox",
+        "kind": "drain"
+      },
+      {
+        "id": "dropTarget_uj96mp",
+        "sourceElementId": "dropTarget_uj96mp",
+        "kind": "dropTarget"
+      },
+      {
+        "id": "dropTarget_bhkzh4",
+        "sourceElementId": "dropTarget_bhkzh4",
+        "kind": "dropTarget"
+      },
+      {
+        "id": "dropTarget_j0fo4f",
+        "sourceElementId": "dropTarget_j0fo4f",
+        "kind": "dropTarget"
+      },
+      {
+        "id": "dropTarget_e5isck",
+        "sourceElementId": "dropTarget_e5isck",
+        "kind": "dropTarget"
+      },
+      {
+        "id": "dropTarget_s9fga6",
+        "sourceElementId": "dropTarget_s9fga6",
+        "kind": "dropTarget"
+      },
+      {
+        "id": "dropTarget_5l1v8j",
+        "sourceElementId": "dropTarget_5l1v8j",
+        "kind": "dropTarget"
+      },
+      {
+        "id": "lane_dygv85",
+        "sourceElementId": "lane_dygv85",
+        "kind": "lane"
+      },
+      {
+        "id": "lane_81dld4",
+        "sourceElementId": "lane_81dld4",
+        "kind": "lane"
+      },
+      {
+        "id": "lane_foxf5x",
+        "sourceElementId": "lane_foxf5x",
+        "kind": "lane"
+      },
+      {
+        "id": "trough_81phwo",
+        "sourceElementId": "trough_81phwo",
+        "kind": "trough"
+      },
+      {
+        "id": "trough_425c15",
+        "sourceElementId": "trough_425c15",
+        "kind": "trough"
+      },
+      {
+        "id": "trough_r0obo3",
+        "sourceElementId": "trough_r0obo3",
+        "kind": "trough"
+      },
+      {
+        "id": "bumper_glxqxx",
+        "sourceElementId": "bumper_glxqxx",
+        "kind": "bumper"
+      },
+      {
+        "id": "bumper_xvpuq2",
+        "sourceElementId": "bumper_xvpuq2",
+        "kind": "bumper"
+      },
+      {
+        "id": "bumper_5p9b0r",
+        "sourceElementId": "bumper_5p9b0r",
+        "kind": "bumper"
+      },
+      {
+        "id": "kicker_e5sqr5",
+        "sourceElementId": "kicker_e5sqr5",
+        "kind": "kicker"
+      },
+      {
+        "id": "kicker_7gydfo",
+        "sourceElementId": "kicker_7gydfo",
+        "kind": "kicker"
+      },
+      {
+        "id": "spinner_zip3tv",
+        "sourceElementId": "spinner_zip3tv",
+        "kind": "spinner"
+      },
+      {
+        "id": "gate_4usyda",
+        "sourceElementId": "gate_4usyda",
+        "kind": "gate"
+      },
+      {
+        "id": "dropTarget_qd1wf2",
+        "sourceElementId": "dropTarget_qd1wf2",
+        "kind": "dropTarget"
+      },
+      {
+        "id": "dropTarget_uqzo0i",
+        "sourceElementId": "dropTarget_uqzo0i",
+        "kind": "dropTarget"
+      }
+    ],
+    "sequenceRules": [],
+    "triggers": [
+      {
+        "id": "r_t1_a_hit",
+        "kind": "action",
+        "trigger": "dropTarget_uj96mp",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "t1_a_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_t1_b_hit",
+        "kind": "action",
+        "trigger": "dropTarget_bhkzh4",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "t1_b_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_t1_c_hit",
+        "kind": "action",
+        "trigger": "dropTarget_j0fo4f",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "t1_c_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_t2_a_hit",
+        "kind": "action",
+        "trigger": "dropTarget_e5isck",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "t2_a_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_t2_b_hit",
+        "kind": "action",
+        "trigger": "dropTarget_s9fga6",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "t2_b_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_t2_c_hit",
+        "kind": "action",
+        "trigger": "dropTarget_5l1v8j",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "t2_c_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_lane_a_hit",
+        "kind": "action",
+        "trigger": "lane_dygv85",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "lane_a_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_lane_b_hit",
+        "kind": "action",
+        "trigger": "lane_81dld4",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "lane_b_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_lane_c_hit",
+        "kind": "action",
+        "trigger": "lane_foxf5x",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "target": "lane_c_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_bumper_glx_base",
+        "kind": "action",
+        "trigger": "bumper_glxqxx",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_bumper_xvp_base",
+        "kind": "action",
+        "trigger": "bumper_xvpuq2",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_bumper_5p9_base",
+        "kind": "action",
+        "trigger": "bumper_5p9b0r",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_bumper_glx_boost",
+        "kind": "action",
+        "trigger": "bumper_glxqxx",
+        "condition": "all_bonus_ready",
+        "effects": [
+          {
+            "type": "score",
+            "value": 4
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_bumper_xvp_boost",
+        "kind": "action",
+        "trigger": "bumper_xvpuq2",
+        "condition": "all_bonus_ready",
+        "effects": [
+          {
+            "type": "score",
+            "value": 4
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_bumper_5p9_boost",
+        "kind": "action",
+        "trigger": "bumper_5p9b0r",
+        "condition": "all_bonus_ready",
+        "effects": [
+          {
+            "type": "score",
+            "value": 4
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_kicker_e5s_base",
+        "kind": "action",
+        "trigger": "kicker_e5sqr5",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_kicker_7gy_base",
+        "kind": "action",
+        "trigger": "kicker_7gydfo",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_spinner_base",
+        "kind": "action",
+        "trigger": "spinner_zip3tv",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_gate_base",
+        "kind": "action",
+        "trigger": "gate_4usyda",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_pach_a_base",
+        "kind": "action",
+        "trigger": "dropTarget_qd1wf2",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_pach_b_base",
+        "kind": "action",
+        "trigger": "dropTarget_uqzo0i",
+        "condition": "",
+        "effects": [
+          {
+            "type": "score",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_collect_t1_bonus",
+        "kind": "action",
+        "trigger": "trough_81phwo",
+        "condition": "t1_bonus_ready",
+        "effects": [
+          {
+            "type": "score",
+            "value": 50
+          },
+          {
+            "type": "set",
+            "target": "t1_a_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t1_b_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t1_c_lit",
+            "value": false
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_collect_t2_bonus",
+        "kind": "action",
+        "trigger": "trough_425c15",
+        "condition": "t2_bonus_ready",
+        "effects": [
+          {
+            "type": "score",
+            "value": 50
+          },
+          {
+            "type": "set",
+            "target": "t2_a_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t2_b_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t2_c_lit",
+            "value": false
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_collect_lane_bonus",
+        "kind": "action",
+        "trigger": "trough_r0obo3",
+        "condition": "lane_bonus_ready",
+        "effects": [
+          {
+            "type": "score",
+            "value": 100
+          },
+          {
+            "type": "set",
+            "target": "lane_a_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "lane_b_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "lane_c_lit",
+            "value": false
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_blink_tick_add",
+        "kind": "action",
+        "trigger": "timer_100ms",
+        "condition": "",
+        "effects": [
+          {
+            "type": "add",
+            "target": "blink_phase",
+            "value": 1
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_blink_tick_wrap",
+        "kind": "action",
+        "trigger": "timer_100ms",
+        "condition": "blink_phase >= 2",
+        "effects": [
+          {
+            "type": "set",
+            "target": "blink_phase",
+            "value": 0
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "r_drain_reset_all",
+        "kind": "action",
+        "trigger": "drain_4vhmox",
+        "condition": "",
+        "effects": [
+          {
+            "type": "set",
+            "target": "t1_a_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t1_b_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t1_c_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t2_a_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t2_b_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "t2_c_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "lane_a_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "lane_b_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "lane_c_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "blink_phase",
+            "value": 0
+          }
+        ],
+        "enabled": true
+      }
+    ],
+    "variables": [
+      {
+        "id": "t1_a_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "t1_b_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "t1_c_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "t2_a_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "t2_b_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "t2_c_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "lane_a_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "lane_b_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "lane_c_lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "blink_phase",
+        "type": "int",
+        "initial": 0,
+        "volatile": false,
+        "derived": false
+      },
+      {
+        "id": "t1_bonus_ready",
+        "type": "bool",
+        "expr": "t1_a_lit && t1_b_lit && t1_c_lit",
+        "derived": true
+      },
+      {
+        "id": "t2_bonus_ready",
+        "type": "bool",
+        "expr": "t2_a_lit && t2_b_lit && t2_c_lit",
+        "derived": true
+      },
+      {
+        "id": "lane_bonus_ready",
+        "type": "bool",
+        "expr": "lane_a_lit && lane_b_lit && lane_c_lit",
+        "derived": true
+      },
+      {
+        "id": "all_bonus_ready",
+        "type": "bool",
+        "expr": "t1_bonus_ready && t2_bonus_ready && lane_bonus_ready",
+        "derived": true
+      },
+      {
+        "id": "blink_on",
+        "type": "bool",
+        "expr": "blink_phase == 0",
+        "derived": true
+      }
+    ],
+    "logicGraphs": {
+      "logicDocument": {
+        "logicVersion": 1,
+        "switchRegistry": [
+          {
+            "id": "timer_100ms",
+            "name": "Timer 100ms",
+            "kind": "timer",
+            "sourceElementId": "timer_100ms",
+            "intervalMs": 100
+          },
+          {
+            "id": "timer_1s",
+            "name": "Timer 1s",
+            "kind": "timer",
+            "sourceElementId": "timer_1s",
+            "intervalMs": 1000
+          },
+          {
+            "id": "drain_4vhmox",
+            "name": "drain_4vhmox",
+            "kind": "drain",
+            "sourceElementId": "drain_4vhmox"
+          },
+          {
+            "id": "dropTarget_uj96mp",
+            "name": "T1",
+            "kind": "dropTarget",
+            "sourceElementId": "dropTarget_uj96mp"
+          },
+          {
+            "id": "dropTarget_bhkzh4",
+            "name": "T1",
+            "kind": "dropTarget",
+            "sourceElementId": "dropTarget_bhkzh4"
+          },
+          {
+            "id": "dropTarget_j0fo4f",
+            "name": "T1",
+            "kind": "dropTarget",
+            "sourceElementId": "dropTarget_j0fo4f"
+          },
+          {
+            "id": "dropTarget_e5isck",
+            "name": "T2",
+            "kind": "dropTarget",
+            "sourceElementId": "dropTarget_e5isck"
+          },
+          {
+            "id": "dropTarget_s9fga6",
+            "name": "T2",
+            "kind": "dropTarget",
+            "sourceElementId": "dropTarget_s9fga6"
+          },
+          {
+            "id": "dropTarget_5l1v8j",
+            "name": "T2",
+            "kind": "dropTarget",
+            "sourceElementId": "dropTarget_5l1v8j"
+          },
+          {
+            "id": "lane_dygv85",
+            "name": "TLane1a",
+            "kind": "lane",
+            "sourceElementId": "lane_dygv85"
+          },
+          {
+            "id": "lane_81dld4",
+            "name": "TLane1b",
+            "kind": "lane",
+            "sourceElementId": "lane_81dld4"
+          },
+          {
+            "id": "lane_foxf5x",
+            "name": "TLane1c",
+            "kind": "lane",
+            "sourceElementId": "lane_foxf5x"
+          },
+          {
+            "id": "trough_81phwo",
+            "name": "T1Trough",
+            "kind": "trough",
+            "sourceElementId": "trough_81phwo"
+          },
+          {
+            "id": "trough_425c15",
+            "name": "T2Trough",
+            "kind": "trough",
+            "sourceElementId": "trough_425c15"
+          },
+          {
+            "id": "trough_r0obo3",
+            "name": "TLaneTrough",
+            "kind": "trough",
+            "sourceElementId": "trough_r0obo3"
+          },
+          {
+            "id": "bumper_glxqxx",
+            "name": "bumper_glxqxx",
+            "kind": "bumper",
+            "sourceElementId": "bumper_glxqxx"
+          },
+          {
+            "id": "bumper_xvpuq2",
+            "name": "bumper_xvpuq2",
+            "kind": "bumper",
+            "sourceElementId": "bumper_xvpuq2"
+          },
+          {
+            "id": "bumper_5p9b0r",
+            "name": "bumper_5p9b0r",
+            "kind": "bumper",
+            "sourceElementId": "bumper_5p9b0r"
+          },
+          {
+            "id": "kicker_e5sqr5",
+            "name": "kicker_e5sqr5",
+            "kind": "kicker",
+            "sourceElementId": "kicker_e5sqr5"
+          },
+          {
+            "id": "kicker_7gydfo",
+            "name": "kicker_7gydfo",
+            "kind": "kicker",
+            "sourceElementId": "kicker_7gydfo"
+          },
+          {
+            "id": "spinner_zip3tv",
+            "name": "spinner_zip3tv",
+            "kind": "spinner",
+            "sourceElementId": "spinner_zip3tv"
+          },
+          {
+            "id": "gate_4usyda",
+            "name": "gate_4usyda",
+            "kind": "gate",
+            "sourceElementId": "gate_4usyda"
+          },
+          {
+            "id": "dropTarget_qd1wf2",
+            "name": "PachencoMan",
+            "kind": "dropTarget",
+            "sourceElementId": "dropTarget_qd1wf2"
+          },
+          {
+            "id": "dropTarget_uqzo0i",
+            "name": "PachencoMan",
+            "kind": "dropTarget",
+            "sourceElementId": "dropTarget_uqzo0i"
+          }
+        ],
+        "stateTable": [
+          {
+            "id": "t1_a_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "t1_b_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "t1_c_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "t2_a_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "t2_b_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "t2_c_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "lane_a_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "lane_b_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "lane_c_lit",
+            "type": "bool",
+            "initial": false
+          },
+          {
+            "id": "blink_phase",
+            "type": "int",
+            "initial": 0
+          }
+        ],
+        "computedState": [
+          {
+            "id": "t1_bonus_ready",
+            "expr": "t1_a_lit && t1_b_lit && t1_c_lit"
+          },
+          {
+            "id": "t2_bonus_ready",
+            "expr": "t2_a_lit && t2_b_lit && t2_c_lit"
+          },
+          {
+            "id": "lane_bonus_ready",
+            "expr": "lane_a_lit && lane_b_lit && lane_c_lit"
+          },
+          {
+            "id": "all_bonus_ready",
+            "expr": "t1_bonus_ready && t2_bonus_ready && lane_bonus_ready"
+          },
+          {
+            "id": "blink_on",
+            "expr": "blink_phase == 0"
+          }
+        ],
+        "lampBindings": [
+          {
+            "lampId": "dropTarget_uj96mp",
+            "expr": "t1_a_lit"
+          },
+          {
+            "lampId": "dropTarget_bhkzh4",
+            "expr": "t1_b_lit"
+          },
+          {
+            "lampId": "dropTarget_j0fo4f",
+            "expr": "t1_c_lit"
+          },
+          {
+            "lampId": "dropTarget_e5isck",
+            "expr": "t2_a_lit"
+          },
+          {
+            "lampId": "dropTarget_s9fga6",
+            "expr": "t2_b_lit"
+          },
+          {
+            "lampId": "dropTarget_5l1v8j",
+            "expr": "t2_c_lit"
+          },
+          {
+            "lampId": "light_zjxzqd",
+            "expr": "lane_a_lit"
+          },
+          {
+            "lampId": "light_qhasfc",
+            "expr": "lane_b_lit"
+          },
+          {
+            "lampId": "light_pdv9pb",
+            "expr": "lane_c_lit"
+          },
+          {
+            "lampId": "arrowLight_lfob7r",
+            "expr": "t1_bonus_ready && blink_on"
+          },
+          {
+            "lampId": "arrowLight_9xqs3d",
+            "expr": "t2_bonus_ready && blink_on"
+          },
+          {
+            "lampId": "arrowLight_bul5tq",
+            "expr": "lane_bonus_ready && blink_on"
+          }
+        ],
+        "actionRules": [
+          {
+            "id": "r_t1_a_hit",
+            "trigger": "dropTarget_uj96mp",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "t1_a_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_t1_b_hit",
+            "trigger": "dropTarget_bhkzh4",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "t1_b_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_t1_c_hit",
+            "trigger": "dropTarget_j0fo4f",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "t1_c_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_t2_a_hit",
+            "trigger": "dropTarget_e5isck",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "t2_a_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_t2_b_hit",
+            "trigger": "dropTarget_s9fga6",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "t2_b_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_t2_c_hit",
+            "trigger": "dropTarget_5l1v8j",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "t2_c_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_lane_a_hit",
+            "trigger": "lane_dygv85",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "lane_a_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_lane_b_hit",
+            "trigger": "lane_81dld4",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "lane_b_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_lane_c_hit",
+            "trigger": "lane_foxf5x",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              },
+              {
+                "type": "set",
+                "target": "lane_c_lit",
+                "value": true
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_bumper_glx_base",
+            "trigger": "bumper_glxqxx",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_bumper_xvp_base",
+            "trigger": "bumper_xvpuq2",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_bumper_5p9_base",
+            "trigger": "bumper_5p9b0r",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_bumper_glx_boost",
+            "trigger": "bumper_glxqxx",
+            "condition": "all_bonus_ready",
+            "effects": [
+              {
+                "type": "score",
+                "value": 4
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_bumper_xvp_boost",
+            "trigger": "bumper_xvpuq2",
+            "condition": "all_bonus_ready",
+            "effects": [
+              {
+                "type": "score",
+                "value": 4
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_bumper_5p9_boost",
+            "trigger": "bumper_5p9b0r",
+            "condition": "all_bonus_ready",
+            "effects": [
+              {
+                "type": "score",
+                "value": 4
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_kicker_e5s_base",
+            "trigger": "kicker_e5sqr5",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_kicker_7gy_base",
+            "trigger": "kicker_7gydfo",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_spinner_base",
+            "trigger": "spinner_zip3tv",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_gate_base",
+            "trigger": "gate_4usyda",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_pach_a_base",
+            "trigger": "dropTarget_qd1wf2",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_pach_b_base",
+            "trigger": "dropTarget_uqzo0i",
+            "condition": "",
+            "effects": [
+              {
+                "type": "score",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_collect_t1_bonus",
+            "trigger": "trough_81phwo",
+            "condition": "t1_bonus_ready",
+            "effects": [
+              {
+                "type": "score",
+                "value": 50
+              },
+              {
+                "type": "set",
+                "target": "t1_a_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t1_b_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t1_c_lit",
+                "value": false
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_collect_t2_bonus",
+            "trigger": "trough_425c15",
+            "condition": "t2_bonus_ready",
+            "effects": [
+              {
+                "type": "score",
+                "value": 50
+              },
+              {
+                "type": "set",
+                "target": "t2_a_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t2_b_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t2_c_lit",
+                "value": false
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_collect_lane_bonus",
+            "trigger": "trough_r0obo3",
+            "condition": "lane_bonus_ready",
+            "effects": [
+              {
+                "type": "score",
+                "value": 100
+              },
+              {
+                "type": "set",
+                "target": "lane_a_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "lane_b_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "lane_c_lit",
+                "value": false
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_blink_tick_add",
+            "trigger": "timer_100ms",
+            "condition": "",
+            "effects": [
+              {
+                "type": "add",
+                "target": "blink_phase",
+                "value": 1
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_blink_tick_wrap",
+            "trigger": "timer_100ms",
+            "condition": "blink_phase >= 2",
+            "effects": [
+              {
+                "type": "set",
+                "target": "blink_phase",
+                "value": 0
+              }
+            ],
+            "enabled": true
+          },
+          {
+            "id": "r_drain_reset_all",
+            "trigger": "drain_4vhmox",
+            "condition": "",
+            "effects": [
+              {
+                "type": "set",
+                "target": "t1_a_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t1_b_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t1_c_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t2_a_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t2_b_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "t2_c_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "lane_a_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "lane_b_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "lane_c_lit",
+                "value": false
+              },
+              {
+                "type": "set",
+                "target": "blink_phase",
+                "value": 0
+              }
+            ],
+            "enabled": true
+          }
+        ],
+        "resetRules": []
+      }
+    }
+  }
+}

@@ -14,20 +14,30 @@
     "balls": 3,
     "highScoreKey": "pinball.empty.high"
   },
-  "rulesEngine": {
-    "switchMap": [],
-    "sequenceRules": [],
-    "logicGraphs": []
-  },
   "launcher": {
     "x": 439,
     "y": 710,
-    "dir": { "x": 0, "y": -1 },
+    "dir": {
+      "x": 0,
+      "y": -1
+    },
     "maxPower": 42
   },
   "levels": [
-    { "level": 0, "name": "Playfield", "parentLevel": null, "elevation": 0, "editorVisible": true },
-    { "level": 1, "name": "Upper Level", "parentLevel": 0, "elevation": 48, "editorVisible": true }
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
   ],
   "elements": [
     {
@@ -37,15 +47,74 @@
       "role": "wall",
       "closed": true,
       "anchors": [
-        { "x": 10, "y": 150, "outHandle": { "x": 0, "y": -58 } },
-        { "x": 82, "y": 72, "inHandle": { "x": -34, "y": 0 }, "outHandle": { "x": 48, "y": -22 } },
-        { "x": 250, "y": 28, "inHandle": { "x": -62, "y": 0 }, "outHandle": { "x": 62, "y": 0 } },
-        { "x": 418, "y": 72, "inHandle": { "x": -48, "y": -22 }, "outHandle": { "x": 34, "y": 0 } },
-        { "x": 490, "y": 150, "inHandle": { "x": 0, "y": -58 } },
-        { "x": 490, "y": 220 },
-        { "x": 490, "y": 870 },
-        { "x": 10, "y": 870 },
-        { "x": 10, "y": 220 }
+        {
+          "x": 10,
+          "y": 150,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 82,
+          "y": 72,
+          "inHandle": {
+            "x": -34,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 48,
+            "y": -22
+          }
+        },
+        {
+          "x": 250,
+          "y": 28,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 418,
+          "y": 72,
+          "inHandle": {
+            "x": -48,
+            "y": -22
+          },
+          "outHandle": {
+            "x": 34,
+            "y": 0
+          }
+        },
+        {
+          "x": 490,
+          "y": 150,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 490,
+          "y": 220
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 220
+        }
       ]
     },
     {
@@ -68,7 +137,10 @@
       "level": 0,
       "side": "left",
       "control": "left",
-      "pivot": { "x": 135, "y": 685 },
+      "pivot": {
+        "x": 135,
+        "y": 685
+      },
       "length": 95,
       "restAngle": 0.55,
       "activeAngle": -0.55,
@@ -88,7 +160,10 @@
       "level": 0,
       "side": "right",
       "control": "right",
-      "pivot": { "x": 365, "y": 685 },
+      "pivot": {
+        "x": 365,
+        "y": 685
+      },
       "length": 95,
       "restAngle": 2.5915926535,
       "activeAngle": 3.6915926535,

@@ -1,4 +1,8 @@
 (function registerBumper(Pin) {
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
     Pin.elements.register("bumper", {
         compile: function compile(el) {
             return {
@@ -9,7 +13,7 @@
                     restitution: typeof el.restitution === "number" ? el.restitution : undefined,
                     onHit: function onHit(ball, hit, world) {
                         const score = Pin.rules && Pin.rules.resolveElementScore ?
-                            Pin.rules.resolveElementScore(world, el, 0) :
+                            Pin.rules.resolveElementScore(world, el, (el.score || 0)) :
                             (el.score || 0);
                         ball.vx += hit.nx * (el.power || 10);
                         ball.vy += hit.ny * (el.power || 10);
@@ -24,7 +28,9 @@
         },
         draw: function draw(ctx, el) {
             const r = el.radius || 24;
+            const transparency = clamp(typeof el.transparency === "number" ? el.transparency : 1, 0, 1);
             ctx.save();
+            ctx.globalAlpha = transparency;
             const color = el.color || "#ff3377";
             const grad = ctx.createRadialGradient(el.x - r * 0.2, el.y - r * 0.3, r * 0.08, el.x, el.y, r);
             grad.addColorStop(0, "#ffffff");
@@ -50,6 +56,6 @@
             ctx.fill();
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["radius", "power", "restitution", "score", "color"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["radius", "power", "restitution", "score", "color", "transparency"] }
     });
 })(window.Pin);

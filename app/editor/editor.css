@@ -35,6 +35,7 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
     background: linear-gradient(180deg, #324b8f, #1d2d59);
 }
 .play-canvas-wrap {
+    position: relative;
     min-width: 0;
     display: flex;
     align-items: center;
@@ -44,6 +45,101 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
     user-select: none;
 }
 .play-canvas-wrap canvas { touch-action: none; }
+.high-score-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    background: rgba(4, 7, 14, 0.72);
+    color: #eef4ff;
+    pointer-events: none;
+    text-align: center;
+}
+.high-score-overlay.is-visible {
+    display: flex;
+}
+.high-score-panel {
+    pointer-events: none;
+    width: min(330px, 100%);
+    padding: 18px;
+    border: 1px solid rgba(154, 185, 255, 0.38);
+    border-radius: 8px;
+    background: rgba(8, 14, 28, 0.9);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+}
+.high-score-title {
+    font: 800 24px "Trebuchet MS", "Segoe UI", sans-serif;
+    letter-spacing: 0;
+    color: #ffffff;
+}
+.high-score-entry {
+    pointer-events: auto;
+}
+.high-score-subtitle {
+    margin-top: 4px;
+    color: #aebbe5;
+    font-size: 13px;
+}
+.high-score-list {
+    margin: 16px 0 0;
+    padding: 0;
+    list-style-position: inside;
+    font: 700 17px "Courier New", monospace;
+}
+.high-score-list li {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 16px;
+    padding: 6px 0;
+    border-top: 1px solid rgba(154, 185, 255, 0.16);
+}
+.high-score-list li:first-child {
+    border-top: 0;
+}
+.high-score-empty {
+    display: block !important;
+    color: #8f9ac4;
+    font: 700 14px "Trebuchet MS", "Segoe UI", sans-serif;
+}
+.high-score-initials {
+    color: #ffdf6e;
+    text-align: left;
+}
+.high-score-value {
+    text-align: right;
+}
+.high-score-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin-top: 16px;
+}
+.high-score-form input,
+.high-score-form button {
+    min-height: 42px;
+    border-radius: 6px;
+    font: 800 16px "Trebuchet MS", "Segoe UI", sans-serif;
+}
+.high-score-form input {
+    min-width: 0;
+    border: 1px solid rgba(154, 185, 255, 0.44);
+    background: rgba(3, 7, 15, 0.92);
+    color: #ffffff;
+    text-align: center;
+    text-transform: uppercase;
+}
+.high-score-form button {
+    border: 1px solid rgba(255, 223, 110, 0.54);
+    background: #d7a72d;
+    color: #12100a;
+    cursor: pointer;
+}
+.high-score-form button:disabled {
+    opacity: 0.48;
+    cursor: default;
+}
 .play-table-stack {
     grid-area: table;
     min-width: 0;
@@ -1347,5 +1443,493 @@ canvas.dragging { cursor: grabbing; }
     .logicstudio-inspector {
         border: none;
         border-bottom: 1px solid rgba(123, 144, 223, 0.18);
+    }
+}
+
+/* What: Layout and controls for the standalone #logic endpoint.
+ * Why: Logic authoring needs a focused table/inspector workspace.
+ */
+.logic-workbench {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr) 320px;
+    min-height: 100dvh;
+    height: 100dvh;
+}
+.logic-nav,
+.logic-main,
+.logic-inspector {
+    min-height: 0;
+    overflow: auto;
+    padding: 12px;
+}
+.logic-nav {
+    border-right: 1px solid rgba(123, 144, 223, 0.18);
+    background: rgba(8, 12, 24, 0.96);
+}
+.logic-main {
+    background: rgba(6, 10, 20, 0.96);
+}
+.logic-inspector {
+    border-left: 1px solid rgba(123, 144, 223, 0.18);
+    background: rgba(8, 12, 24, 0.96);
+}
+.logic-nav-top h3 {
+    margin: 0 0 6px;
+}
+.logic-top-links {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.logic-nav-btn {
+    width: 100%;
+    margin: 0 0 8px;
+    text-align: left;
+}
+.logic-nav-btn.active {
+    border-color: #9fc0ff;
+    background: linear-gradient(180deg, #33519c, #22366d);
+}
+.logic-small {
+    font-size: 12px;
+    color: #a8b7db;
+}
+.logic-validation {
+    margin: 10px 0;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(123, 144, 223, 0.2);
+}
+.logic-validation.ok {
+    border-color: rgba(94, 188, 150, 0.45);
+    color: #a9f0d0;
+    background: rgba(22, 68, 52, 0.45);
+}
+.logic-validation.error {
+    border-color: rgba(235, 83, 101, 0.45);
+    color: #ffb3bd;
+    background: rgba(81, 23, 34, 0.5);
+}
+.logic-card {
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: rgba(9, 14, 29, 0.86);
+}
+.logic-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.logic-card-head h3 {
+    margin: 0;
+}
+.logic-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+.logic-main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.logic-list {
+    display: grid;
+    gap: 6px;
+}
+.logic-row-btn {
+    width: 100%;
+    text-align: left;
+}
+.logic-row-btn.active {
+    border-color: #9fc0ff;
+    background: linear-gradient(180deg, #33519c, #22366d);
+}
+.logic-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+.logic-field input[type="text"] {
+    width: 100%;
+    padding: 7px 8px;
+    border-radius: 8px;
+    border: 1px solid #334a8a;
+    background: rgba(11, 18, 37, 0.96);
+    color: #eff3ff;
+}
+.logic-select {
+    width: 100%;
+    padding: 7px 8px;
+    border-radius: 8px;
+    border: 1px solid #334a8a;
+    background: rgba(11, 18, 37, 0.96);
+    color: #eff3ff;
+}
+.logic-field-bool {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+}
+.logic-json-edit {
+    width: 100%;
+    min-height: 170px;
+    border-radius: 8px;
+    border: 1px solid #334a8a;
+    background: rgba(7, 10, 20, 0.92);
+    color: #e6e6e6;
+    padding: 8px;
+    font: 12px Consolas, "Courier New", monospace;
+    margin-bottom: 8px;
+}
+.logic-issue {
+    border-radius: 8px;
+    padding: 7px 8px;
+    margin-bottom: 6px;
+    border: 1px solid rgba(123, 144, 223, 0.2);
+}
+button.logic-issue {
+    display: block;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+}
+button.logic-issue:hover {
+    filter: brightness(1.07);
+}
+.logic-issue.error {
+    border-color: rgba(235, 83, 101, 0.45);
+    color: #ffb3bd;
+    background: rgba(81, 23, 34, 0.5);
+}
+.logic-issue.warning {
+    border-color: rgba(235, 179, 67, 0.35);
+    color: #ffd98a;
+    background: rgba(78, 55, 17, 0.45);
+}
+.logic-issue.info {
+    border-color: rgba(107, 141, 220, 0.4);
+    color: #b8c9ff;
+    background: rgba(30, 45, 82, 0.45);
+}
+.logic-switch-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
+}
+.logic-effect-row,
+.logic-reset-row {
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 8px;
+    padding: 8px;
+    margin: 0 0 8px;
+    background: rgba(6, 10, 22, 0.86);
+}
+
+/* What: Human-readable presentation for the #logic endpoint.
+ * Why: Logic authoring should read as gameplay flow before exposing raw IDs.
+ */
+.logic-workbench-human .logic-main {
+    padding: 16px;
+}
+.logic-human-header {
+    align-items: flex-start;
+    padding: 12px;
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 10px;
+    background: rgba(9, 14, 29, 0.86);
+}
+.logic-human-header h2,
+.logic-hero h2 {
+    margin: 0 0 6px;
+}
+.logic-human-header p,
+.logic-hero p {
+    margin: 0;
+    color: #a8b7db;
+}
+.logic-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+}
+.logic-stat {
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 10px;
+    padding: 10px;
+    background: rgba(6, 10, 22, 0.86);
+}
+.logic-stat strong {
+    display: block;
+    color: #eff3ff;
+    font-size: 22px;
+}
+.logic-stat span {
+    display: block;
+    color: #a8b7db;
+    font-size: 12px;
+}
+.logic-stat.bad {
+    border-color: rgba(235, 83, 101, 0.45);
+    background: rgba(81, 23, 34, 0.5);
+}
+.logic-god-card {
+    overflow: auto;
+}
+.logic-god-matrix {
+    display: grid;
+    grid-template-columns: minmax(190px, 1.15fr) minmax(170px, 1fr) minmax(230px, 1.35fr) minmax(190px, 1fr) minmax(170px, 1fr) minmax(120px, 0.7fr) minmax(150px, 0.85fr);
+    min-width: 1280px;
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.logic-god-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 9px 10px;
+    border-right: 1px solid rgba(123, 144, 223, 0.18);
+    border-bottom: 1px solid rgba(123, 144, 223, 0.24);
+    color: #9fc0ff;
+    background: rgba(12, 20, 42, 0.98);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.logic-god-cell {
+    min-height: 92px;
+    padding: 9px;
+    border-right: 1px solid rgba(123, 144, 223, 0.12);
+    border-bottom: 1px solid rgba(123, 144, 223, 0.12);
+    background: rgba(6, 10, 22, 0.72);
+}
+.logic-god-switch {
+    cursor: pointer;
+    background: rgba(10, 17, 35, 0.92);
+}
+.logic-god-pill {
+    display: block;
+    width: 100%;
+    margin: 0 0 6px;
+    padding: 6px 7px;
+    border: 1px solid rgba(123, 144, 223, 0.2);
+    border-radius: 8px;
+    color: #dfe7ff;
+    background: rgba(9, 15, 31, 0.84);
+    font-size: 12px;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+button.logic-god-pill {
+    cursor: pointer;
+}
+.logic-god-pill.on {
+    border-color: rgba(94, 188, 150, 0.45);
+    color: #a9f0d0;
+    background: rgba(22, 68, 52, 0.45);
+}
+.logic-god-pill.off {
+    opacity: 0.55;
+}
+.logic-god-condition .logic-god-pill {
+    border-color: rgba(171, 148, 255, 0.28);
+}
+.logic-god-state .logic-god-pill {
+    border-color: rgba(91, 221, 157, 0.26);
+}
+.logic-god-computed .logic-god-pill {
+    border-color: rgba(255, 218, 94, 0.28);
+}
+.logic-god-lamp .logic-god-pill {
+    border-color: rgba(255, 164, 99, 0.28);
+}
+.logic-god-reset .logic-god-pill {
+    border-color: rgba(255, 110, 130, 0.28);
+}
+.logic-state-machine-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+}
+.logic-machine-node {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 1px solid rgba(123, 144, 223, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+    color: #eff3ff;
+    background: rgba(6, 10, 22, 0.86);
+}
+.logic-machine-node.computed {
+    border-style: dashed;
+}
+.logic-machine-node.on {
+    border-color: rgba(94, 188, 150, 0.55);
+    box-shadow: inset 0 0 0 1px rgba(94, 188, 150, 0.15);
+}
+.logic-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 10px;
+}
+.logic-feature-builder {
+    border: 1px solid rgba(159, 192, 255, 0.28);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 12px;
+    background: rgba(6, 10, 22, 0.92);
+}
+.logic-check-list {
+    margin: 8px 0;
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 8px;
+    padding: 8px;
+    background: rgba(8, 13, 27, 0.82);
+}
+.logic-check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 5px 0;
+    color: #dfe7ff;
+    font-size: 12px;
+}
+.logic-card-list {
+    display: grid;
+    gap: 8px;
+}
+.logic-feature-card {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+    border: 1px solid rgba(123, 144, 223, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+    color: #eff3ff;
+    background: rgba(6, 10, 22, 0.86);
+}
+.logic-feature-card:hover {
+    border-color: rgba(159, 192, 255, 0.6);
+}
+.logic-feature-card.active {
+    border-color: #9fc0ff;
+    background: linear-gradient(180deg, rgba(51, 81, 156, 0.86), rgba(34, 54, 109, 0.86));
+}
+.logic-feature-card.is-on {
+    border-color: rgba(94, 188, 150, 0.55);
+    box-shadow: inset 0 0 0 1px rgba(94, 188, 150, 0.15);
+}
+.logic-feature-card.muted {
+    opacity: 0.7;
+}
+.logic-card-title-line {
+    display: grid;
+    gap: 2px;
+    margin-bottom: 8px;
+}
+.logic-card-title-line strong {
+    color: #eff3ff;
+    font-size: 14px;
+}
+.logic-card-title-line small {
+    color: #7f91c5;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+.logic-meta-line {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    margin: 4px 0;
+    color: #a8b7db;
+    font-size: 12px;
+}
+.logic-meta-line strong {
+    color: #dfe7ff;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+.logic-two-column {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.logic-group-label {
+    margin: 12px 0 4px;
+    color: #a8b7db;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.logic-score {
+    display: inline-block;
+    margin: 0 0 10px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(159, 192, 255, 0.35);
+    color: #eff3ff;
+    background: rgba(30, 45, 82, 0.45);
+    font-weight: 700;
+}
+.logic-chip-section h4 {
+    margin: 10px 0 6px;
+}
+.logic-chip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.logic-chip {
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 999px;
+    padding: 5px 8px;
+    color: #a8b7db;
+    background: rgba(6, 10, 22, 0.86);
+    font-size: 12px;
+}
+.logic-chip.on {
+    border-color: rgba(94, 188, 150, 0.45);
+    color: #a9f0d0;
+    background: rgba(22, 68, 52, 0.45);
+}
+.logic-readonly {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(6, 10, 22, 0.72);
+}
+.logic-card.compact {
+    padding: 8px;
+}
+@media (max-width: 1080px) {
+    .logic-workbench {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+    .logic-nav,
+    .logic-inspector {
+        border: none;
+        border-bottom: 1px solid rgba(123, 144, 223, 0.18);
+    }
+    .logic-grid-4,
+    .logic-two-column {
+        grid-template-columns: 1fr;
     }
 }

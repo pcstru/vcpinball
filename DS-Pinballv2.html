@@ -316,8 +316,7 @@
                 { x: 340, y: 500, w: 14, h: 40, color: '#ffcc00', glowColor: '#ffaa00' },
             ];
 
-            const spinner = { x: 250, y: 210, length: 60, angle: 0, angularVelocity: 0, hitCount: 0 };
-            const spinnerPosts = [{ x: 190, y: 210, r: 8 }, { x: 310, y: 210, r: 8 }];
+            const spinner = { x: 250, y: 210, radius: 30, angle: 0, angularVelocity: 0, hitCount: 0 };
 
             const slingshots = [
                 { x1: 45, y1: 580, x2: 90, y2: 640, power: 14, name: 'left' },
@@ -533,11 +532,6 @@
                     }
                 }
 
-                for (const post of spinnerPosts) {
-                    const result = circleCircleCollision(ball.x, ball.y, ball.radius, post.x, post.y, post.r);
-                    if (result.hit) resolveCollision(ball, result.nx, result.ny, result.overlap);
-                }
-
                 for (let i = 0; i < popBumpers.length; i++) {
                     const bumper = popBumpers[i];
                     const result = circleCircleCollision(ball.x, ball.y, ball.radius, bumper.x, bumper.y, bumper.r);
@@ -632,23 +626,27 @@
                     }
                 }
 
-                const sx1 = spinner.x - Math.cos(spinner.angle) * spinner.length / 2;
-                const sy1 = spinner.y - Math.sin(spinner.angle) * spinner.length / 2;
-                const sx2 = spinner.x + Math.cos(spinner.angle) * spinner.length / 2;
-                const sy2 = spinner.y + Math.sin(spinner.angle) * spinner.length / 2;
-                const spResult = circleSegmentCollision(ball.x, ball.y, ball.radius, sx1, sy1, sx2, sy2);
-                if (spResult.hit) {
-                    resolveCollision(ball, spResult.nx, spResult.ny, spResult.overlap);
-                    const relV = ball.vx * spResult.nx + ball.vy * spResult.ny;
-                    spinner.angularVelocity += relV * 0.03;
-                    spinner.hitCount++;
-                    spinnerCount++;
-                    score += 100;
-                    sfxSpinner();
-                    if (spinnerCount % 20 === 0 && spinnerCount > 0) {
-                        score += 5000;
-                        showMessage('SPINNER BONUS! +5000', 90);
-                        sfxBonus();
+                const spinnerAngles = [spinner.angle, spinner.angle + Math.PI * 0.5];
+                for (const bladeAngle of spinnerAngles) {
+                    const sx1 = spinner.x - Math.cos(bladeAngle) * spinner.radius;
+                    const sy1 = spinner.y - Math.sin(bladeAngle) * spinner.radius;
+                    const sx2 = spinner.x + Math.cos(bladeAngle) * spinner.radius;
+                    const sy2 = spinner.y + Math.sin(bladeAngle) * spinner.radius;
+                    const spResult = circleSegmentCollision(ball.x, ball.y, ball.radius, sx1, sy1, sx2, sy2);
+                    if (spResult.hit) {
+                        resolveCollision(ball, spResult.nx, spResult.ny, spResult.overlap);
+                        const relV = ball.vx * spResult.nx + ball.vy * spResult.ny;
+                        spinner.angularVelocity += relV * 0.03;
+                        spinner.hitCount++;
+                        spinnerCount++;
+                        score += 100;
+                        sfxSpinner();
+                        if (spinnerCount % 20 === 0 && spinnerCount > 0) {
+                            score += 5000;
+                            showMessage('SPINNER BONUS! +5000', 90);
+                            sfxBonus();
+                        }
+                        break;
                     }
                 }
 
@@ -1018,19 +1016,6 @@
             }
 
             function drawSpinner() {
-                const sx1 = spinner.x - Math.cos(spinner.angle) * spinner.length / 2;
-                const sy1 = spinner.y - Math.sin(spinner.angle) * spinner.length / 2;
-                const sx2 = spinner.x + Math.cos(spinner.angle) * spinner.length / 2;
-                const sy2 = spinner.y + Math.sin(spinner.angle) * spinner.length / 2;
-                for (const post of spinnerPosts) {
-                    ctx.fillStyle = '#888';
-                    ctx.beginPath();
-                    ctx.arc(post.x, post.y, post.r, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#aaa';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
                 ctx.save();
                 ctx.strokeStyle = '#ffdd00';
                 ctx.lineWidth = 4;
@@ -1038,8 +1023,10 @@
                 ctx.shadowBlur = 15;
                 ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.moveTo(sx1, sy1);
-                ctx.lineTo(sx2, sy2);
+                ctx.moveTo(spinner.x - Math.cos(spinner.angle) * spinner.radius, spinner.y - Math.sin(spinner.angle) * spinner.radius);
+                ctx.lineTo(spinner.x + Math.cos(spinner.angle) * spinner.radius, spinner.y + Math.sin(spinner.angle) * spinner.radius);
+                ctx.moveTo(spinner.x - Math.cos(spinner.angle + Math.PI * 0.5) * spinner.radius, spinner.y - Math.sin(spinner.angle + Math.PI * 0.5) * spinner.radius);
+                ctx.lineTo(spinner.x + Math.cos(spinner.angle + Math.PI * 0.5) * spinner.radius, spinner.y + Math.sin(spinner.angle + Math.PI * 0.5) * spinner.radius);
                 ctx.stroke();
                 ctx.fillStyle = '#fff';
                 ctx.shadowBlur = 10;

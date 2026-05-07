@@ -1,4 +1,9 @@
 (function registerLane(Pin) {
+    function clamp01(value, fallback) {
+        const numeric = typeof value === "number" && Number.isFinite(value) ? value : fallback;
+        return Math.max(0, Math.min(1, numeric));
+    }
+
     Pin.elements.register("lane", {
         compile: function compile(el) {
             return {
@@ -11,7 +16,7 @@
                     h: el.h || 20,
                     onEnter: function onEnter(ball, hit, world) {
                         const score = Pin.rules && Pin.rules.resolveElementScore ?
-                            Pin.rules.resolveElementScore(world, el, 0) :
+                            Pin.rules.resolveElementScore(world, el, (el.score || 0)) :
                             (el.score || 0);
                         if (Pin.events) {
                             if (score) Pin.events.emit(world, { type: "score", sourceId: el.id, elementType: el.type, points: score });
@@ -25,7 +30,9 @@
         draw: function draw(ctx, el) {
             const w = el.w || 40;
             const h = el.h || 20;
+            const opacity = clamp01(el.opacity, 1);
             ctx.save();
+            ctx.globalAlpha = opacity;
             ctx.translate(el.x || 0, el.y || 0);
             ctx.rotate(el.angle || 0);
             const x = -w * 0.5;
@@ -54,6 +61,6 @@
             }
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["w", "h", "angle", "score", "label", "color"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["w", "h", "angle", "score", "label", "color", "opacity"] }
     });
 })(window.Pin);

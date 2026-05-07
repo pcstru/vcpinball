@@ -52,6 +52,25 @@
         };
     }
 
+    /* What: Resolve spinner blade radius with legacy fallbacks.
+     * Why: Spinner sizing is now radius-based while old tables may still use size/length.
+     * Correctness: Prefers radius, then converts full-span size/length to radius.
+     */
+    function spinnerRadius(el) {
+        if (el && typeof el.radius === "number") return el.radius;
+        if (el && typeof el.size === "number") return el.size * 0.5;
+        if (el && typeof el.length === "number") return el.length * 0.5;
+        return 30;
+    }
+
+    function spinnerBladeSegments(el, angle) {
+        const radius = spinnerRadius(el);
+        return [
+            lineEndpoints(el.x, el.y, radius * 2, angle || 0),
+            lineEndpoints(el.x, el.y, radius * 2, (angle || 0) + Math.PI * 0.5)
+        ];
+    }
+
     function gateSwingArc(el) {
         const restAngle = typeof el.angle === "number" ? el.angle : 0;
         const maxAngle = Math.abs(typeof el.maxAngle === "number" ? el.maxAngle : 1.05);
@@ -274,7 +293,7 @@
                     maxY: el.y + el.radius
                 };
             }
-            const halfW = (el.w || el.width || el.length || 40) * 0.5;
+            const halfW = (el.w || el.width || el.size || el.length || 40) * 0.5;
             const halfH = (el.h || Math.abs((el.bottom || 0) - (el.top || 0)) || el.length || 40) * 0.5;
             return {
                 minX: el.x - halfW,
@@ -346,9 +365,9 @@
         }
         if (el.type === "spinner") {
             const angle = el.angle || 0;
-            const end = rotatePoint(el.x, el.y, (el.length || 60) * 0.5, 0, angle);
+            const end = rotatePoint(el.x, el.y, spinnerRadius(el), 0, angle);
             const rot = rotatePoint(el.x, el.y, 0, -30, angle);
-            handles.push({ kind: "length", x: end.x, y: end.y });
+            handles.push({ kind: "radius", x: end.x, y: end.y });
             handles.push({ kind: "rotate", x: rot.x, y: rot.y });
         }
         if (el.type === "lane" || el.type === "dropTarget" || el.type === "drain" || el.type === "arrowLight" || el.type === "boxLight") {
@@ -356,7 +375,7 @@
             const h = el.h || 20;
             const size = rotatePoint(el.x, el.y, w * 0.5, h * 0.5, el.angle || 0);
             handles.push({ kind: "size", x: size.x, y: size.y });
-            if (el.type === "dropTarget" || el.type === "arrowLight" || el.type === "boxLight") {
+            if (el.type === "lane" || el.type === "dropTarget" || el.type === "arrowLight" || el.type === "boxLight") {
                 const rot = rotatePoint(el.x, el.y, 0, -h * 0.5 - 22, el.angle || 0);
                 handles.push({ kind: "rotate", x: rot.x, y: rot.y });
             }
@@ -417,9 +436,10 @@
             const width = el.width || 38;
             body = pointInRect(world.x, world.y, x, (top + bottom) * 0.5, width, Math.abs(bottom - top));
         } else if (el.type === "spinner") {
-            const len = el.length || 60;
-            const endpoints = lineEndpoints(el.x, el.y, len, el.angle || 0);
-            body = Pin.editorTools.distancePointToSegment(world.x, world.y, endpoints.x1, endpoints.y1, endpoints.x2, endpoints.y2).dist <= (8 / view.zoom);
+            const blades = spinnerBladeSegments(el, el.angle || 0);
+            body = blades.some(function some(blade) {
+                return Pin.editorTools.distancePointToSegment(world.x, world.y, blade.x1, blade.y1, blade.x2, blade.y2).dist <= (8 / view.zoom);
+            });
         } else if (el.type === "path") {
             bodyMeta = hitPathBodyFromSegments((runtime && runtime.drawSegments) || null, el, world, 6, view, "anchors");
             body = !!bodyMeta;
@@ -491,7 +511,9 @@
         }
         if (handle.kind === "radius") {
             const radiusCenter = el.type === "kicker" && Array.isArray(el.anchors) && el.anchors.length ? getElementCenter(el) : { x: el.x, y: el.y };
-            el.radius = Math.max(4, Math.sqrt((world.x - radiusCenter.x) * (world.x - radiusCenter.x) + (world.y - radiusCenter.y) * (world.y - radiusCenter.y)));
+            const nextRadius = Math.max(4, Math.sqrt((world.x - radiusCenter.x) * (world.x - radiusCenter.x) + (world.y - radiusCenter.y) * (world.y - radiusCenter.y)));
+            el.radius = nextRadius;
+            if (el.type === "spinner") el.angle = Math.atan2(world.y - el.y, world.x - el.x);
             return;
         }
         if (handle.kind === "ejectAngle") {
@@ -510,8 +532,8 @@
                 el.angle = Math.atan2(world.y - (el.y || 0), world.x - (el.x || 0));
                 return;
             }
-            el.length = Math.max(8, Math.hypot(world.x - el.x, world.y - el.y) * 2);
-            if (el.type === "spinner") el.angle = Math.atan2(world.y - el.y, world.x - el.x);
+            const nextSize = Math.max(8, Math.hypot(world.x - el.x, world.y - el.y) * 2);
+            el.length = nextSize;
             return;
         }
         if (handle.kind === "rotate") {
@@ -735,7 +757,7 @@
             drawGhostHandle(el.pivot.x, el.pivot.y, rot.x, rot.y);
             drawCircle(rot.x, rot.y, 5, false);
         } else if (el.type === "spinner") {
-            const endpoints = lineEndpoints(el.x, el.y, el.length || 60, el.angle || 0);
+            const endpoints = lineEndpoints(el.x, el.y, spinnerRadius(el) * 2, el.angle || 0);
             const rot = rotatePoint(el.x, el.y, 0, -30, el.angle || 0);
             drawCircle(el.x, el.y, 5, true);
             drawCircle(endpoints.x2, endpoints.y2, 5, false);
@@ -751,13 +773,13 @@
             drawCircle(tip.x, tip.y, 5, false);
             drawGhostHandle(x, y, rot.x, rot.y);
             drawCircle(rot.x, rot.y, 5, false);
-        } else if (el.type === "dropTarget" || el.type === "drain") {
+        } else if (el.type === "lane" || el.type === "dropTarget" || el.type === "drain") {
             const corners = getRectCorners(el.x, el.y, el.w || 14, el.h || 40, el.angle || 0);
             corners.forEach(function eachCorner(p) { drawSquare(p.x, p.y, 4, false); });
             const size = rotatePoint(el.x, el.y, (el.w || 14) * 0.5, (el.h || 40) * 0.5, el.angle || 0);
             drawCircle(el.x, el.y, 5, true);
             drawCircle(size.x, size.y, 5, false);
-            if (el.type === "dropTarget") {
+            if (el.type === "lane" || el.type === "dropTarget") {
                 const rot = rotatePoint(el.x, el.y, 0, -(el.h || 40) * 0.5 - 22, el.angle || 0);
                 drawGhostHandle(el.x, el.y, rot.x, rot.y);
                 drawCircle(rot.x, rot.y, 5, false);

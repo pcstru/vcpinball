@@ -26,7 +26,7 @@
     }
 
     function createDefaultElement(type, makeId) {
-        if (type === "bumper") return { id: makeId(type), type: "bumper", x: 250, y: 300, radius: 24, power: 12, restitution: 0.8, score: 100, level: 0 };
+        if (type === "bumper") return { id: makeId(type), type: "bumper", x: 250, y: 300, radius: 24, power: 12, restitution: 0.8, score: 100, level: 0, transparency: 1 };
         if (type === "leftFlipper") {
                 return {
                     id: makeId("flipper"),
@@ -69,15 +69,15 @@
                 thickness: 10
             };
         }
-        if (type === "path") return { id: makeId(type), type: "path", level: 0, role: "wall", thickness: 6, restitution: 0.55, closed: false, anchors: [{ x: 60, y: 200 }, { x: 200, y: 160 }] };
-        if (type === "lane") return { id: makeId(type), type: "lane", level: 0, x: 120, y: 120, w: 40, h: 20, score: 100 };
-        if (type === "dropTarget") return { id: makeId(type), type: "dropTarget", level: 0, x: 200, y: 500, w: 14, h: 40, angle: 0, restitution: 0.55, score: 250 };
-        if (type === "spinner") return { id: makeId(type), type: "spinner", level: 0, x: 250, y: 220, length: 60, angle: 0, score: 100 };
+        if (type === "path") return { id: makeId(type), type: "path", level: 0, role: "wall", thickness: 6, restitution: 0.55, transparency: 1, closed: false, anchors: [{ x: 60, y: 200 }, { x: 200, y: 160 }] };
+        if (type === "lane") return { id: makeId(type), type: "lane", level: 0, x: 120, y: 120, w: 40, h: 20, angle: 0, score: 100, opacity: 1 };
+        if (type === "dropTarget") return { id: makeId(type), type: "dropTarget", level: 0, x: 200, y: 500, w: 14, h: 40, angle: 0, restitution: 0.55, score: 250, transparency: 1 };
+        if (type === "spinner") return { id: makeId(type), type: "spinner", level: 0, x: 250, y: 220, radius: 30, angle: 0, score: 100 };
         if (type === "launcher") return { id: makeId(type), type: "launcher", level: 0, x: 439, y: 710, top: 195, bottom: 735, width: 38, maxPower: 42, maxRetract: 65, pullSpeed: 95, returnSpeed: 220, springStrength: 1 };
-        if (type === "gate") return { id: makeId(type), type: "gate", level: 0, x: 230, y: 360, length: 64, angle: -0.2, locked: false, swingStartAngle: -0.2, swingEndAngle: 0.85, maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, restitution: 0.55, color: "#99ffcc", pinColor: "#f7fbff" };
+        if (type === "gate") return { id: makeId(type), type: "gate", level: 0, x: 230, y: 360, length: 64, angle: -0.2, direction: "forward", open: false, locked: false, swingStartAngle: -0.2, swingEndAngle: 0.85, maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, restitution: 0.55, color: "#99ffcc", pinColor: "#f7fbff" };
         if (type === "valve") return { id: makeId(type), type: "valve", level: 0, x: 230, y: 360, length: 64, angle: -0.2, direction: "forward", maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, color: "#a8e4ff", pinColor: "#f7fbff" };
         if (type === "drain") return { id: makeId(type), type: "drain", level: 0, x: 250, y: 835, w: 150, h: 24 };
-        if (type === "trough") return { id: makeId(type), type: "trough", level: 0, x: 250, y: 820, radius: 18, holdSeconds: 0.75, reactivateDelay: 2, ejectPower: 10, ejectAngle: -Math.PI * 0.5, color: "#88aaff", pitColor: "#08101f" };
+        if (type === "trough") return { id: makeId(type), type: "trough", level: 0, x: 250, y: 820, radius: 18, holdSeconds: 0.75, reactivateDelay: 2, ejectPower: 10, ejectAngle: -Math.PI * 0.5, color: "#88aaff", pitColor: "#08101f", opacity: 1 };
         if (type === "kicker") return {
             id: makeId(type),
             type: "kicker",
@@ -96,9 +96,9 @@
             ]
         };
         if (type === "scoreZone") return { id: makeId(type), type: "scoreZone", level: 0, x: 340, y: 360, radius: 20, restitution: 0.55, score: 500 };
-        if (type === "light") return { id: makeId(type), type: "light", level: 0, x: 250, y: 260, radius: 13, lampId: "", text: "", label: "", color: "#ffee55" };
-        if (type === "arrowLight") return { id: makeId(type), type: "arrowLight", level: 0, x: 250, y: 260, w: 86, h: 34, angle: 0, lampId: "", text: "GO", label: "", color: "#66ddff" };
-        if (type === "boxLight") return { id: makeId(type), type: "boxLight", level: 0, x: 250, y: 260, w: 110, h: 42, angle: 0, cornerRadius: 10, lampId: "", text: "BONUS", label: "", color: "#8fe36a" };
+        if (type === "light") return { id: makeId(type), type: "light", level: 0, x: 250, y: 260, radius: 13, lampId: "", text: "", label: "", color: "#ffee55", transparency: 1 };
+        if (type === "arrowLight") return { id: makeId(type), type: "arrowLight", level: 0, x: 250, y: 260, w: 86, h: 34, angle: 0, lampId: "", text: "GO", label: "", color: "#66ddff", transparency: 1 };
+        if (type === "boxLight") return { id: makeId(type), type: "boxLight", level: 0, x: 250, y: 260, w: 110, h: 42, angle: 0, cornerRadius: 10, lampId: "", text: "BONUS", label: "", color: "#8fe36a", transparency: 1 };
         if (type === "ramp") {
             return {
                 id: makeId(type),
@@ -222,37 +222,16 @@
         table.launcher.springStrength = lane.springStrength || table.launcher.springStrength || 1;
     }
 
-    function ensureRulesEngine(table) {
-        table.rulesEngine = table.rulesEngine || {};
-        table.rulesEngine.switchMap = table.rulesEngine.switchMap || [];
-        table.rulesEngine.sequenceRules = table.rulesEngine.sequenceRules || [];
-        table.rulesEngine.logicGraphs = table.rulesEngine.logicGraphs || [];
-        table.rulesEngine.triggers = table.rulesEngine.triggers || [];
-        table.rulesEngine.variables = table.rulesEngine.variables || [];
-        if (Pin.ruleGraph && Pin.ruleGraph.syncRuleGraphs) {
-            Pin.ruleGraph.syncRuleGraphs(table);
-        }
-        return table.rulesEngine;
-    }
-
     function ensureImageLayers(table) {
         table.images = table.images || [];
         return table.images;
-    }
-
-    function getLogicGraphs(table) {
-        return ensureRulesEngine(table).logicGraphs || [];
     }
 
     function findElementForSwitchId(table, switchId) {
         if (!switchId) return null;
         const direct = (table.elements || []).find(function find(el) { return el.id === switchId; });
         if (direct) return direct;
-        const mapping = (((table.rulesEngine || {}).switchMap) || []).find(function find(map) {
-            return map && map.switchId === switchId && map.sourceId;
-        });
-        if (!mapping) return null;
-        return (table.elements || []).find(function find(el) { return el.id === mapping.sourceId; }) || null;
+        return null;
     }
 
     function findElementForLampId(table, lampId) {
@@ -280,9 +259,7 @@
         getLauncherElement: getLauncherElement,
         ensureSelectableLauncher: ensureSelectableLauncher,
         syncLauncherConfig: syncLauncherConfig,
-        ensureRulesEngine: ensureRulesEngine,
         ensureImageLayers: ensureImageLayers,
-        getLogicGraphs: getLogicGraphs,
         findElementForSwitchId: findElementForSwitchId,
         findElementForLampId: findElementForLampId,
         firstSwitchElementId: firstSwitchElementId

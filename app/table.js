@@ -25,12 +25,12 @@
             name: "Untitled Table",
             playfield: Object.assign({}, DEFAULT_PLAYFIELD),
             rules: { balls: 3, highScoreKey: "pinball.generic.highscore" },
-            rulesEngine: { switchMap: [], sequenceRules: [], logicGraphs: [], triggers: [], variables: [] },
             launcher: { x: 439, y: 710, dir: { x: 0, y: -1 }, maxPower: 42 },
             levels: [
                 { level: 0, name: "Playfield", parentLevel: null, elevation: 0, editorVisible: true },
                 { level: 1, name: "Upper Level", parentLevel: 0, elevation: 48, editorVisible: true }
             ],
+            features: [],
             images: [],
             elements: [
                 {
@@ -38,6 +38,7 @@
                     type: "path",
                     level: 0,
                     role: "wall",
+                    transparency: 1,
                     closed: true,
                     anchors: [
                         { x: 10, y: 150, outHandle: { x: 0, y: -58 } },
@@ -113,6 +114,17 @@
         return JSON.parse(JSON.stringify(table));
     }
 
+    function fallbackElementName(element) {
+        /* What: Build a readable default element name.
+         * Why: Logic authoring and selection are clearer with human labels.
+         */
+        if (!element || typeof element !== "object") return "";
+        if (typeof element.label === "string" && element.label.trim()) return element.label.trim();
+        if (typeof element.id === "string" && element.id.trim()) return element.id.trim();
+        if (typeof element.type === "string" && element.type.trim()) return element.type.trim();
+        return "element";
+    }
+
     function normalizeTable(input) {
         const source = input && input.version === 1 ? input : migrateLegacyToV1(input || {});
         const table = cloneTable(source);
@@ -127,15 +139,18 @@
         if (typeof table.rules.highScoreKey !== "string" || !table.rules.highScoreKey) {
             table.rules.highScoreKey = defaults.rules.highScoreKey;
         }
-        table.rulesEngine = table.rulesEngine && typeof table.rulesEngine === "object" ? table.rulesEngine : {};
-        if (!Array.isArray(table.rulesEngine.switchMap)) table.rulesEngine.switchMap = [];
-        if (!Array.isArray(table.rulesEngine.sequenceRules)) table.rulesEngine.sequenceRules = [];
-        if (!Array.isArray(table.rulesEngine.logicGraphs)) table.rulesEngine.logicGraphs = [];
-        if (!Array.isArray(table.rulesEngine.triggers)) table.rulesEngine.triggers = [];
-        if (!Array.isArray(table.rulesEngine.variables)) table.rulesEngine.variables = [];
         if (!Array.isArray(table.levels)) table.levels = cloneTable(defaults.levels);
+        if (!Array.isArray(table.features)) table.features = [];
         if (!Array.isArray(table.images)) table.images = [];
         if (!Array.isArray(table.elements)) table.elements = [];
+        table.elements.forEach(function ensureElementName(el) {
+            if (!el || typeof el !== "object") return;
+            if (typeof el.name !== "string" || !el.name.trim()) el.name = fallbackElementName(el);
+            if (el.type === "spinner" && typeof el.radius !== "number") {
+                if (typeof el.size === "number") el.radius = el.size * 0.5;
+                else if (typeof el.length === "number") el.radius = el.length * 0.5;
+            }
+        });
         table.launcher = Object.assign({}, defaults.launcher, table.launcher || {});
         return table;
     }
@@ -153,8 +168,27 @@
         if (!table || typeof table.name !== "string") issue("error", "Table name must be a string.");
         if (!table || !table.playfield) issue("error", "Missing playfield.");
         if (!table || !table.rules || typeof table.rules !== "object") issue("error", "Missing rules.");
-        if (!table || !table.rulesEngine || typeof table.rulesEngine !== "object") issue("error", "Missing rulesEngine.");
         if (table && !Array.isArray(table.elements)) issue("error", "elements must be an array.");
+        if (table && table.rulesEngine != null && typeof table.rulesEngine !== "object") {
+            issue("error", "rulesEngine must be an object when present.");
+        }
+        if (table && table.rulesEngine && typeof table.rulesEngine === "object") {
+            if (table.rulesEngine.switchMap != null && !Array.isArray(table.rulesEngine.switchMap)) {
+                issue("error", "rulesEngine.switchMap must be an array when present.");
+            }
+            if (table.rulesEngine.sequenceRules != null && !Array.isArray(table.rulesEngine.sequenceRules)) {
+                issue("error", "rulesEngine.sequenceRules must be an array when present.");
+            }
+            if (table.rulesEngine.triggers != null && !Array.isArray(table.rulesEngine.triggers)) {
+                issue("error", "rulesEngine.triggers must be an array when present.");
+            }
+            if (table.rulesEngine.variables != null && !Array.isArray(table.rulesEngine.variables)) {
+                issue("error", "rulesEngine.variables must be an array when present.");
+            }
+            if (table.rulesEngine.logicGraphs != null && typeof table.rulesEngine.logicGraphs !== "object") {
+                issue("error", "rulesEngine.logicGraphs must be an object when present.");
+            }
+        }
         if (table && table.playfield) {
             ["width", "height", "ballRadius", "gravity", "friction", "restitution", "maxSpeed"].forEach(function checkNumber(k) {
                 if (typeof table.playfield[k] !== "number" || Number.isNaN(table.playfield[k])) {
@@ -170,13 +204,48 @@
                 issue("warning", "rules.highScoreKey should be a non-empty string.");
             }
         }
-        if (table && table.rulesEngine) {
-            ["switchMap", "sequenceRules", "logicGraphs", "triggers", "variables"].forEach(function checkRulesArray(k) {
-                if (!Array.isArray(table.rulesEngine[k])) issue("error", "rulesEngine." + k + " must be an array.");
-            });
-        }
         if (table && table.levels != null && !Array.isArray(table.levels)) {
             issue("error", "levels must be an array when present.");
+        }
+        if (table && table.features != null && !Array.isArray(table.features)) {
+            issue("error", "features must be an array when present.");
+        }
+        if (table && Array.isArray(table.features)) {
+            const featureIds = {};
+            table.features.forEach(function validateFeature(feature, i) {
+                if (!feature || typeof feature !== "object") {
+                    issue("error", "features[" + i + "] must be an object.");
+                    return;
+                }
+                if (typeof feature.id !== "string" || !feature.id) {
+                    issue("warning", "features[" + i + "].id should be a non-empty string.");
+                } else if (featureIds[feature.id]) {
+                    issue("error", "Duplicate feature id '" + feature.id + "'.");
+                } else {
+                    featureIds[feature.id] = true;
+                }
+                if (feature.name != null && typeof feature.name !== "string") {
+                    issue("warning", "features[" + i + "].name should be a string.");
+                }
+                if (feature.description != null && typeof feature.description !== "string") {
+                    issue("warning", "features[" + i + "].description should be a string.");
+                }
+                if (feature.goal != null && typeof feature.goal !== "string") {
+                    issue("warning", "features[" + i + "].goal should be a string.");
+                }
+                ["objects", "states", "rules", "lamps", "parts"].forEach(function checkList(key) {
+                    if (feature[key] == null) return;
+                    if (!Array.isArray(feature[key])) {
+                        issue("warning", "features[" + i + "]." + key + " should be an array.");
+                        return;
+                    }
+                    feature[key].forEach(function checkEntry(value, j) {
+                        if (typeof value !== "string") {
+                            issue("warning", "features[" + i + "]." + key + "[" + j + "] should be a string.");
+                        }
+                    });
+                });
+            });
         }
         if (table && Array.isArray(table.levels)) {
             const levelSeen = {};
@@ -259,7 +328,7 @@
 
         if (!launchers.length) add("warning", "No selectable launcher element is present.");
         if (!drains.length) add("warning", "No drain sensor is present; balls may never enter the trough.");
-        if (!troughs.length) add("warning", "No trough element is present; drained-ball serving will be limited.");
+        if (!drains.length && !troughs.length) add("warning", "No drain or trough element is present; balls may not leave play cleanly.");
         if (flippers.length < 2) add("warning", "Fewer than two flippers are present.");
         launchers.forEach(function checkLauncher(el) {
             const x = el.x || 0;

@@ -10,6 +10,7 @@
     }
 
         function mountEditor(root, state) {
+            const tableAssetBaseHref = typeof state.tableAssetBaseHref === "string" ? state.tableAssetBaseHref : "";
             /*
              * Keep design-mode refreshes anchored to local editor state.
              * Why: a stale #design&t=... token would otherwise override autosave
@@ -22,7 +23,6 @@
             model.ensureLevels(state.table);
             model.ensureElementLevels(state.table);
             model.syncLauncherConfig(state.table);
-        model.ensureRulesEngine(state.table);
         if (typeof root._pinballCleanup === "function") root._pinballCleanup();
         root.innerHTML = "";
         const layout = document.createElement("div");
@@ -96,10 +96,7 @@
         let tableFitZoom = 1;
         const inspectorDrafts = {};
         let assistantRuntime = null;
-        let gameLogicSource = Pin.gameLogicV2 && Pin.gameLogicV2.createEmpty ? Pin.gameLogicV2.createEmpty(((state.table || {}).name || "Table") + " Logic") : null;
-        if (Pin.gameLogicV2 && Pin.gameLogicV2.scaffoldFromTable && gameLogicSource && !(gameLogicSource.shots || []).length) {
-            gameLogicSource = Pin.gameLogicV2.scaffoldFromTable(state.table, ((state.table || {}).name || "Table") + " Logic");
-        }
+        let gameLogicSource = null;
 
         function on(target, type, handler, options) {
             target.addEventListener(type, handler, options);
@@ -404,28 +401,16 @@
          *      the existing runtime rules table only when requested.
          */
         function setGameLogicSource(next) {
-            if (!Pin.gameLogicV2 || !Pin.gameLogicV2.normalize) return;
-            gameLogicSource = Pin.gameLogicV2.normalize(next || {});
+            gameLogicSource = null;
             refresh("inspector");
         }
 
         /*
-         * What: Compile authored TBGameLogic v2 into the current table runtime.
-         * Why: the simulator and play mode still execute low-level rulesEngine data.
+         * What: Placeholder for removed gameplay logic compiler.
+         * Why: preserve editor wiring without legacy logic behavior.
          */
         function compileGameLogicIntoTable() {
-            if (!Pin.gameLogicV2 || !Pin.gameLogicV2.compile || !gameLogicSource) return { ok: false, issues: [{ severity: "error", message: "Game logic compiler unavailable." }] };
-            const result = Pin.gameLogicV2.compile(gameLogicSource, state.table);
-            if (!result || !result.ok || !result.table) return result || { ok: false, issues: [{ severity: "error", message: "Game logic compile failed." }] };
-            pushUndo();
-            state.table = result.table;
-            model.ensureSelectableLauncher(state.table);
-            model.ensureLevels(state.table);
-            model.ensureElementLevels(state.table);
-            model.syncLauncherConfig(state.table);
-            markTableDirty();
-            refresh("all");
-            return result;
+            return { ok: false, issues: [{ severity: "error", message: "Logic compiler has been removed." }] };
         }
 
         const editorActions = Pin.editorActions.create({
@@ -466,7 +451,7 @@
         });
 
         function ensureRulesEngine() {
-            return model.ensureRulesEngine(state.table);
+            return {};
         }
 
         function ensureImageLayers() {
@@ -496,7 +481,7 @@
         }
 
         function getLogicGraphs() {
-            return model.getLogicGraphs(state.table);
+            return [];
         }
 
         function getSelectedGraph() {
@@ -513,7 +498,7 @@
 
         function getSelectedRule() {
             const rules = ensureRulesEngine();
-            return (rules.sequenceRules || []).find(function find(rule) { return rule.id === selectedRuleId; }) || null;
+            return null;
         }
 
         function findElementForSwitchId(switchId) {
@@ -528,30 +513,170 @@
             return model.firstSwitchElementId(state.table);
         }
 
-        const editorRulesLogic = Pin.editorRulesLogic.create({
-            state: state,
-            pushUndo: pushUndo,
-            markTableDirty: markTableDirty,
-            refresh: refresh,
-            makeRuleId: makeRuleId,
-            normalizeInput: normalizeInput,
-            ensureRulesEngine: ensureRulesEngine,
-            getLogicGraphs: getLogicGraphs,
-            getSelectedGraph: getSelectedGraph,
-            getSelectedGraphNode: getSelectedGraphNode,
-            getSelected: getSelected,
-            getElementById: getElementById,
-            firstSwitchElementId: firstSwitchElementId,
-            setSelectedId: function setSelectedId(next) { selectedId = next; },
-            setSelectedRuleId: function setSelectedRuleId(next) { selectedRuleId = next; },
-            setSelectedLogicNode: function setSelectedLogicNode(next) { selectedLogicNode = next; },
-            setSelectedGraphId: function setSelectedGraphId(next) { selectedGraphId = next; },
-            getSelectedGraphId: function getSelectedGraphId() { return selectedGraphId; },
-            setSelectedGraphNodeId: function setSelectedGraphNodeId(next) { selectedGraphNodeId = next; },
-            getPendingEdgeSourceNodeId: function getPendingEdgeSourceNodeId() { return pendingEdgeSourceNodeId; },
-            setPendingEdgeSourceNodeId: function setPendingEdgeSourceNodeId(next) { pendingEdgeSourceNodeId = next; },
-            setInspectorTab: function setInspectorTab(next) { inspectorTab = next; }
-        });
+        function cloneJson(value) {
+            return JSON.parse(JSON.stringify(value == null ? {} : value));
+        }
+
+        function applyNormalizedPatch(target, patch) {
+            Object.keys(patch || {}).forEach(function each(key) {
+                const value = patch[key];
+                if (Array.isArray(value)) {
+                    target[key] = cloneJson(value);
+                    return;
+                }
+                if (value && typeof value === "object") {
+                    if (!target[key] || typeof target[key] !== "object" || Array.isArray(target[key])) target[key] = {};
+                    applyNormalizedPatch(target[key], value);
+                    return;
+                }
+                target[key] = normalizeInput(value);
+            });
+        }
+
+        function getLogicDocForTable(table) {
+            const rulesEngine = table.rulesEngine = table.rulesEngine || {};
+            const logicGraphs = rulesEngine.logicGraphs = rulesEngine.logicGraphs || {};
+            const logicDoc = logicGraphs.logicDocument = logicGraphs.logicDocument || {
+                logicVersion: 1,
+                switchRegistry: [],
+                stateTable: [],
+                computedState: [],
+                lampBindings: [],
+                actionRules: [],
+                resetRules: []
+            };
+            return logicDoc;
+        }
+
+        function applyAssistantPatchToTable(table, patch) {
+            if (!patch || typeof patch !== "object") return { ok: false, message: "Patch must be an object." };
+            const working = table;
+            working.elements = Array.isArray(working.elements) ? working.elements : [];
+            working.features = Array.isArray(working.features) ? working.features : [];
+
+            if (patch.tablePatch && typeof patch.tablePatch === "object") {
+                applyNormalizedPatch(working, patch.tablePatch);
+            }
+            if (Array.isArray(patch.addElements)) {
+                patch.addElements.forEach(function each(element) {
+                    if (!element || typeof element !== "object") return;
+                    if (!element.id) element.id = makeId(element.type || "element");
+                    working.elements.push(cloneJson(element));
+                });
+            }
+            if (Array.isArray(patch.patchElements)) {
+                patch.patchElements.forEach(function each(change) {
+                    if (!change || !change.id || !change.patch || typeof change.patch !== "object") return;
+                    const element = (working.elements || []).find(function find(el) { return el && el.id === change.id; });
+                    if (!element) return;
+                    applyNormalizedPatch(element, change.patch);
+                });
+            }
+            if (Array.isArray(patch.removeElements)) {
+                const removeIds = {};
+                patch.removeElements.forEach(function each(id) { if (id) removeIds[String(id)] = true; });
+                working.elements = (working.elements || []).filter(function keep(el) {
+                    return !(el && el.id && removeIds[String(el.id)]);
+                });
+            }
+            if (Array.isArray(patch.addFeatures)) {
+                patch.addFeatures.forEach(function each(feature) {
+                    if (!feature || typeof feature !== "object") return;
+                    if (!feature.id) feature.id = makeId("feature");
+                    working.features.push(cloneJson(feature));
+                });
+            }
+            if (Array.isArray(patch.patchFeatures)) {
+                patch.patchFeatures.forEach(function each(change) {
+                    if (!change || !change.id || !change.patch || typeof change.patch !== "object") return;
+                    const feature = (working.features || []).find(function find(item) { return item && item.id === change.id; });
+                    if (!feature) return;
+                    applyNormalizedPatch(feature, change.patch);
+                });
+            }
+            if (Array.isArray(patch.removeFeatures)) {
+                const removeIds = {};
+                patch.removeFeatures.forEach(function each(id) { if (id) removeIds[String(id)] = true; });
+                working.features = (working.features || []).filter(function keep(item) {
+                    return !(item && item.id && removeIds[String(item.id)]);
+                });
+            }
+            if (patch.logicDocPatch && typeof patch.logicDocPatch === "object") {
+                const logicDoc = getLogicDocForTable(working);
+                applyNormalizedPatch(logicDoc, patch.logicDocPatch);
+                if (Pin.logicTypes && Pin.logicTypes.normalizeLogicDocument) {
+                    working.rulesEngine.logicGraphs.logicDocument = Pin.logicTypes.normalizeLogicDocument(logicDoc);
+                }
+            }
+
+            if (working.rulesEngine && working.rulesEngine.logicGraphs && working.rulesEngine.logicGraphs.logicDocument &&
+                Pin.logicCompile && Pin.logicCompile.applyToTable) {
+                const compiled = Pin.logicCompile.applyToTable(working, working.rulesEngine.logicGraphs.logicDocument);
+                working.rulesEngine = compiled.rulesEngine;
+            }
+
+            const normalized = Pin.table.normalizeTable(working);
+            const tableValidation = Pin.table.validateTable(normalized);
+            let logicValidation = { ok: true, issues: [] };
+            if (Pin.logicCompile && Pin.logicValidate && Pin.logicAssets) {
+                const logicDoc = Pin.logicCompile.extractFromTable(normalized);
+                const logicAssets = Pin.logicAssets.extractAssets(normalized);
+                logicValidation = Pin.logicValidate.validateDocument(logicDoc, logicAssets);
+            }
+            const mergedIssues = []
+                .concat(Array.isArray(tableValidation.issues) ? tableValidation.issues : [])
+                .concat(Array.isArray(logicValidation.issues) ? logicValidation.issues : []);
+            const ok = !!(tableValidation.ok && logicValidation.ok);
+            return {
+                ok: ok,
+                message: ok ? "Patch applied." : "Patch produced validation errors.",
+                table: normalized,
+                issues: mergedIssues
+            };
+        }
+
+        const legacyOps = {
+            applyAssistantPatch: function applyAssistantPatch(patch) {
+                const result = applyAssistantPatchToTable(state.table, patch);
+                if (!result.ok) return { ok: false, message: result.message, issues: result.issues || [] };
+                pushUndo();
+                state.table = result.table;
+                model.ensureSelectableLauncher(state.table);
+                model.ensureLevels(state.table);
+                model.ensureElementLevels(state.table);
+                model.syncLauncherConfig(state.table);
+                markTableDirty();
+                refresh("all");
+                return { ok: true, message: result.message, issues: result.issues || [] };
+            },
+            markEdgeSource: function markEdgeSource() {},
+            connectNodes: function connectNodes() {},
+            addNode: function addNode() {},
+            assignSelected: function assignSelected() {},
+            assignElementId: function assignElementId() {},
+            addSequence: function addSequence() {},
+            addTemplate: function addTemplate() {},
+            addStep: function addStep() {},
+            deleteEdge: function deleteEdge() {},
+            patchNode: function patchNode() {},
+            patchNodeFields: function patchNodeFields() {},
+            moveNode: function moveNode() {},
+            deleteNode: function deleteNode() {},
+            patchRule: function patchRule() {},
+            patchRuleFields: function patchRuleFields() {},
+            duplicateRule: function duplicateRule() {},
+            deleteRule: function deleteRule() {},
+            addSwitchMap: function addSwitchMap() {},
+            patchSwitchMap: function patchSwitchMap() {},
+            patchSwitchMapFields: function patchSwitchMapFields() {},
+            removeSwitchMap: function removeSwitchMap() {},
+            addVariable: function addVariable() {},
+            patchVariableFields: function patchVariableFields() {},
+            removeVariable: function removeVariable() {},
+            addTrigger: function addTrigger() {},
+            patchTriggerFields: function patchTriggerFields() {},
+            removeTrigger: function removeTrigger() {}
+        };
         assistantRuntime = Pin.editorAssistant.create({
             getTable: function getTable() { return state.table; },
             getSelected: getSelected,
@@ -563,46 +688,17 @@
                 return Pin.table && Pin.table.validatePlayability ? Pin.table.validatePlayability(state.table) : [];
             },
             applyPatch: function applyPatch(patch) {
-                return editorRulesLogic.applyAssistantPatch(patch);
+                return legacyOps.applyAssistantPatch(patch);
             },
             previewPatch: function previewPatch(patch) {
-                const previewState = {
-                    table: Pin.editorTools.clone(state.table),
-                    undo: []
+                const previewTable = Pin.editorTools.clone(state.table);
+                const result = applyAssistantPatchToTable(previewTable, patch);
+                return {
+                    ok: result.ok,
+                    issuesCount: (result.issues || []).filter(function filter(issue) { return issue && issue.severity !== "info"; }).length,
+                    issues: result.issues || [],
+                    error: result.ok ? "" : (result.message || "Preview failed.")
                 };
-                const previewLogic = Pin.editorRulesLogic.create({
-                    state: previewState,
-                    pushUndo: function pushUndo() {},
-                    markTableDirty: function markTableDirty() {},
-                    refresh: function refresh() {},
-                    makeRuleId: makeRuleId,
-                    normalizeInput: normalizeInput,
-                    ensureRulesEngine: function ensureRulesEnginePreview() {
-                        return Pin.editorModel.ensureRulesEngine(previewState.table);
-                    },
-                    getLogicGraphs: function getLogicGraphsPreview() {
-                        return Pin.editorModel.getLogicGraphs(previewState.table);
-                    },
-                    getSelectedGraph: function getSelectedGraphPreview() { return null; },
-                    getSelectedGraphNode: function getSelectedGraphNodePreview() { return null; },
-                    getSelected: function getSelectedPreview() { return null; },
-                    getElementById: function getElementByIdPreview(id) {
-                        return (previewState.table.elements || []).find(function find(element) {
-                            return element && element.id === id;
-                        }) || null;
-                    },
-                    firstSwitchElementId: function firstSwitchElementIdPreview() { return ""; },
-                    setSelectedId: function setSelectedIdPreview() {},
-                    setSelectedRuleId: function setSelectedRuleIdPreview() {},
-                    setSelectedLogicNode: function setSelectedLogicNodePreview() {},
-                    setSelectedGraphId: function setSelectedGraphIdPreview() {},
-                    getSelectedGraphId: function getSelectedGraphIdPreview() { return null; },
-                    setSelectedGraphNodeId: function setSelectedGraphNodeIdPreview() {},
-                    getPendingEdgeSourceNodeId: function getPendingEdgeSourceNodeIdPreview() { return null; },
-                    setPendingEdgeSourceNodeId: function setPendingEdgeSourceNodeIdPreview() {},
-                    setInspectorTab: function setInspectorTabPreview() {}
-                });
-                return previewLogic.applyAssistantPatch(patch);
             },
             refresh: refresh
         });
@@ -614,23 +710,23 @@
         }
 
         function markLogicEdgeSource(nodeId) {
-            editorRulesLogic.markLogicEdgeSource(nodeId);
+            legacyOps.markLogicEdgeSource(nodeId);
         }
 
         function connectLogicNodes(graphId, fromNodeId, toNodeId) {
-            editorRulesLogic.connectLogicNodes(graphId, fromNodeId, toNodeId);
+            legacyOps.connectLogicNodes(graphId, fromNodeId, toNodeId);
         }
 
         function addLogicNode(graphId, type, props) {
-            editorRulesLogic.addLogicNode(graphId, type, props);
+            legacyOps.addLogicNode(graphId, type, props);
         }
 
         function assignSelectedToLogicNode(node) {
-            editorRulesLogic.assignSelectedToLogicNode(node);
+            legacyOps.assignSelectedToLogicNode(node);
         }
 
         function assignElementIdToLogicNode(node, elementId) {
-            editorRulesLogic.assignElementIdToLogicNode(node, elementId);
+            legacyOps.assignElementIdToLogicNode(node, elementId);
         }
 
         function patchTable(path, value) {
@@ -644,55 +740,55 @@
         }
 
         function addSequenceRule() {
-            editorRulesLogic.addSequenceRule();
+            legacyOps.addSequenceRule();
         }
 
         function addRuleTemplate(kind) {
-            editorRulesLogic.addRuleTemplate(kind);
+            legacyOps.addRuleTemplate(kind);
         }
 
         function addLogicStep(graphId) {
-            editorRulesLogic.addLogicStep(graphId);
+            legacyOps.addLogicStep(graphId);
         }
 
         function deleteGraphEdge(graphId, edgeId) {
-            editorRulesLogic.deleteGraphEdge(graphId, edgeId);
+            legacyOps.deleteGraphEdge(graphId, edgeId);
         }
 
         function patchGraphNode(graphId, nodeId, key, value) {
-            editorRulesLogic.patchGraphNode(graphId, nodeId, key, value);
+            legacyOps.patchGraphNode(graphId, nodeId, key, value);
         }
 
         function patchGraphNodeFields(graphId, nodeId, patch) {
-            editorRulesLogic.patchGraphNodeFields(graphId, nodeId, patch);
+            legacyOps.patchGraphNodeFields(graphId, nodeId, patch);
         }
 
         function moveGraphNode(graphId, nodeId, x, y) {
-            editorRulesLogic.moveGraphNode(graphId, nodeId, x, y);
+            legacyOps.moveGraphNode(graphId, nodeId, x, y);
         }
 
         function deleteGraphNode(graphId, nodeId) {
-            editorRulesLogic.deleteGraphNode(graphId, nodeId);
+            legacyOps.deleteGraphNode(graphId, nodeId);
         }
 
         function patchRule(id, key, value) {
-            editorRulesLogic.patchRule(id, key, value);
+            legacyOps.patchRule(id, key, value);
         }
 
         function patchRuleFields(id, patch) {
-            editorRulesLogic.patchRuleFields(id, patch);
+            legacyOps.patchRuleFields(id, patch);
         }
 
         function duplicateRule(id) {
-            editorRulesLogic.duplicateRule(id);
+            legacyOps.duplicateRule(id);
         }
 
         function deleteRule(id) {
-            editorRulesLogic.deleteRule(id);
+            legacyOps.deleteRule(id);
         }
 
         function addSwitchMap() {
-            editorRulesLogic.addSwitchMap();
+            legacyOps.addSwitchMap();
         }
 
         function addImageLayer() {
@@ -716,39 +812,39 @@
         }
 
         function patchSwitchMap(index, key, value) {
-            editorRulesLogic.patchSwitchMap(index, key, value);
+            legacyOps.patchSwitchMap(index, key, value);
         }
 
         function patchSwitchMapFields(index, patch) {
-            editorRulesLogic.patchSwitchMapFields(index, patch);
+            legacyOps.patchSwitchMapFields(index, patch);
         }
 
         function removeSwitchMap(index) {
-            editorRulesLogic.removeSwitchMap(index);
+            legacyOps.removeSwitchMap(index);
         }
 
         function addVariable() {
-            editorRulesLogic.addVariable();
+            legacyOps.addVariable();
         }
 
         function patchVariableFields(index, patch) {
-            editorRulesLogic.patchVariableFields(index, patch);
+            legacyOps.patchVariableFields(index, patch);
         }
 
         function removeVariable(index) {
-            editorRulesLogic.removeVariable(index);
+            legacyOps.removeVariable(index);
         }
 
         function addTrigger() {
-            editorRulesLogic.addTrigger();
+            legacyOps.addTrigger();
         }
 
         function patchTriggerFields(index, patch) {
-            editorRulesLogic.patchTriggerFields(index, patch);
+            legacyOps.patchTriggerFields(index, patch);
         }
 
         function removeTrigger(index) {
-            editorRulesLogic.removeTrigger(index);
+            legacyOps.removeTrigger(index);
         }
 
         function focusValidationIssue(issue) {
@@ -1161,7 +1257,8 @@
                 runtime: runtime,
                 balls: [],
                 score: 0,
-                currentBall: 1
+                currentBall: 1,
+                tableAssetBaseHref: tableAssetBaseHref
             }, {
                 designMode: true,
                 showHud: false,
@@ -1335,8 +1432,8 @@
                 logicSubtab: logicSubtab,
                 gameLogicSource: gameLogicSource,
                 propertySubtab: propertySubtab,
-                ruleGraphNodeTypes: Pin.ruleGraph ? Pin.ruleGraph.nodeTypes : [],
-                logicGraphs: getLogicGraphs(),
+                graphNodeTypes: [],
+                graphNodes: [],
                 getCardDraft: getCardDraft,
                 onPatchCardDraft: patchCardDraft,
                 onReplaceCardDraft: replaceCardDraft,
@@ -1352,40 +1449,22 @@
                     refresh("inspector");
                 },
                 onPatchGameLogicSourceText: function patchGameLogicSourceText(text) {
-                    if (!Pin.gameLogicV2) return;
-                    let parsed = null;
-                    try {
-                        parsed = JSON.parse(String(text || "{}"));
-                    } catch (err) {
-                        return;
-                    }
-                    setGameLogicSource(parsed);
+                    return;
                 },
                 onScaffoldGameLogicFromTable: function onScaffoldGameLogicFromTable() {
-                    if (!Pin.gameLogicV2 || !Pin.gameLogicV2.scaffoldFromTable) return;
-                    setGameLogicSource(Pin.gameLogicV2.scaffoldFromTable(state.table, ((state.table || {}).name || "Table") + " Logic"));
+                    return;
                 },
                 onCompileGameLogic: function onCompileGameLogic() {
                     compileGameLogicIntoTable();
                 },
                 onValidateGameLogic: function onValidateGameLogic() {
-                    if (!Pin.gameLogicV2 || !Pin.gameLogicV2.validate || !gameLogicSource) return [];
-                    return Pin.gameLogicV2.validate(gameLogicSource, state.table);
+                    return [];
                 },
                 onExportGameLogicFile: function onExportGameLogicFile() {
-                    if (!gameLogicSource) return;
-                    const payload = JSON.stringify(gameLogicSource, null, 2);
-                    const blob = new Blob([payload], { type: "application/json" });
-                    const a = document.createElement("a");
-                    a.href = URL.createObjectURL(blob);
-                    a.download = (((state.table && state.table.name) || "table").replace(/[^a-z0-9_-]+/gi, "_")) + ".game-logic.json";
-                    a.click();
-                    URL.revokeObjectURL(a.href);
+                    return;
                 },
                 onImportGameLogicFile: function onImportGameLogicFile() {
-                    Pin.storage.file.import().then(function apply(imported) {
-                        setGameLogicSource(imported || {});
-                    });
+                    return;
                 },
                 onSetPropertySubtab: function setPropertySubtab(tab) {
                     propertySubtab = tab || "layout";
@@ -1396,9 +1475,19 @@
                     resetCardDraft(key);
                 },
                 onTestAssistantConnection: function testAssistantConnection() {
+                    const providerDraft = inspectorDrafts["assistant:settings"];
+                    if (providerDraft && providerDraft.dirty) {
+                        assistantRuntime.setSettings(providerDraft.draft);
+                        resetCardDraft("assistant:settings");
+                    }
                     assistantRuntime.testConnection();
                 },
                 onLoadAssistantModels: function loadAssistantModels() {
+                    const providerDraft = inspectorDrafts["assistant:settings"];
+                    if (providerDraft && providerDraft.dirty) {
+                        assistantRuntime.setSettings(providerDraft.draft);
+                        resetCardDraft("assistant:settings");
+                    }
                     assistantRuntime.loadModels().catch(function ignore() {});
                 },
                 onSetAssistantDraft: function setAssistantDraft(value) {
@@ -1528,10 +1617,6 @@
                 },
                 onSaveFile: function saveFile() {
                     flushPersistedDrafts();
-                    if (gameLogicSource && Pin.gameLogicV2 && Pin.gameLogicV2.compile) {
-                        const compiled = Pin.gameLogicV2.compile(gameLogicSource, state.table);
-                        if (compiled && compiled.ok && compiled.table) state.table = compiled.table;
-                    }
                     model.syncLauncherConfig(state.table);
                     Pin.storage.file.export(state.table);
                 },
@@ -1562,10 +1647,6 @@
                 },
                 onTestPlay: function testPlay() {
                     flushPersistedDrafts();
-                    if (gameLogicSource && Pin.gameLogicV2 && Pin.gameLogicV2.compile) {
-                        const compiled = Pin.gameLogicV2.compile(gameLogicSource, state.table);
-                        if (compiled && compiled.ok && compiled.table) state.table = compiled.table;
-                    }
                     model.syncLauncherConfig(state.table);
                     Pin.storage.local.save("autosave", state.table);
                     autosavedRevision = dirtyRevision;

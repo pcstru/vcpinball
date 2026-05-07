@@ -210,6 +210,7 @@
         let running = true;
         const activePointers = {};
         let launchButtonPointerId = null;
+        let playArmed = false;
 
         // Fit the play surface to the viewport so the table is visible without browser zoom.
         function fitPlayCanvas() {
@@ -259,20 +260,10 @@
             launchButton.setAttribute("aria-label", label);
         }
 
-        function resetLaunchControl() {
-            launchButtonPointerId = null;
-            world.launchCharging = false;
-            launchButton.classList.remove("is-pressed");
-        }
-
-        function highScoresAreVisible() {
-            return highScoreOverlay.classList.contains("is-visible");
-        }
-
-        function startFromPlayPrompt() {
+        function armLaunchFromPlayPrompt() {
             if (world.state === "game_over") resetWorldForNextGame();
             hideHighScores();
-            resetLaunchControl();
+            playArmed = true;
             setLaunchButtonMode("Launch");
         }
 
@@ -307,11 +298,11 @@
             if (e.pointerType === "mouse" && e.button !== 0) return;
             e.preventDefault();
             Pin.audio.ensure();
-            if (highScoresAreVisible() || world.state === "game_over") {
-                startFromPlayPrompt();
+            if (!playArmed && (world.state === "ready" || world.state === "game_over")) {
+                armLaunchFromPlayPrompt();
                 return;
             }
-            if (world.state === "ready" && !ballIsInLauncher()) {
+            if (playArmed && world.state === "ready" && !ballIsInLauncher()) {
                 world.balls = [Pin.ballLifecycle.makeLaunchBall(world)];
             }
             if (!ballIsInLauncher()) return;
@@ -341,7 +332,6 @@
             if (e.pointerType === "mouse" && e.button !== 0) return;
             e.preventDefault();
             Pin.audio.ensure();
-            if (highScoresAreVisible() || world.state === "game_over") return;
             if (canvas.setPointerCapture) {
                 try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
             }
@@ -434,8 +424,11 @@
             /* What: Show the table-local leaderboard over the playfield.
              * Why: Play mode should default to scores until the player starts a game.
              */
-            resetLaunchControl();
+            playArmed = false;
             setLaunchButtonMode("Play");
+            launchButtonPointerId = null;
+            world.launchCharging = false;
+            launchButton.classList.remove("is-pressed");
             const entries = Pin.highScores ? Pin.highScores.load(table) : [];
             highScoreOverlay.innerHTML = "";
             highScoreOverlay.classList.add("is-visible");
@@ -446,7 +439,7 @@
             title.textContent = table.name || "Pinball";
             const subtitle = document.createElement("div");
             subtitle.className = "high-score-subtitle";
-            subtitle.textContent = message || "Press Play to start";
+            subtitle.textContent = message || "Launch to play";
             panel.appendChild(title);
             panel.appendChild(subtitle);
             renderHighScoreList(panel, entries);
@@ -457,8 +450,11 @@
             /* What: Ask for initials after a qualifying final score.
              * Why: High-score entry must happen after the last ball before showing the updated table.
              */
-            resetLaunchControl();
+            playArmed = false;
             setLaunchButtonMode("Play");
+            launchButtonPointerId = null;
+            world.launchCharging = false;
+            launchButton.classList.remove("is-pressed");
             highScoreOverlay.innerHTML = "";
             highScoreOverlay.classList.add("is-visible");
             const panel = document.createElement("div");
@@ -512,8 +508,7 @@
             if (Pin.highScores && Pin.highScores.qualifies(table, world.score)) {
                 showInitialsEntry();
             } else {
-                resetWorldForNextGame();
-                showHighScores("Game over. Press Play to start");
+                enterAttractMode("Game over. Press Play to start");
             }
         }
 
@@ -526,7 +521,8 @@
             world.ballsRemaining = table.rules.balls;
             world.score = 0;
             world.state = "ready";
-            resetLaunchControl();
+            world.launchCharging = false;
+            playArmed = false;
             playedGameOverSound = false;
             handledGameOverScores = false;
             setLaunchButtonMode("Play");
@@ -551,10 +547,6 @@
             setFlipperControl(e.code, true);
             if (e.code === "ArrowLeft" || e.code === "ArrowRight" || e.code === "Space") e.preventDefault();
             if (e.code === "Space") {
-                if (highScoresAreVisible() || world.state === "game_over") {
-                    startFromPlayPrompt();
-                    return;
-                }
                 world.launchCharging = true;
                 world.launchStart = performance.now();
             }
@@ -588,8 +580,7 @@
             }
             if (Pin.render && Pin.render.setQuality) {
                 Pin.render.setQuality({
-                    glowScale: lowQualityFrames > 0 ? 0.55 : 1,
-                    reducedEffects: lowQualityFrames > 3
+                    glowScale: lowQualityFrames > 0 ? 0.65 : 1
                 });
             }
             while (accumulator >= fixedDt) {

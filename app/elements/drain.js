@@ -11,12 +11,16 @@
                     h: el.h || 24,
                     onEnter: function onEnter(ball, world) {
                         ball.drained = true;
-                        if (Pin.events) Pin.events.emit(world, { type: "drainEntered", sourceId: el.id, elementType: el.type });
+                        if (Pin.events) {
+                            Pin.events.emit(world, { type: "drainEntered", sourceId: el.id, elementType: el.type });
+                            Pin.events.emit(world, { type: "switchClosed", sourceId: el.id, elementType: el.type });
+                        }
                     }
                 }]
             };
         },
-        draw: function draw(ctx, el) {
+        draw: function draw(ctx, el, runtime, world, options) {
+            if (!options || !options.designMode) return;
             const w = el.w || 120;
             const h = el.h || 24;
             ctx.save();

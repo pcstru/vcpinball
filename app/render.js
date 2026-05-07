@@ -1,8 +1,46 @@
 (function initRenderer(Pin) {
     const quality = {
-        glowScale: 1
+        glowScale: 1,
+        reducedEffects: false
     };
     const imageCache = {};
+    const staticCache = {
+        canvas: null,
+        ctx: null,
+        width: 0,
+        height: 0,
+        tableRef: null,
+        designMode: false,
+        glowScale: 1,
+        reducedEffects: false,
+        dirty: true
+    };
+    
+    function createImageEntry(src) {
+        const image = new Image();
+        const entry = {
+            image: image,
+            ready: false,
+            error: false,
+            listeners: []
+        };
+        image.onload = function onload() {
+            entry.ready = true;
+            entry.error = false;
+            const listeners = entry.listeners.slice();
+            entry.listeners.length = 0;
+            listeners.forEach(function each(fn) { try { fn(); } catch (e) {} });
+        };
+        image.onerror = function onerror() {
+            entry.error = true;
+            entry.ready = false;
+            const listeners = entry.listeners.slice();
+            entry.listeners.length = 0;
+            listeners.forEach(function each(fn) { try { fn(); } catch (e) {} });
+        };
+        image.src = src;
+        return entry;
+    }
 
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
@@ -20,6 +58,11 @@
     }
 
     function makeGlow(ctx, color, blur) {
+        if (quality.reducedEffects) {
+            ctx.shadowColor = "rgba(0,0,0,0)";
+            ctx.shadowBlur = 0;
+            return;
+        }
         ctx.shadowColor = color;
         ctx.shadowBlur = Math.max(0, blur * (quality.glowScale || 1));
     }
@@ -28,26 +71,10 @@
         if (!src || typeof Image === "undefined") return null;
         let entry = imageCache[src];
         if (!entry) {
-            const image = new Image();
-            entry = imageCache[src] = {
-                image: image,
-                ready: false,
-                error: false,
-                listeners: []
-            };
-            image.onload = function onload() {
-                entry.ready = true;
-                const listeners = entry.listeners.slice();
-                entry.listeners.length = 0;
-                listeners.forEach(function each(fn) { try { fn(); } catch (e) {} });
-            };
-            image.onerror = function onerror() {
-                entry.error = true;
-                const listeners = entry.listeners.slice();
-                entry.listeners.length = 0;
-                listeners.forEach(function each(fn) { try { fn(); } catch (e) {} });
-            };
-            image.src = src;
+            entry = imageCache[src] = createImageEntry(src);
+        } else if (entry.error) {
+            // Retry transient image failures when the same URL is requested again.
+            entry = imageCache[src] = createImageEntry(src);
         }
         if (onReady && !entry.ready && !entry.error && entry.listeners.indexOf(onReady) < 0) {
             entry.listeners.push(onReady);
@@ -66,6 +93,10 @@
     function resolveImageSrc(src, world) {
         const raw = typeof src === "string" ? src.trim() : "";
         if (!raw) return raw;
+        // Path semantics:
+        // - scheme URLs and root paths are used as-is
+        // - `tables/...` remains app-relative to preserve bundled table defaults
+        // - any other relative path is resolved against the loaded table JSON directory
         if (/^[a-z][a-z0-9+.-]*:/i.test(raw) || raw[0] === "/" || raw.indexOf("tables/") === 0) return raw;
         const base = world && typeof world.tableAssetBaseHref === "string" ? world.tableAssetBaseHref : "";
         if (!base) return raw;
@@ -127,6 +158,11 @@
     }
 
     function drawBackground(ctx, w, h) {
+        if (quality.reducedEffects) {
+            ctx.fillStyle = "#070c18";
+            ctx.fillRect(0, 0, w, h);
+            return;
+        }
         const gradient = ctx.createLinearGradient(0, 0, 0, h);
         gradient.addColorStop(0, "#0b1022");
         gradient.addColorStop(0.45, "#0b0f1a");
@@ -159,6 +195,15 @@
     }
 
     function drawCabinetFrame(ctx, w, h) {
+        if (quality.reducedEffects) {
+            ctx.save();
+            ctx.strokeStyle = "rgba(45,55,90,0.42)";
+            ctx.lineWidth = 3;
+            roundRect(ctx, 10, 10, w - 20, h - 20, 16);
+            ctx.stroke();
+            ctx.restore();
+            return;
+        }
         ctx.save();
         const frame = ctx.createLinearGradient(0, 0, 0, h);
         frame.addColorStop(0, "rgba(51,67,120,0.3)");
@@ -182,13 +227,17 @@
                 ctx.fill();
                 ctx.restore();
             }
-            const grad = ctx.createRadialGradient(ball.x - 2, drawY - 3, ball.radius * 0.1, ball.x, drawY, ball.radius);
-            grad.addColorStop(0, "#ffffff");
-            grad.addColorStop(0.38, "#d8dff5");
-            grad.addColorStop(1, "#3f4a6e");
             ctx.save();
-            ctx.fillStyle = grad;
-            makeGlow(ctx, "#88ccff", 10);
+            if (quality.reducedEffects) {
+                ctx.fillStyle = "#aeb8d2";
+            } else {
+                const grad = ctx.createRadialGradient(ball.x - 2, drawY - 3, ball.radius * 0.1, ball.x, drawY, ball.radius);
+                grad.addColorStop(0, "#ffffff");
+                grad.addColorStop(0.38, "#d8dff5");
+                grad.addColorStop(1, "#3f4a6e");
+                ctx.fillStyle = grad;
+                makeGlow(ctx, "#88ccff", 10);
+            }
             ctx.beginPath();
             ctx.arc(ball.x, drawY, ball.radius, 0, Math.PI * 2);
             ctx.fill();
@@ -204,7 +253,13 @@
     }
 
     function drawHud(ctx, world) {
+        world._hudCache = world._hudCache || { scoreRaw: null, scoreText: "0" };
+        if (world._hudCache.scoreRaw !== world.score) {
+            world._hudCache.scoreRaw = world.score;
+            world._hudCache.scoreText = (world.score || 0).toLocaleString();
+        }
         ctx.save();
+        ctx.globalAlpha = 0.5;
         roundRect(ctx, 18, 14, 208, 46, 8);
         ctx.fillStyle = "rgba(14,16,24,0.94)";
         ctx.fill();
@@ -214,7 +269,7 @@
         ctx.fillStyle = "#ff7a18";
         makeGlow(ctx, "#ff5a00", 12);
         ctx.font = 'bold 22px "Courier New"';
-        ctx.fillText("SCORE " + world.score.toLocaleString(), 30, 33);
+        ctx.fillText("SCORE " + world._hudCache.scoreText, 30, 33);
         ctx.shadowBlur = 0;
         ctx.fillStyle = "#cfd3e3";
         ctx.font = '12px "Courier New"';
@@ -294,17 +349,68 @@
         const showHud = !options || options.showHud !== false;
         const showCabinet = !options || options.showCabinet !== false;
         const pf = world.table.playfield;
-        drawBackground(ctx, pf.width, pf.height);
-        drawImageLayers(ctx, world, designMode, onReady);
+        const dynamicTypeFn = Pin.elements && Pin.elements.isDynamicType;
+        const canUseStaticCache = !!(!options || !options.skipStaticCache) && !!dynamicTypeFn;
+        const cacheNeedsResize = staticCache.width !== pf.width || staticCache.height !== pf.height;
+        const cacheSceneChanged =
+            staticCache.tableRef !== world.table ||
+            staticCache.designMode !== designMode ||
+            staticCache.glowScale !== quality.glowScale ||
+            staticCache.reducedEffects !== quality.reducedEffects;
+        if (canUseStaticCache && (staticCache.dirty || cacheNeedsResize || cacheSceneChanged)) {
+            if (!staticCache.canvas || cacheNeedsResize) {
+                staticCache.canvas = document.createElement("canvas");
+                staticCache.canvas.width = pf.width;
+                staticCache.canvas.height = pf.height;
+                staticCache.ctx = staticCache.canvas.getContext("2d");
+            }
+            const sc = staticCache.ctx;
+            sc.clearRect(0, 0, pf.width, pf.height);
+            drawBackground(sc, pf.width, pf.height);
+            drawImageLayers(sc, world, designMode, function onStaticImageReady() {
+                staticCache.dirty = true;
+                if (typeof onReady === "function") onReady();
+            });
+            world.runtime.drawables.forEach(function drawEntry(entry) {
+                if (!entry || !entry.module || !entry.element) return;
+                if (dynamicTypeFn(entry.element.type)) return;
+                if (entry.module.draw) entry.module.draw(sc, entry.element, entry.runtime, world, options || {});
+            });
+            staticCache.width = pf.width;
+            staticCache.height = pf.height;
+            staticCache.tableRef = world.table;
+            staticCache.designMode = designMode;
+            staticCache.glowScale = quality.glowScale;
+            staticCache.reducedEffects = quality.reducedEffects;
+            staticCache.dirty = false;
+        }
+        if (canUseStaticCache && staticCache.canvas) {
+            ctx.drawImage(staticCache.canvas, 0, 0);
+        } else {
+            drawBackground(ctx, pf.width, pf.height);
+            drawImageLayers(ctx, world, designMode, onReady, world);
+            world.runtime.drawables.forEach(function drawEntry(entry) {
+                if (entry.module.draw) entry.module.draw(ctx, entry.element, entry.runtime, world, options || {});
+            });
+        }
         if (!(world.table.elements || []).some(function hasLauncher(el) { return el.type === "launcher"; })) {
             drawLauncherFallback(ctx, world);
         }
         world.runtime.drawables.forEach(function drawEntry(entry) {
+            if (!canUseStaticCache || !dynamicTypeFn(entry.element.type)) return;
             if (entry.module.draw) entry.module.draw(ctx, entry.element, entry.runtime, world, options || {});
         });
         drawBalls(ctx, world.balls);
         if (showHud) drawHud(ctx, world);
         if (showCabinet) drawCabinetFrame(ctx, pf.width, pf.height);
+    }
+
+    function clearImageCache() {
+        Object.keys(imageCache).forEach(function each(key) {
+            delete imageCache[key];
+        });
+        staticCache.dirty = true;
+        staticCache.tableRef = null;
     }
 
     Pin.render = {
@@ -313,11 +419,16 @@
         makeGlow: makeGlow,
         getImageLayer: getImageLayer,
         drawImageLayer: drawImageLayer,
+        clearImageCache: clearImageCache,
         setQuality: function setQuality(next) {
             if (!next) return;
             if (typeof next.glowScale === "number" && Number.isFinite(next.glowScale)) {
                 quality.glowScale = Math.max(0, Math.min(1, next.glowScale));
             }
+            if (typeof next.reducedEffects === "boolean") {
+                quality.reducedEffects = next.reducedEffects;
+            }
+            staticCache.dirty = true;
         }
     };
 })(window.Pin);

@@ -102,6 +102,14 @@
     }
 
     /*
+     * Clamp a value between bounds.
+     * Why: flipper angle integration must stay within authored travel limits.
+     */
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /*
      * Determine the positive direction for an activating flipper.
      * Why: upstroke detection must work for both left and right flippers.
      */
@@ -310,6 +318,8 @@
             const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
             const controlActive = getControlState(el, world, table);
             const targetAngle = controlActive ? el.activeAngle : el.restAngle;
+            const minAngle = Math.min(el.restAngle, el.activeAngle);
+            const maxAngle = Math.max(el.restAngle, el.activeAngle);
             const state = Pin.elements.getState ?
                 Pin.elements.getState(world, el, { angle: el.restAngle, angularVelocity: 0 }) :
                 { angle: targetAngle, angularVelocity: 0 };
@@ -334,6 +344,14 @@
                 appliedDelta = toTarget;
                 currentAngle = prevAngle + appliedDelta;
                 angularVelocity = 0;
+            }
+            const clampedAngle = clamp(currentAngle, minAngle, maxAngle);
+            if (clampedAngle !== currentAngle) {
+                currentAngle = clampedAngle;
+                appliedDelta = currentAngle - prevAngle;
+                if (appliedDelta === 0 || Math.sign(angularVelocity) === Math.sign(prevVelocity)) {
+                    angularVelocity = 0;
+                }
             }
             const tip = getTipAtAngle(el, currentAngle);
             const segments = [];

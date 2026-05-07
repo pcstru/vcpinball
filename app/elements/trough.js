@@ -9,6 +9,11 @@
         return typeof value === "number" && !Number.isNaN(value) ? value : fallback;
     }
 
+    function clamp01(value, fallback) {
+        const numeric = numberOr(value, fallback);
+        return Math.max(0, Math.min(1, numeric));
+    }
+
     function emit(world, event) {
         if (Pin.events) Pin.events.emit(world, event);
     }
@@ -79,7 +84,9 @@
             const radius = el.radius || 18;
             const rimColor = el.color || "#88aaff";
             const pitColor = el.pitColor || "rgba(5,10,22,0.9)";
+            const opacity = clamp01(el.opacity, 1);
             ctx.save();
+            ctx.globalAlpha = opacity;
             const gradient = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.35, radius * 0.2, x, y, radius);
             gradient.addColorStop(0, "rgba(255,255,255,0.18)");
             gradient.addColorStop(0.45, pitColor);
@@ -97,6 +104,6 @@
             ctx.stroke();
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "radius", "holdSeconds", "reactivateDelay", "ejectPower", "ejectAngle", "color", "pitColor"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "radius", "holdSeconds", "reactivateDelay", "ejectPower", "ejectAngle", "color", "pitColor", "opacity"] }
     });
 })(window.Pin);

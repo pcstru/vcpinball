@@ -14,37 +14,6 @@
     "balls": 3,
     "highScoreKey": "cyberpinHighScore"
   },
-  "rulesEngine": {
-    "switchMap": [],
-    "logicGraphs": [],
-    "sequenceRules": [
-      {
-        "id": "abc_lane_bonus",
-        "name": "ABC Lane Bonus",
-        "type": "sequence",
-        "enabled": true,
-        "ordered": true,
-        "steps": [
-          "laneA",
-          "laneB",
-          "laneC"
-        ],
-        "targetSwitchId": "scoreZone1",
-        "stepLampIds": [
-          "lamp_lane_a",
-          "lamp_lane_b",
-          "lamp_lane_c"
-        ],
-        "targetLampId": "lamp_bonus_target",
-        "windowSeconds": 8,
-        "awardPoints": 2500,
-        "awardEvent": "abcLaneBonusAwarded",
-        "resetOnDrain": true,
-        "resetOnComplete": true,
-        "resetOnWrongOrder": false
-      }
-    ]
-  },
   "launcher": {
     "x": 439,
     "y": 710,

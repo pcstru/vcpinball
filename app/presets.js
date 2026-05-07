@@ -5,29 +5,6 @@
         name: "Neon Cyberpin",
         playfield: { width: 500, height: 880, gravity: 0.35, friction: 0.999, restitution: 0.55, maxSpeed: 24 },
         rules: { balls: 3, highScoreKey: "cyberpinHighScore" },
-        rulesEngine: {
-            switchMap: [],
-            logicGraphs: [],
-            triggers: [],
-            variables: [],
-            sequenceRules: [{
-                id: "abc_lane_bonus",
-                name: "ABC Lane Bonus",
-                type: "sequence",
-                enabled: true,
-                ordered: true,
-                steps: ["laneA", "laneB", "laneC"],
-                targetSwitchId: "scoreZone1",
-                stepLampIds: ["lamp_lane_a", "lamp_lane_b", "lamp_lane_c"],
-                targetLampId: "lamp_bonus_target",
-                windowSeconds: 8,
-                awardPoints: 2500,
-                awardEvent: "abcLaneBonusAwarded",
-                resetOnDrain: true,
-                resetOnComplete: true,
-                resetOnWrongOrder: false
-            }]
-        },
         launcher: { x: 439, y: 710, dir: { x: 0, y: -1 }, maxPower: 42 },
         elements: [
             { id: "outerWall", type: "path", role: "wall", closed: true, anchors: [{ x: 35, y: 75 }, { x: 465, y: 75 }, { x: 470, y: 200 }, { x: 470, y: 600 }, { x: 455, y: 700 }, { x: 360, y: 720 }, { x: 140, y: 720 }, { x: 45, y: 700 }, { x: 30, y: 600 }, { x: 30, y: 200 }] },

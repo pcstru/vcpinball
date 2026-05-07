@@ -12,6 +12,9 @@
         const getElementLevel = options.getElementLevel;
         const makeId = options.makeId;
         const normalizeInput = options.normalizeInput;
+        function isStringFieldName(name) {
+            return name === "text" || name === "label" || name === "name";
+        }
 
         function applyNormalizedPatch(target, patch) {
             Object.keys(patch || {}).forEach(function each(key) {
@@ -23,6 +26,10 @@
                 if (value && typeof value === "object") {
                     if (!target[key] || typeof target[key] !== "object" || Array.isArray(target[key])) target[key] = {};
                     applyNormalizedPatch(target[key], value);
+                    return;
+                }
+                if (isStringFieldName(key)) {
+                    target[key] = value == null ? "" : String(value);
                     return;
                 }
                 target[key] = normalizeInput(value);
@@ -64,7 +71,7 @@
             state.table.images = state.table.images || [];
             state.table.images.push({
                 id: makeId("image"),
-                src: "tables/ExTableImg.png",
+                src: "",
                 mode: "design",
                 opacity: 0.35,
                 fit: "contain",
@@ -220,7 +227,9 @@
             const selected = getSelected();
             if (!selected) return;
             pushUndo();
-            Pin.editorTools.setByPath(selected, path, normalizeInput(value));
+            const leaf = (path || "").split(".").pop();
+            const nextValue = isStringFieldName(leaf) ? (value == null ? "" : String(value)) : normalizeInput(value);
+            Pin.editorTools.setByPath(selected, path, nextValue);
             if (selected.type === "launcher") syncLauncherConfig(state.table);
             markTableDirty();
             refresh("all");
@@ -240,7 +249,7 @@
             const selected = getSelected();
             if (!selected || !Array.isArray(selected[key]) || !selected[key][index]) return;
             pushUndo();
-            selected[key][index][field] = normalizeInput(value);
+            selected[key][index][field] = isStringFieldName(field) ? (value == null ? "" : String(value)) : normalizeInput(value);
             markTableDirty();
             refresh("all");
         }
