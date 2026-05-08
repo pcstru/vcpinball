@@ -120,12 +120,22 @@
         world.staticCircles = staticRuntime.circles;
         world.staticRamps = staticRuntime.ramps || [];
         world.staticSensors = staticRuntime.sensors || [];
+        world.dynamicPhysicsElements = Pin.elements.filterElements ?
+            Pin.elements.filterElements(world.table, Pin.elements.isDynamicPhysicsType) :
+            (world.table.elements || []);
+        world.dynamicDrawableRuntime = Pin.elements.createDrawables ?
+            Pin.elements.createDrawables(world.table, Pin.elements.isDynamicPhysicsType) :
+            { drawables: [] };
         world.staticBroadPhase = Pin.physics.buildBroadPhase(world.staticSegments, world.staticCircles, world.table.playfield);
     }
 
     function refreshRuntime(world) {
         const startedAt = perfStart();
-        const dynamicRuntime = Pin.elements.compileElements(world.table, world, { static: false });
+        const dynamicRuntime = Pin.elements.compileElements(world.table, world, {
+            static: false,
+            dynamicPhysicsOnly: true,
+            elements: world.dynamicPhysicsElements
+        });
         world.dynamicRuntime = dynamicRuntime;
         world.dynamicSegments = dynamicRuntime.segments;
         world.dynamicCircles = dynamicRuntime.circles;
@@ -136,6 +146,11 @@
             world.staticRuntime,
             dynamicRuntime
         );
+        // Dynamic drawables read current world state directly, so keep them out
+        // of the per-tick collider rebuild and append them once here.
+        runtime.drawables.length = 0;
+        runtime.drawables.push.apply(runtime.drawables, world.staticRuntime.drawables || []);
+        runtime.drawables.push.apply(runtime.drawables, (world.dynamicDrawableRuntime && world.dynamicDrawableRuntime.drawables) || []);
         world.runtime = runtime;
         world.runtimeSegments = runtime.segments;
         world.runtimeCircles = runtime.circles;

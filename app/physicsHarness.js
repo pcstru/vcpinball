@@ -136,7 +136,6 @@
             name: "Physics Harness",
             playfield: clone(DEFAULT_PLAYFIELD),
             rules: { balls: 1, highScoreKey: "pinball.physicsHarness" },
-            launcher: { x: 439, y: 710 },
             elements: elements
         };
     }
@@ -247,7 +246,11 @@
 
     // Keep the harness world aligned with the same runtime structure the game loop uses.
     function refreshRuntime(world) {
-        const dynamicRuntime = Pin.elements.compileElements(world.table, world, { static: false });
+        const dynamicRuntime = Pin.elements.compileElements(world.table, world, {
+            static: false,
+            dynamicPhysicsOnly: true,
+            elements: world.dynamicPhysicsElements
+        });
         world.dynamicRuntime = dynamicRuntime;
         world.dynamicSegments = dynamicRuntime.segments || [];
         world.dynamicCircles = dynamicRuntime.circles || [];
@@ -257,7 +260,7 @@
             circles: (staticRuntime.circles || []).concat(dynamicRuntime.circles || []),
             ramps: (staticRuntime.ramps || []).concat(dynamicRuntime.ramps || []),
             sensors: (staticRuntime.sensors || []).concat(dynamicRuntime.sensors || []),
-            drawables: (staticRuntime.drawables || []).concat(dynamicRuntime.drawables || [])
+            drawables: (staticRuntime.drawables || []).concat((world.dynamicDrawableRuntime && world.dynamicDrawableRuntime.drawables) || [])
         };
         world.runtime = runtime;
         world.runtimeSegments = runtime.segments;
@@ -268,6 +271,12 @@
 
     function createWorld(table, controls) {
         const staticRuntime = Pin.elements.compileElements(table, null, { dynamic: false });
+        const dynamicPhysicsElements = Pin.elements.filterElements ?
+            Pin.elements.filterElements(table, Pin.elements.isDynamicPhysicsType) :
+            (table.elements || []);
+        const dynamicDrawableRuntime = Pin.elements.createDrawables ?
+            Pin.elements.createDrawables(table, Pin.elements.isDynamicPhysicsType) :
+            { drawables: [] };
         const world = {
             table: table,
             balls: [],
@@ -285,6 +294,8 @@
             staticRamps: staticRuntime.ramps || [],
             staticSensors: staticRuntime.sensors || [],
             staticBroadPhase: Pin.physics.buildBroadPhase(staticRuntime.segments || [], staticRuntime.circles || [], table.playfield),
+            dynamicPhysicsElements: dynamicPhysicsElements,
+            dynamicDrawableRuntime: dynamicDrawableRuntime,
             dynamicSegments: [],
             dynamicCircles: [],
             runtimeSensors: [],

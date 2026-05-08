@@ -1,13 +1,20 @@
 (function initElementRegistry(Pin) {
-    const DYNAMIC_TYPES = {
+    const DYNAMIC_RENDER_TYPES = {
         flipper: true,
         spinner: true,
         gate: true,
-        valve: true,
         launcher: true,
         light: true,
         arrowLight: true,
-        boxLight: true
+        boxLight: true,
+        dropTarget: true,
+        kicker: true
+    };
+    const DYNAMIC_PHYSICS_TYPES = {
+        flipper: true,
+        spinner: true,
+        gate: true,
+        launcher: true
     };
 
     function createRuntime() {
@@ -49,14 +56,41 @@
             sensors: [],
             drawables: []
         };
-        table.elements.forEach(function compile(el) {
+        const elements = opts.elements || table.elements || [];
+        elements.forEach(function compile(el) {
             const mod = Pin.elements.registry[el.type];
             if (!mod || typeof mod.compile !== "function") return;
-            const isDynamic = !!(mod.dynamic || DYNAMIC_TYPES[el.type]);
-            if (opts.dynamic === false && isDynamic) return;
-            if (opts.static === false && !isDynamic) return;
+            const isDynamicPhysics = !!DYNAMIC_PHYSICS_TYPES[el.type];
+            if (opts.dynamic === false && isDynamicPhysics) return;
+            if (opts.static === false && !isDynamicPhysics) return;
+            if (opts.dynamicPhysicsOnly && !isDynamicPhysics) return;
             const out = mod.compile(el, table, world) || {};
             addCompiled(runtime, el, mod, out);
+        });
+        return runtime;
+    }
+
+    function filterElements(table, predicate) {
+        /* What: Build a stable per-world element list for repeated runtime passes.
+         * Why: Play mode should not rescan every table element at 120 Hz.
+         */
+        const out = [];
+        (table.elements || []).forEach(function each(el) {
+            if (el && predicate(el.type, el)) out.push(el);
+        });
+        return out;
+    }
+
+    function createDrawables(table, predicate) {
+        /* What: Create drawable entries without recompiling element geometry.
+         * Why: Dynamic lights and mechanisms draw from element/world state, while
+         * physics ticks only need collider-producing dynamic elements.
+         */
+        const runtime = createRuntime();
+        (table.elements || []).forEach(function each(el) {
+            const mod = el && Pin.elements.registry[el.type];
+            if (!mod || !mod.draw || !predicate(el.type, el)) return;
+            runtime.drawables.push({ element: el, module: mod, runtime: {} });
         });
         return runtime;
     }
@@ -83,24 +117,19 @@
         return (el && el.type ? el.type : "element") + ":" + (el && el.id ? el.id : "anonymous");
     }
 
-    function getState(world, el, defaults, legacyKey) {
+    function getState(world, el, defaults) {
         if (!world) return Object.assign({}, defaults || {});
         world.elementState = world.elementState || {};
         const key = getStateKey(el);
         if (!world.elementState[key]) {
-            if (legacyKey && world.elementState[legacyKey]) {
-                world.elementState[key] = world.elementState[legacyKey];
-                delete world.elementState[legacyKey];
-            } else {
-                world.elementState[key] = Object.assign({}, defaults || {});
-            }
+            world.elementState[key] = Object.assign({}, defaults || {});
         }
         return world.elementState[key];
     }
 
-    function peekState(world, el, legacyKey) {
+    function peekState(world, el) {
         if (!world || !world.elementState) return null;
-        return world.elementState[getStateKey(el)] || (legacyKey ? world.elementState[legacyKey] : null) || null;
+        return world.elementState[getStateKey(el)] || null;
     }
 
     Pin.elements.compileElements = compileElements;
@@ -108,5 +137,8 @@
     Pin.elements.getStateKey = getStateKey;
     Pin.elements.getState = getState;
     Pin.elements.peekState = peekState;
-    Pin.elements.isDynamicType = function isDynamicType(type) { return !!DYNAMIC_TYPES[type]; };
+    Pin.elements.filterElements = filterElements;
+    Pin.elements.createDrawables = createDrawables;
+    Pin.elements.isDynamicType = function isDynamicType(type) { return !!DYNAMIC_RENDER_TYPES[type]; };
+    Pin.elements.isDynamicPhysicsType = function isDynamicPhysicsType(type) { return !!DYNAMIC_PHYSICS_TYPES[type]; };
 })(window.Pin);

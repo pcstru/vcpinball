@@ -14,20 +14,6 @@
     "balls": 3,
     "highScoreKey": "pinball.generic.highscore"
   },
-  "launcher": {
-    "x": 464.51188363905976,
-    "y": 795.290218176763,
-    "dir": {
-      "x": 0,
-      "y": -1
-    },
-    "maxPower": 22,
-    "top": 640.290218176763,
-    "bottom": 820.290218176763,
-    "width": 40,
-    "maxRetract": 65,
-    "springStrength": 1
-  },
   "levels": [
     {
       "level": 0,
@@ -1054,66 +1040,272 @@
       "name": "path_hs4v0x"
     }
   ],
-  "rulesEngine": {
-    "switchMap": [
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [
       {
         "id": "lhs_targ_1",
+        "kind": "switch",
         "sourceElementId": "dropTarget_plg8o2",
-        "kind": "switch"
+        "name": "LHS Target 1"
       },
       {
         "id": "lhs_targ_2",
+        "kind": "switch",
         "sourceElementId": "dropTarget_05axmo",
-        "kind": "switch"
+        "name": "LHS Target 2"
       },
       {
         "id": "lhs_targ_3",
+        "kind": "switch",
         "sourceElementId": "dropTarget_lhjr27",
-        "kind": "switch"
+        "name": "LHS Target 3"
       },
       {
         "id": "rhs_targ_1",
+        "kind": "switch",
         "sourceElementId": "dropTarget_ob5o0p",
-        "kind": "switch"
+        "name": "RHS Target 1"
       },
       {
         "id": "rhs_targ_2",
+        "kind": "switch",
         "sourceElementId": "dropTarget_xhhxim",
-        "kind": "switch"
+        "name": "RHS Target 2"
       },
       {
         "id": "rhs_targ_3",
+        "kind": "switch",
         "sourceElementId": "dropTarget_5dtnub",
-        "kind": "switch"
+        "name": "RHS Target 3"
       },
       {
         "id": "lhs_bonus_lane",
+        "kind": "switch",
         "sourceElementId": "lane_8c5ki2",
-        "kind": "switch"
+        "name": "LHS Bonus Lane"
       },
       {
         "id": "rhs_bonus_lane",
+        "kind": "switch",
         "sourceElementId": "lane_hyustj",
-        "kind": "switch"
+        "name": "RHS Bonus Lane"
       },
       {
         "id": "mega_bonus_target",
+        "kind": "switch",
         "sourceElementId": "dropTarget_31qm07",
-        "kind": "switch"
+        "name": "Mega Bonus Target"
       },
       {
         "id": "drain",
+        "kind": "switch",
         "sourceElementId": "drain_98830v",
-        "kind": "switch"
+        "name": "Drain"
       }
     ],
-    "sequenceRules": [],
-    "triggers": [
+    "stateTable": [
       {
-        "id": "A_LHS_1",
-        "kind": "action",
+        "type": "bool",
+        "id": "lhs_1_lit",
+        "initial": false,
+        "volatile": true,
+        "name": "LHS 1 Lit"
+      },
+      {
+        "type": "bool",
+        "id": "lhs_2_lit",
+        "initial": false,
+        "volatile": true,
+        "name": "LHS 2 Lit"
+      },
+      {
+        "type": "bool",
+        "id": "lhs_3_lit",
+        "initial": false,
+        "volatile": true,
+        "name": "LHS 3 Lit"
+      },
+      {
+        "type": "bool",
+        "id": "rhs_1_lit",
+        "initial": false,
+        "volatile": true,
+        "name": "RHS 1 Lit"
+      },
+      {
+        "type": "bool",
+        "id": "rhs_2_lit",
+        "initial": false,
+        "volatile": true,
+        "name": "RHS 2 Lit"
+      },
+      {
+        "type": "bool",
+        "id": "rhs_3_lit",
+        "initial": false,
+        "volatile": true,
+        "name": "RHS 3 Lit"
+      },
+      {
+        "type": "int",
+        "id": "seq_step",
+        "initial": 0,
+        "volatile": true,
+        "name": "Seq Progress"
+      },
+      {
+        "type": "int",
+        "id": "mega_multiplier",
+        "initial": 1,
+        "volatile": true,
+        "name": "Mega Multiplier"
+      },
+      {
+        "type": "int",
+        "id": "lhs_bonus_collects",
+        "initial": 0,
+        "volatile": true,
+        "name": "LHS Collect Count"
+      },
+      {
+        "type": "int",
+        "id": "rhs_bonus_collects",
+        "initial": 0,
+        "volatile": true,
+        "name": "RHS Collect Count"
+      },
+      {
+        "type": "int",
+        "id": "mega_bonus_collects",
+        "initial": 0,
+        "volatile": true,
+        "name": "Mega Collect Count"
+      }
+    ],
+    "computedState": [
+      {
+        "type": "bool",
+        "id": "lhs_complete",
+        "expr": "lhs_1_lit && lhs_2_lit && lhs_3_lit",
+        "name": "LHS Complete"
+      },
+      {
+        "type": "bool",
+        "id": "rhs_complete",
+        "expr": "rhs_1_lit && rhs_2_lit && rhs_3_lit",
+        "name": "RHS Complete"
+      },
+      {
+        "type": "bool",
+        "id": "both_complete",
+        "expr": "lhs_complete && rhs_complete",
+        "name": "Both Complete"
+      },
+      {
+        "type": "bool",
+        "id": "lhs_bonus_ready",
+        "expr": "lhs_complete",
+        "name": "LHS Bonus Ready"
+      },
+      {
+        "type": "bool",
+        "id": "rhs_bonus_ready",
+        "expr": "rhs_complete",
+        "name": "RHS Bonus Ready"
+      },
+      {
+        "type": "bool",
+        "id": "mega_bonus_ready",
+        "expr": "both_complete",
+        "name": "Mega Bonus Ready"
+      },
+      {
+        "type": "bool",
+        "id": "seq_2x",
+        "expr": "seq_step >= 1",
+        "name": "Seq 2x"
+      },
+      {
+        "type": "bool",
+        "id": "seq_5x",
+        "expr": "seq_step >= 2",
+        "name": "Seq 5x"
+      },
+      {
+        "type": "bool",
+        "id": "seq_10x",
+        "expr": "seq_step >= 3",
+        "name": "Seq 10x"
+      }
+    ],
+    "lampBindings": [
+      {
+        "lampId": "dropTarget_plg8o2",
+        "expr": "lhs_1_lit"
+      },
+      {
+        "lampId": "dropTarget_05axmo",
+        "expr": "lhs_2_lit"
+      },
+      {
+        "lampId": "dropTarget_lhjr27",
+        "expr": "lhs_3_lit"
+      },
+      {
+        "lampId": "dropTarget_ob5o0p",
+        "expr": "rhs_1_lit"
+      },
+      {
+        "lampId": "dropTarget_xhhxim",
+        "expr": "rhs_2_lit"
+      },
+      {
+        "lampId": "dropTarget_5dtnub",
+        "expr": "rhs_3_lit"
+      },
+      {
+        "lampId": "light_6rp45x",
+        "expr": "lhs_bonus_ready"
+      },
+      {
+        "lampId": "arrowLight_ttei6b",
+        "expr": "lhs_bonus_ready"
+      },
+      {
+        "lampId": "arrowLight_gdsc2k",
+        "expr": "rhs_bonus_ready"
+      },
+      {
+        "lampId": "light_4pjtk7",
+        "expr": "mega_bonus_ready"
+      },
+      {
+        "lampId": "arrowLight_cucl2q",
+        "expr": "mega_bonus_ready"
+      },
+      {
+        "lampId": "arrowLight_i4t5r5",
+        "expr": "mega_bonus_ready"
+      },
+      {
+        "lampId": "light_o6vvep",
+        "expr": "seq_2x"
+      },
+      {
+        "lampId": "light_ntg73v",
+        "expr": "seq_5x"
+      },
+      {
+        "lampId": "light_ccq1le",
+        "expr": "seq_10x"
+      }
+    ],
+    "actionRules": [
+      {
+        "enabled": true,
         "trigger": "lhs_targ_1",
-        "condition": "!lhs_1_lit",
+        "name": "Light LHS 1",
         "effects": [
           {
             "type": "set",
@@ -1125,13 +1317,13 @@
             "value": 500
           }
         ],
-        "enabled": true
+        "condition": "!lhs_1_lit",
+        "id": "A_LHS_1"
       },
       {
-        "id": "A_LHS_2",
-        "kind": "action",
+        "enabled": true,
         "trigger": "lhs_targ_2",
-        "condition": "!lhs_2_lit",
+        "name": "Light LHS 2",
         "effects": [
           {
             "type": "set",
@@ -1143,13 +1335,13 @@
             "value": 500
           }
         ],
-        "enabled": true
+        "condition": "!lhs_2_lit",
+        "id": "A_LHS_2"
       },
       {
-        "id": "A_LHS_3",
-        "kind": "action",
+        "enabled": true,
         "trigger": "lhs_targ_3",
-        "condition": "!lhs_3_lit",
+        "name": "Light LHS 3",
         "effects": [
           {
             "type": "set",
@@ -1161,13 +1353,13 @@
             "value": 500
           }
         ],
-        "enabled": true
+        "condition": "!lhs_3_lit",
+        "id": "A_LHS_3"
       },
       {
-        "id": "A_RHS_1",
-        "kind": "action",
+        "enabled": true,
         "trigger": "rhs_targ_1",
-        "condition": "!rhs_1_lit",
+        "name": "Light RHS 1",
         "effects": [
           {
             "type": "set",
@@ -1179,13 +1371,13 @@
             "value": 500
           }
         ],
-        "enabled": true
+        "condition": "!rhs_1_lit",
+        "id": "A_RHS_1"
       },
       {
-        "id": "A_RHS_2",
-        "kind": "action",
+        "enabled": true,
         "trigger": "rhs_targ_2",
-        "condition": "!rhs_2_lit",
+        "name": "Light RHS 2",
         "effects": [
           {
             "type": "set",
@@ -1197,13 +1389,13 @@
             "value": 500
           }
         ],
-        "enabled": true
+        "condition": "!rhs_2_lit",
+        "id": "A_RHS_2"
       },
       {
-        "id": "A_RHS_3",
-        "kind": "action",
+        "enabled": true,
         "trigger": "rhs_targ_3",
-        "condition": "!rhs_3_lit",
+        "name": "Light RHS 3",
         "effects": [
           {
             "type": "set",
@@ -1215,13 +1407,13 @@
             "value": 500
           }
         ],
-        "enabled": true
+        "condition": "!rhs_3_lit",
+        "id": "A_RHS_3"
       },
       {
-        "id": "A_BONUS_COLLECT_L",
-        "kind": "action",
+        "enabled": true,
         "trigger": "lhs_bonus_lane",
-        "condition": "lhs_bonus_ready",
+        "name": "Collect LHS Bonus",
         "effects": [
           {
             "type": "score",
@@ -1248,13 +1440,13 @@
             "target": "lhs_3_lit"
           }
         ],
-        "enabled": true
+        "condition": "lhs_bonus_ready",
+        "id": "A_BONUS_COLLECT_L"
       },
       {
-        "id": "A_BONUS_COLLECT_R",
-        "kind": "action",
+        "enabled": true,
         "trigger": "rhs_bonus_lane",
-        "condition": "rhs_bonus_ready",
+        "name": "Collect RHS Bonus",
         "effects": [
           {
             "type": "score",
@@ -1281,13 +1473,13 @@
             "target": "rhs_3_lit"
           }
         ],
-        "enabled": true
+        "condition": "rhs_bonus_ready",
+        "id": "A_BONUS_COLLECT_R"
       },
       {
-        "id": "A_MEGA_X1",
-        "kind": "action",
+        "enabled": true,
         "trigger": "mega_bonus_target",
-        "condition": "mega_bonus_ready && mega_multiplier == 1",
+        "name": "Mega Bonus 1x",
         "effects": [
           {
             "type": "score",
@@ -1339,13 +1531,13 @@
             "target": "rhs_3_lit"
           }
         ],
-        "enabled": true
+        "condition": "mega_bonus_ready && mega_multiplier == 1",
+        "id": "A_MEGA_X1"
       },
       {
-        "id": "A_MEGA_X2",
-        "kind": "action",
+        "enabled": true,
         "trigger": "mega_bonus_target",
-        "condition": "mega_bonus_ready && mega_multiplier == 2",
+        "name": "Mega Bonus 2x",
         "effects": [
           {
             "type": "score",
@@ -1397,13 +1589,13 @@
             "target": "rhs_3_lit"
           }
         ],
-        "enabled": true
+        "condition": "mega_bonus_ready && mega_multiplier == 2",
+        "id": "A_MEGA_X2"
       },
       {
-        "id": "A_MEGA_X5",
-        "kind": "action",
+        "enabled": true,
         "trigger": "mega_bonus_target",
-        "condition": "mega_bonus_ready && mega_multiplier == 5",
+        "name": "Mega Bonus 5x",
         "effects": [
           {
             "type": "score",
@@ -1455,13 +1647,13 @@
             "target": "rhs_3_lit"
           }
         ],
-        "enabled": true
+        "condition": "mega_bonus_ready && mega_multiplier == 5",
+        "id": "A_MEGA_X5"
       },
       {
-        "id": "A_MEGA_X10",
-        "kind": "action",
+        "enabled": true,
         "trigger": "mega_bonus_target",
-        "condition": "mega_bonus_ready && mega_multiplier == 10",
+        "name": "Mega Bonus 10x",
         "effects": [
           {
             "type": "score",
@@ -1503,12 +1695,14 @@
             "target": "rhs_3_lit"
           }
         ],
-        "enabled": true
-      },
+        "condition": "mega_bonus_ready && mega_multiplier == 10",
+        "id": "A_MEGA_X10"
+      }
+    ],
+    "resetRules": [
       {
-        "id": "R_DRAIN",
-        "kind": "reset",
         "trigger": "drain",
+        "id": "R_DRAIN",
         "scope": "volatile",
         "resets": [
           "lhs_1_lit",
@@ -1522,824 +1716,9 @@
           "lhs_bonus_collects",
           "rhs_bonus_collects",
           "mega_bonus_collects"
-        ]
+        ],
+        "name": "Drain Reset"
       }
-    ],
-    "variables": [
-      {
-        "id": "lhs_1_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "lhs_2_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "lhs_3_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "rhs_1_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "rhs_2_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "rhs_3_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "seq_step",
-        "type": "int",
-        "initial": 0,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "mega_multiplier",
-        "type": "int",
-        "initial": 1,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "lhs_bonus_collects",
-        "type": "int",
-        "initial": 0,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "rhs_bonus_collects",
-        "type": "int",
-        "initial": 0,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "mega_bonus_collects",
-        "type": "int",
-        "initial": 0,
-        "volatile": true,
-        "derived": false
-      },
-      {
-        "id": "lhs_complete",
-        "type": "bool",
-        "expr": "lhs_1_lit && lhs_2_lit && lhs_3_lit",
-        "derived": true
-      },
-      {
-        "id": "rhs_complete",
-        "type": "bool",
-        "expr": "rhs_1_lit && rhs_2_lit && rhs_3_lit",
-        "derived": true
-      },
-      {
-        "id": "both_complete",
-        "type": "bool",
-        "expr": "lhs_complete && rhs_complete",
-        "derived": true
-      },
-      {
-        "id": "lhs_bonus_ready",
-        "type": "bool",
-        "expr": "lhs_complete",
-        "derived": true
-      },
-      {
-        "id": "rhs_bonus_ready",
-        "type": "bool",
-        "expr": "rhs_complete",
-        "derived": true
-      },
-      {
-        "id": "mega_bonus_ready",
-        "type": "bool",
-        "expr": "both_complete",
-        "derived": true
-      },
-      {
-        "id": "seq_2x",
-        "type": "bool",
-        "expr": "seq_step >= 1",
-        "derived": true
-      },
-      {
-        "id": "seq_5x",
-        "type": "bool",
-        "expr": "seq_step >= 2",
-        "derived": true
-      },
-      {
-        "id": "seq_10x",
-        "type": "bool",
-        "expr": "seq_step >= 3",
-        "derived": true
-      }
-    ],
-    "logicGraphs": {
-      "logicDocument": {
-        "logicVersion": 1,
-        "switchRegistry": [
-          {
-            "id": "lhs_targ_1",
-            "kind": "switch",
-            "sourceElementId": "dropTarget_plg8o2",
-            "name": "LHS Target 1"
-          },
-          {
-            "id": "lhs_targ_2",
-            "kind": "switch",
-            "sourceElementId": "dropTarget_05axmo",
-            "name": "LHS Target 2"
-          },
-          {
-            "id": "lhs_targ_3",
-            "kind": "switch",
-            "sourceElementId": "dropTarget_lhjr27",
-            "name": "LHS Target 3"
-          },
-          {
-            "id": "rhs_targ_1",
-            "kind": "switch",
-            "sourceElementId": "dropTarget_ob5o0p",
-            "name": "RHS Target 1"
-          },
-          {
-            "id": "rhs_targ_2",
-            "kind": "switch",
-            "sourceElementId": "dropTarget_xhhxim",
-            "name": "RHS Target 2"
-          },
-          {
-            "id": "rhs_targ_3",
-            "kind": "switch",
-            "sourceElementId": "dropTarget_5dtnub",
-            "name": "RHS Target 3"
-          },
-          {
-            "id": "lhs_bonus_lane",
-            "kind": "switch",
-            "sourceElementId": "lane_8c5ki2",
-            "name": "LHS Bonus Lane"
-          },
-          {
-            "id": "rhs_bonus_lane",
-            "kind": "switch",
-            "sourceElementId": "lane_hyustj",
-            "name": "RHS Bonus Lane"
-          },
-          {
-            "id": "mega_bonus_target",
-            "kind": "switch",
-            "sourceElementId": "dropTarget_31qm07",
-            "name": "Mega Bonus Target"
-          },
-          {
-            "id": "drain",
-            "kind": "switch",
-            "sourceElementId": "drain_98830v",
-            "name": "Drain"
-          }
-        ],
-        "stateTable": [
-          {
-            "type": "bool",
-            "id": "lhs_1_lit",
-            "initial": false,
-            "volatile": true,
-            "name": "LHS 1 Lit"
-          },
-          {
-            "type": "bool",
-            "id": "lhs_2_lit",
-            "initial": false,
-            "volatile": true,
-            "name": "LHS 2 Lit"
-          },
-          {
-            "type": "bool",
-            "id": "lhs_3_lit",
-            "initial": false,
-            "volatile": true,
-            "name": "LHS 3 Lit"
-          },
-          {
-            "type": "bool",
-            "id": "rhs_1_lit",
-            "initial": false,
-            "volatile": true,
-            "name": "RHS 1 Lit"
-          },
-          {
-            "type": "bool",
-            "id": "rhs_2_lit",
-            "initial": false,
-            "volatile": true,
-            "name": "RHS 2 Lit"
-          },
-          {
-            "type": "bool",
-            "id": "rhs_3_lit",
-            "initial": false,
-            "volatile": true,
-            "name": "RHS 3 Lit"
-          },
-          {
-            "type": "int",
-            "id": "seq_step",
-            "initial": 0,
-            "volatile": true,
-            "name": "Seq Progress"
-          },
-          {
-            "type": "int",
-            "id": "mega_multiplier",
-            "initial": 1,
-            "volatile": true,
-            "name": "Mega Multiplier"
-          },
-          {
-            "type": "int",
-            "id": "lhs_bonus_collects",
-            "initial": 0,
-            "volatile": true,
-            "name": "LHS Collect Count"
-          },
-          {
-            "type": "int",
-            "id": "rhs_bonus_collects",
-            "initial": 0,
-            "volatile": true,
-            "name": "RHS Collect Count"
-          },
-          {
-            "type": "int",
-            "id": "mega_bonus_collects",
-            "initial": 0,
-            "volatile": true,
-            "name": "Mega Collect Count"
-          }
-        ],
-        "computedState": [
-          {
-            "type": "bool",
-            "id": "lhs_complete",
-            "expr": "lhs_1_lit && lhs_2_lit && lhs_3_lit",
-            "name": "LHS Complete"
-          },
-          {
-            "type": "bool",
-            "id": "rhs_complete",
-            "expr": "rhs_1_lit && rhs_2_lit && rhs_3_lit",
-            "name": "RHS Complete"
-          },
-          {
-            "type": "bool",
-            "id": "both_complete",
-            "expr": "lhs_complete && rhs_complete",
-            "name": "Both Complete"
-          },
-          {
-            "type": "bool",
-            "id": "lhs_bonus_ready",
-            "expr": "lhs_complete",
-            "name": "LHS Bonus Ready"
-          },
-          {
-            "type": "bool",
-            "id": "rhs_bonus_ready",
-            "expr": "rhs_complete",
-            "name": "RHS Bonus Ready"
-          },
-          {
-            "type": "bool",
-            "id": "mega_bonus_ready",
-            "expr": "both_complete",
-            "name": "Mega Bonus Ready"
-          },
-          {
-            "type": "bool",
-            "id": "seq_2x",
-            "expr": "seq_step >= 1",
-            "name": "Seq 2x"
-          },
-          {
-            "type": "bool",
-            "id": "seq_5x",
-            "expr": "seq_step >= 2",
-            "name": "Seq 5x"
-          },
-          {
-            "type": "bool",
-            "id": "seq_10x",
-            "expr": "seq_step >= 3",
-            "name": "Seq 10x"
-          }
-        ],
-        "lampBindings": [
-          {
-            "lampId": "dropTarget_plg8o2",
-            "expr": "lhs_1_lit"
-          },
-          {
-            "lampId": "dropTarget_05axmo",
-            "expr": "lhs_2_lit"
-          },
-          {
-            "lampId": "dropTarget_lhjr27",
-            "expr": "lhs_3_lit"
-          },
-          {
-            "lampId": "dropTarget_ob5o0p",
-            "expr": "rhs_1_lit"
-          },
-          {
-            "lampId": "dropTarget_xhhxim",
-            "expr": "rhs_2_lit"
-          },
-          {
-            "lampId": "dropTarget_5dtnub",
-            "expr": "rhs_3_lit"
-          },
-          {
-            "lampId": "light_6rp45x",
-            "expr": "lhs_bonus_ready"
-          },
-          {
-            "lampId": "arrowLight_ttei6b",
-            "expr": "lhs_bonus_ready"
-          },
-          {
-            "lampId": "arrowLight_gdsc2k",
-            "expr": "rhs_bonus_ready"
-          },
-          {
-            "lampId": "light_4pjtk7",
-            "expr": "mega_bonus_ready"
-          },
-          {
-            "lampId": "arrowLight_cucl2q",
-            "expr": "mega_bonus_ready"
-          },
-          {
-            "lampId": "arrowLight_i4t5r5",
-            "expr": "mega_bonus_ready"
-          },
-          {
-            "lampId": "light_o6vvep",
-            "expr": "seq_2x"
-          },
-          {
-            "lampId": "light_ntg73v",
-            "expr": "seq_5x"
-          },
-          {
-            "lampId": "light_ccq1le",
-            "expr": "seq_10x"
-          }
-        ],
-        "actionRules": [
-          {
-            "enabled": true,
-            "trigger": "lhs_targ_1",
-            "name": "Light LHS 1",
-            "effects": [
-              {
-                "type": "set",
-                "value": true,
-                "target": "lhs_1_lit"
-              },
-              {
-                "type": "score",
-                "value": 500
-              }
-            ],
-            "condition": "!lhs_1_lit",
-            "id": "A_LHS_1"
-          },
-          {
-            "enabled": true,
-            "trigger": "lhs_targ_2",
-            "name": "Light LHS 2",
-            "effects": [
-              {
-                "type": "set",
-                "value": true,
-                "target": "lhs_2_lit"
-              },
-              {
-                "type": "score",
-                "value": 500
-              }
-            ],
-            "condition": "!lhs_2_lit",
-            "id": "A_LHS_2"
-          },
-          {
-            "enabled": true,
-            "trigger": "lhs_targ_3",
-            "name": "Light LHS 3",
-            "effects": [
-              {
-                "type": "set",
-                "value": true,
-                "target": "lhs_3_lit"
-              },
-              {
-                "type": "score",
-                "value": 500
-              }
-            ],
-            "condition": "!lhs_3_lit",
-            "id": "A_LHS_3"
-          },
-          {
-            "enabled": true,
-            "trigger": "rhs_targ_1",
-            "name": "Light RHS 1",
-            "effects": [
-              {
-                "type": "set",
-                "value": true,
-                "target": "rhs_1_lit"
-              },
-              {
-                "type": "score",
-                "value": 500
-              }
-            ],
-            "condition": "!rhs_1_lit",
-            "id": "A_RHS_1"
-          },
-          {
-            "enabled": true,
-            "trigger": "rhs_targ_2",
-            "name": "Light RHS 2",
-            "effects": [
-              {
-                "type": "set",
-                "value": true,
-                "target": "rhs_2_lit"
-              },
-              {
-                "type": "score",
-                "value": 500
-              }
-            ],
-            "condition": "!rhs_2_lit",
-            "id": "A_RHS_2"
-          },
-          {
-            "enabled": true,
-            "trigger": "rhs_targ_3",
-            "name": "Light RHS 3",
-            "effects": [
-              {
-                "type": "set",
-                "value": true,
-                "target": "rhs_3_lit"
-              },
-              {
-                "type": "score",
-                "value": 500
-              }
-            ],
-            "condition": "!rhs_3_lit",
-            "id": "A_RHS_3"
-          },
-          {
-            "enabled": true,
-            "trigger": "lhs_bonus_lane",
-            "name": "Collect LHS Bonus",
-            "effects": [
-              {
-                "type": "score",
-                "value": 3000
-              },
-              {
-                "type": "add",
-                "value": 1,
-                "target": "lhs_bonus_collects"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_3_lit"
-              }
-            ],
-            "condition": "lhs_bonus_ready",
-            "id": "A_BONUS_COLLECT_L"
-          },
-          {
-            "enabled": true,
-            "trigger": "rhs_bonus_lane",
-            "name": "Collect RHS Bonus",
-            "effects": [
-              {
-                "type": "score",
-                "value": 3000
-              },
-              {
-                "type": "add",
-                "value": 1,
-                "target": "rhs_bonus_collects"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_3_lit"
-              }
-            ],
-            "condition": "rhs_bonus_ready",
-            "id": "A_BONUS_COLLECT_R"
-          },
-          {
-            "enabled": true,
-            "trigger": "mega_bonus_target",
-            "name": "Mega Bonus 1x",
-            "effects": [
-              {
-                "type": "score",
-                "value": 5000
-              },
-              {
-                "type": "set",
-                "value": 1,
-                "target": "seq_step"
-              },
-              {
-                "type": "set",
-                "value": 2,
-                "target": "mega_multiplier"
-              },
-              {
-                "type": "add",
-                "value": 1,
-                "target": "mega_bonus_collects"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_3_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_3_lit"
-              }
-            ],
-            "condition": "mega_bonus_ready && mega_multiplier == 1",
-            "id": "A_MEGA_X1"
-          },
-          {
-            "enabled": true,
-            "trigger": "mega_bonus_target",
-            "name": "Mega Bonus 2x",
-            "effects": [
-              {
-                "type": "score",
-                "value": 10000
-              },
-              {
-                "type": "set",
-                "value": 2,
-                "target": "seq_step"
-              },
-              {
-                "type": "set",
-                "value": 5,
-                "target": "mega_multiplier"
-              },
-              {
-                "type": "add",
-                "value": 1,
-                "target": "mega_bonus_collects"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_3_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_3_lit"
-              }
-            ],
-            "condition": "mega_bonus_ready && mega_multiplier == 2",
-            "id": "A_MEGA_X2"
-          },
-          {
-            "enabled": true,
-            "trigger": "mega_bonus_target",
-            "name": "Mega Bonus 5x",
-            "effects": [
-              {
-                "type": "score",
-                "value": 25000
-              },
-              {
-                "type": "set",
-                "value": 3,
-                "target": "seq_step"
-              },
-              {
-                "type": "set",
-                "value": 10,
-                "target": "mega_multiplier"
-              },
-              {
-                "type": "add",
-                "value": 1,
-                "target": "mega_bonus_collects"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_3_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_3_lit"
-              }
-            ],
-            "condition": "mega_bonus_ready && mega_multiplier == 5",
-            "id": "A_MEGA_X5"
-          },
-          {
-            "enabled": true,
-            "trigger": "mega_bonus_target",
-            "name": "Mega Bonus 10x",
-            "effects": [
-              {
-                "type": "score",
-                "value": 50000
-              },
-              {
-                "type": "add",
-                "value": 1,
-                "target": "mega_bonus_collects"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "lhs_3_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_1_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_2_lit"
-              },
-              {
-                "type": "set",
-                "value": false,
-                "target": "rhs_3_lit"
-              }
-            ],
-            "condition": "mega_bonus_ready && mega_multiplier == 10",
-            "id": "A_MEGA_X10"
-          }
-        ],
-        "resetRules": [
-          {
-            "trigger": "drain",
-            "id": "R_DRAIN",
-            "scope": "volatile",
-            "resets": [
-              "lhs_1_lit",
-              "lhs_2_lit",
-              "lhs_3_lit",
-              "rhs_1_lit",
-              "rhs_2_lit",
-              "rhs_3_lit",
-              "seq_step",
-              "mega_multiplier",
-              "lhs_bonus_collects",
-              "rhs_bonus_collects",
-              "mega_bonus_collects"
-            ],
-            "name": "Drain Reset"
-          }
-        ]
-      }
-    }
+    ]
   }
 }

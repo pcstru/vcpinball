@@ -52,14 +52,11 @@
         };
     }
 
-    /* What: Resolve spinner blade radius with legacy fallbacks.
-     * Why: Spinner sizing is now radius-based while old tables may still use size/length.
-     * Correctness: Prefers radius, then converts full-span size/length to radius.
+    /* What: Resolve spinner blade radius from the current schema.
+     * Why: Editor handles should match runtime spinner geometry.
      */
     function spinnerRadius(el) {
         if (el && typeof el.radius === "number") return el.radius;
-        if (el && typeof el.size === "number") return el.size * 0.5;
-        if (el && typeof el.length === "number") return el.length * 0.5;
         return 30;
     }
 
@@ -130,8 +127,7 @@
             const sum = el.anchors.reduce(function reduce(acc, a) { acc.x += a.x; acc.y += a.y; return acc; }, { x: 0, y: 0 });
             return { x: sum.x / el.anchors.length, y: sum.y / el.anchors.length };
         }
-        if (el.type === "gate") return { x: (el.x1 + el.x2) * 0.5, y: (el.y1 + el.y2) * 0.5 };
-        if (el.type === "valve") return { x: el.x || 0, y: el.y || 0 };
+        if (el.type === "gate") return { x: el.x || 0, y: el.y || 0 };
         if (el.type === "launcher") return { x: el.x || 439, y: ((el.top || 195) + (el.bottom || 735)) * 0.5 };
         if (el.type === "path" && Array.isArray(el.anchors) && el.anchors.length) {
             const sum = el.anchors.reduce(function reduce(acc, a) { acc.x += a.x; acc.y += a.y; return acc; }, { x: 0, y: 0 });
@@ -212,7 +208,6 @@
             if (typeof el.bottom === "number") el.bottom += dy;
         }
         if (el.pivot) { el.pivot.x += dx; el.pivot.y += dy; }
-        if (typeof el.x1 === "number") { el.x1 += dx; el.x2 += dx; el.y1 += dy; el.y2 += dy; }
         ["anchors", "leftAnchors", "rightAnchors"].forEach(function each(k) {
             if (!Array.isArray(el[k])) return;
             el[k].forEach(function moveAnchor(a) {
@@ -341,11 +336,7 @@
             handles.push({ kind: "tip", x: tipX, y: tipY });
             handles.push({ kind: "rotate", x: rot.x, y: rot.y });
         }
-        if (el.type === "gate" && !isPivotGate(el)) {
-            handles.push({ kind: "p1", x: el.x1, y: el.y1 });
-            handles.push({ kind: "p2", x: el.x2, y: el.y2 });
-        }
-        if (el.type === "valve" || isPivotGate(el)) {
+        if (isPivotGate(el)) {
             const angle = el.angle || 0;
             const length = el.length || 64;
             const tip = rotatePoint(el.x || 0, el.y || 0, length, 0, angle);
@@ -422,9 +413,7 @@
             const tipX = el.pivot.x + Math.cos(el.restAngle) * el.length;
             const tipY = el.pivot.y + Math.sin(el.restAngle) * el.length;
             body = Pin.editorTools.distancePointToSegment(world.x, world.y, el.pivot.x, el.pivot.y, tipX, tipY).dist <= (14 / view.zoom);
-        } else if (el.type === "gate" && !isPivotGate(el)) {
-            body = Pin.editorTools.distancePointToSegment(world.x, world.y, el.x1, el.y1, el.x2, el.y2).dist <= (8 / view.zoom);
-        } else if (el.type === "valve" || isPivotGate(el)) {
+        } else if (isPivotGate(el)) {
             const x = el.x || 0;
             const y = el.y || 0;
             const tip = rotatePoint(x, y, el.length || 64, 0, el.angle || 0);
@@ -475,8 +464,6 @@
             shiftElement(el, dx, dy);
             return;
         }
-        if (handle.kind === "p1") { el.x1 = world.x; el.y1 = world.y; return; }
-        if (handle.kind === "p2") { el.x2 = world.x; el.y2 = world.y; return; }
         if (handle.kind === "launcherTop") {
             el.top = Math.min(world.y, (el.bottom || 735) - 24);
             return;
@@ -496,7 +483,7 @@
                 el.pivot.y = world.y;
                 return;
             }
-            if (el.type === "valve" || isPivotGate(el)) {
+            if (isPivotGate(el)) {
                 el.x = world.x;
                 el.y = world.y;
             }
@@ -527,7 +514,7 @@
             return;
         }
         if (handle.kind === "length") {
-            if (el.type === "valve" || isPivotGate(el)) {
+            if (isPivotGate(el)) {
                 el.length = Math.max(12, Math.hypot(world.x - (el.x || 0), world.y - (el.y || 0)));
                 el.angle = Math.atan2(world.y - (el.y || 0), world.x - (el.x || 0));
                 return;
@@ -544,7 +531,7 @@
                 if (typeof el.activeAngle === "number") el.activeAngle += delta;
                 return;
             }
-            if (el.type === "valve" || isPivotGate(el)) {
+            if (isPivotGate(el)) {
                 el.angle = Math.atan2(world.y - (el.y || 0), world.x - (el.x || 0));
                 return;
             }
@@ -763,7 +750,7 @@
             drawCircle(endpoints.x2, endpoints.y2, 5, false);
             drawGhostHandle(el.x, el.y, rot.x, rot.y);
             drawCircle(rot.x, rot.y, 5, false);
-        } else if (el.type === "valve" || isPivotGate(el)) {
+        } else if (isPivotGate(el)) {
             const x = el.x || 0;
             const y = el.y || 0;
             const tip = rotatePoint(x, y, el.length || 64, 0, el.angle || 0);

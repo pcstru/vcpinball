@@ -14,20 +14,6 @@
     "balls": 3,
     "highScoreKey": "pinball.generic.highscore"
   },
-  "launcher": {
-    "x": 358.9972454149302,
-    "y": 818.8556386927564,
-    "dir": {
-      "x": 0,
-      "y": -1
-    },
-    "maxPower": 42,
-    "top": 693.8556386927564,
-    "bottom": 843.8556386927564,
-    "width": 38,
-    "maxRetract": 65,
-    "springStrength": 1
-  },
   "levels": [
     {
       "level": 0,
@@ -968,44 +954,180 @@
       "name": "gate_zk1o38"
     }
   ],
-  "rulesEngine": {
-    "switchMap": [
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [
       {
         "id": "timer_100ms",
+        "name": "Timer 100ms",
+        "kind": "timer",
         "sourceElementId": "timer_100ms",
-        "kind": "timer"
+        "intervalMs": 100
       },
       {
         "id": "timer_1s",
+        "name": "Timer 1s",
+        "kind": "timer",
         "sourceElementId": "timer_1s",
-        "kind": "timer"
+        "intervalMs": 1000
       },
       {
         "id": "dropTarget_vtf300",
-        "sourceElementId": "dropTarget_vtf300",
-        "kind": "element"
+        "name": "Targ1",
+        "kind": "element",
+        "sourceElementId": "dropTarget_vtf300"
       },
       {
         "id": "dropTarget_qifwv5",
-        "sourceElementId": "dropTarget_qifwv5",
-        "kind": "element"
+        "name": "Targ2",
+        "kind": "element",
+        "sourceElementId": "dropTarget_qifwv5"
       },
       {
         "id": "dropTarget_8ax6de",
-        "sourceElementId": "dropTarget_8ax6de",
-        "kind": "element"
+        "name": "Targ3",
+        "kind": "element",
+        "sourceElementId": "dropTarget_8ax6de"
       },
       {
         "id": "trough_bbpbjn",
-        "sourceElementId": "trough_bbpbjn",
-        "kind": "element"
+        "name": "TombBonus",
+        "kind": "element",
+        "sourceElementId": "trough_bbpbjn"
       }
     ],
-    "sequenceRules": [],
-    "triggers": [
+    "stateTable": [
+      {
+        "id": "targ1_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "targ2_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "targ3_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "tomb_open",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "tomb_timer",
+        "type": "int",
+        "initial": 0
+      },
+      {
+        "id": "pyramid_progress",
+        "type": "int",
+        "initial": 0
+      },
+      {
+        "id": "blink_phase",
+        "type": "int",
+        "initial": 0
+      },
+      {
+        "id": "game_complete",
+        "type": "bool",
+        "initial": false
+      }
+    ],
+    "computedState": [],
+    "lampBindings": [
+      {
+        "lampId": "dropTarget_vtf300",
+        "expr": "targ1_lit"
+      },
+      {
+        "lampId": "dropTarget_qifwv5",
+        "expr": "targ2_lit"
+      },
+      {
+        "lampId": "dropTarget_8ax6de",
+        "expr": "targ3_lit"
+      },
+      {
+        "lampId": "arrowLight_6j50ti",
+        "expr": "tomb_open && blink_phase == 1"
+      },
+      {
+        "lampId": "boxLight_8j7w4z",
+        "expr": "pyramid_progress > 0 || (!game_complete && pyramid_progress == 0 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_gxvdhr",
+        "expr": "pyramid_progress > 1 || (!game_complete && pyramid_progress == 1 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_hsmih7",
+        "expr": "pyramid_progress > 2 || (!game_complete && pyramid_progress == 2 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_fzcsxf",
+        "expr": "pyramid_progress > 3 || (!game_complete && pyramid_progress == 3 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_lrkb1e",
+        "expr": "pyramid_progress > 4 || (!game_complete && pyramid_progress == 4 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_9ingl1",
+        "expr": "pyramid_progress > 5 || (!game_complete && pyramid_progress == 5 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_3ffv1r",
+        "expr": "pyramid_progress > 6 || (!game_complete && pyramid_progress == 6 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_fcxiwk",
+        "expr": "pyramid_progress > 7 || (!game_complete && pyramid_progress == 7 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_m91bk0",
+        "expr": "pyramid_progress > 8 || (!game_complete && pyramid_progress == 8 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_xnwh4c",
+        "expr": "pyramid_progress > 9 || (!game_complete && pyramid_progress == 9 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_44fo7m",
+        "expr": "pyramid_progress > 10 || (!game_complete && pyramid_progress == 10 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_ni20m0",
+        "expr": "pyramid_progress > 11 || (!game_complete && pyramid_progress == 11 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_ul3psu",
+        "expr": "pyramid_progress > 12 || (!game_complete && pyramid_progress == 12 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_13op2r",
+        "expr": "pyramid_progress > 13 || (!game_complete && pyramid_progress == 13 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_65rg5o",
+        "expr": "pyramid_progress > 14 || (!game_complete && pyramid_progress == 14 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_l51jq2",
+        "expr": "pyramid_progress > 15 || (!game_complete && pyramid_progress == 15 && blink_phase == 1)"
+      },
+      {
+        "lampId": "boxLight_c0qfor",
+        "expr": "game_complete && blink_phase == 1"
+      }
+    ],
+    "actionRules": [
       {
         "id": "blink_phase_set_1",
-        "kind": "action",
         "trigger": "timer_100ms",
         "condition": "blink_phase == 0",
         "effects": [
@@ -1019,7 +1141,6 @@
       },
       {
         "id": "blink_phase_set_0",
-        "kind": "action",
         "trigger": "timer_100ms",
         "condition": "blink_phase == 1",
         "effects": [
@@ -1033,7 +1154,6 @@
       },
       {
         "id": "hit_targ1_light",
-        "kind": "action",
         "trigger": "dropTarget_vtf300",
         "condition": "!tomb_open && !game_complete && !targ1_lit",
         "effects": [
@@ -1047,7 +1167,6 @@
       },
       {
         "id": "hit_targ2_light",
-        "kind": "action",
         "trigger": "dropTarget_qifwv5",
         "condition": "!tomb_open && !game_complete && !targ2_lit",
         "effects": [
@@ -1061,7 +1180,6 @@
       },
       {
         "id": "hit_targ3_light",
-        "kind": "action",
         "trigger": "dropTarget_8ax6de",
         "condition": "!tomb_open && !game_complete && !targ3_lit",
         "effects": [
@@ -1075,7 +1193,6 @@
       },
       {
         "id": "open_tomb_from_targ1",
-        "kind": "action",
         "trigger": "dropTarget_vtf300",
         "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
         "effects": [
@@ -1094,7 +1211,6 @@
       },
       {
         "id": "open_tomb_from_targ2",
-        "kind": "action",
         "trigger": "dropTarget_qifwv5",
         "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
         "effects": [
@@ -1113,7 +1229,6 @@
       },
       {
         "id": "open_tomb_from_targ3",
-        "kind": "action",
         "trigger": "dropTarget_8ax6de",
         "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
         "effects": [
@@ -1132,7 +1247,6 @@
       },
       {
         "id": "tomb_countdown",
-        "kind": "action",
         "trigger": "timer_1s",
         "condition": "tomb_open && tomb_timer > 0",
         "effects": [
@@ -1146,7 +1260,6 @@
       },
       {
         "id": "tomb_timeout_close",
-        "kind": "action",
         "trigger": "timer_1s",
         "condition": "tomb_open && tomb_timer <= 1",
         "effects": [
@@ -1180,7 +1293,6 @@
       },
       {
         "id": "collect_tomb_advance",
-        "kind": "action",
         "trigger": "trough_bbpbjn",
         "condition": "tomb_open && !game_complete && pyramid_progress < 15",
         "effects": [
@@ -1219,7 +1331,6 @@
       },
       {
         "id": "collect_tomb_complete",
-        "kind": "action",
         "trigger": "trough_bbpbjn",
         "condition": "tomb_open && !game_complete && pyramid_progress == 15",
         "effects": [
@@ -1262,486 +1373,6 @@
         "enabled": true
       }
     ],
-    "variables": [
-      {
-        "id": "targ1_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "targ2_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "targ3_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "tomb_open",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "tomb_timer",
-        "type": "int",
-        "initial": 0,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "pyramid_progress",
-        "type": "int",
-        "initial": 0,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "blink_phase",
-        "type": "int",
-        "initial": 0,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "game_complete",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      }
-    ],
-    "logicGraphs": {
-      "logicDocument": {
-        "logicVersion": 1,
-        "switchRegistry": [
-          {
-            "id": "timer_100ms",
-            "name": "Timer 100ms",
-            "kind": "timer",
-            "sourceElementId": "timer_100ms",
-            "intervalMs": 100
-          },
-          {
-            "id": "timer_1s",
-            "name": "Timer 1s",
-            "kind": "timer",
-            "sourceElementId": "timer_1s",
-            "intervalMs": 1000
-          },
-          {
-            "id": "dropTarget_vtf300",
-            "name": "Targ1",
-            "kind": "element",
-            "sourceElementId": "dropTarget_vtf300"
-          },
-          {
-            "id": "dropTarget_qifwv5",
-            "name": "Targ2",
-            "kind": "element",
-            "sourceElementId": "dropTarget_qifwv5"
-          },
-          {
-            "id": "dropTarget_8ax6de",
-            "name": "Targ3",
-            "kind": "element",
-            "sourceElementId": "dropTarget_8ax6de"
-          },
-          {
-            "id": "trough_bbpbjn",
-            "name": "TombBonus",
-            "kind": "element",
-            "sourceElementId": "trough_bbpbjn"
-          }
-        ],
-        "stateTable": [
-          {
-            "id": "targ1_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "targ2_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "targ3_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "tomb_open",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "tomb_timer",
-            "type": "int",
-            "initial": 0
-          },
-          {
-            "id": "pyramid_progress",
-            "type": "int",
-            "initial": 0
-          },
-          {
-            "id": "blink_phase",
-            "type": "int",
-            "initial": 0
-          },
-          {
-            "id": "game_complete",
-            "type": "bool",
-            "initial": false
-          }
-        ],
-        "computedState": [],
-        "lampBindings": [
-          {
-            "lampId": "dropTarget_vtf300",
-            "expr": "targ1_lit"
-          },
-          {
-            "lampId": "dropTarget_qifwv5",
-            "expr": "targ2_lit"
-          },
-          {
-            "lampId": "dropTarget_8ax6de",
-            "expr": "targ3_lit"
-          },
-          {
-            "lampId": "arrowLight_6j50ti",
-            "expr": "tomb_open && blink_phase == 1"
-          },
-          {
-            "lampId": "boxLight_8j7w4z",
-            "expr": "pyramid_progress > 0 || (!game_complete && pyramid_progress == 0 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_gxvdhr",
-            "expr": "pyramid_progress > 1 || (!game_complete && pyramid_progress == 1 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_hsmih7",
-            "expr": "pyramid_progress > 2 || (!game_complete && pyramid_progress == 2 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_fzcsxf",
-            "expr": "pyramid_progress > 3 || (!game_complete && pyramid_progress == 3 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_lrkb1e",
-            "expr": "pyramid_progress > 4 || (!game_complete && pyramid_progress == 4 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_9ingl1",
-            "expr": "pyramid_progress > 5 || (!game_complete && pyramid_progress == 5 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_3ffv1r",
-            "expr": "pyramid_progress > 6 || (!game_complete && pyramid_progress == 6 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_fcxiwk",
-            "expr": "pyramid_progress > 7 || (!game_complete && pyramid_progress == 7 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_m91bk0",
-            "expr": "pyramid_progress > 8 || (!game_complete && pyramid_progress == 8 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_xnwh4c",
-            "expr": "pyramid_progress > 9 || (!game_complete && pyramid_progress == 9 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_44fo7m",
-            "expr": "pyramid_progress > 10 || (!game_complete && pyramid_progress == 10 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_ni20m0",
-            "expr": "pyramid_progress > 11 || (!game_complete && pyramid_progress == 11 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_ul3psu",
-            "expr": "pyramid_progress > 12 || (!game_complete && pyramid_progress == 12 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_13op2r",
-            "expr": "pyramid_progress > 13 || (!game_complete && pyramid_progress == 13 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_65rg5o",
-            "expr": "pyramid_progress > 14 || (!game_complete && pyramid_progress == 14 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_l51jq2",
-            "expr": "pyramid_progress > 15 || (!game_complete && pyramid_progress == 15 && blink_phase == 1)"
-          },
-          {
-            "lampId": "boxLight_c0qfor",
-            "expr": "game_complete && blink_phase == 1"
-          }
-        ],
-        "actionRules": [
-          {
-            "id": "blink_phase_set_1",
-            "trigger": "timer_100ms",
-            "condition": "blink_phase == 0",
-            "effects": [
-              {
-                "type": "set",
-                "target": "blink_phase",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "blink_phase_set_0",
-            "trigger": "timer_100ms",
-            "condition": "blink_phase == 1",
-            "effects": [
-              {
-                "type": "set",
-                "target": "blink_phase",
-                "value": 0
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "hit_targ1_light",
-            "trigger": "dropTarget_vtf300",
-            "condition": "!tomb_open && !game_complete && !targ1_lit",
-            "effects": [
-              {
-                "type": "set",
-                "target": "targ1_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "hit_targ2_light",
-            "trigger": "dropTarget_qifwv5",
-            "condition": "!tomb_open && !game_complete && !targ2_lit",
-            "effects": [
-              {
-                "type": "set",
-                "target": "targ2_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "hit_targ3_light",
-            "trigger": "dropTarget_8ax6de",
-            "condition": "!tomb_open && !game_complete && !targ3_lit",
-            "effects": [
-              {
-                "type": "set",
-                "target": "targ3_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "open_tomb_from_targ1",
-            "trigger": "dropTarget_vtf300",
-            "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
-            "effects": [
-              {
-                "type": "set",
-                "target": "tomb_open",
-                "value": true
-              },
-              {
-                "type": "set",
-                "target": "tomb_timer",
-                "value": 30
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "open_tomb_from_targ2",
-            "trigger": "dropTarget_qifwv5",
-            "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
-            "effects": [
-              {
-                "type": "set",
-                "target": "tomb_open",
-                "value": true
-              },
-              {
-                "type": "set",
-                "target": "tomb_timer",
-                "value": 30
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "open_tomb_from_targ3",
-            "trigger": "dropTarget_8ax6de",
-            "condition": "!game_complete && !tomb_open && targ1_lit && targ2_lit && targ3_lit",
-            "effects": [
-              {
-                "type": "set",
-                "target": "tomb_open",
-                "value": true
-              },
-              {
-                "type": "set",
-                "target": "tomb_timer",
-                "value": 30
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "tomb_countdown",
-            "trigger": "timer_1s",
-            "condition": "tomb_open && tomb_timer > 0",
-            "effects": [
-              {
-                "type": "add",
-                "target": "tomb_timer",
-                "value": -1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "tomb_timeout_close",
-            "trigger": "timer_1s",
-            "condition": "tomb_open && tomb_timer <= 1",
-            "effects": [
-              {
-                "type": "set",
-                "target": "tomb_open",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "tomb_timer",
-                "value": 0
-              },
-              {
-                "type": "set",
-                "target": "targ1_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "targ2_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "targ3_lit",
-                "value": false
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "collect_tomb_advance",
-            "trigger": "trough_bbpbjn",
-            "condition": "tomb_open && !game_complete && pyramid_progress < 15",
-            "effects": [
-              {
-                "type": "add",
-                "target": "pyramid_progress",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "tomb_open",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "tomb_timer",
-                "value": 0
-              },
-              {
-                "type": "set",
-                "target": "targ1_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "targ2_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "targ3_lit",
-                "value": false
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "collect_tomb_complete",
-            "trigger": "trough_bbpbjn",
-            "condition": "tomb_open && !game_complete && pyramid_progress == 15",
-            "effects": [
-              {
-                "type": "add",
-                "target": "pyramid_progress",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "game_complete",
-                "value": true
-              },
-              {
-                "type": "set",
-                "target": "tomb_open",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "tomb_timer",
-                "value": 0
-              },
-              {
-                "type": "set",
-                "target": "targ1_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "targ2_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "targ3_lit",
-                "value": false
-              }
-            ],
-            "enabled": true
-          }
-        ],
-        "resetRules": []
-      }
-    }
+    "resetRules": []
   }
 }

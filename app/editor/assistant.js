@@ -585,11 +585,8 @@
                 dropTarget: true
             };
             const elements = Array.isArray(table && table.elements) ? table.elements : [];
-            const logicDoc = table &&
-                table.rulesEngine &&
-                table.rulesEngine.logicGraphs &&
-                table.rulesEngine.logicGraphs.logicDocument
-                ? table.rulesEngine.logicGraphs.logicDocument
+            const logicDoc = table && table.logicDocument
+                ? table.logicDocument
                 : {
                     logicVersion: 1,
                     switchRegistry: [],
@@ -627,7 +624,7 @@
                 "You are a patch generator for a pinball table editor.",
                 "Return ONLY JSON patch object with optional keys:",
                 "tablePatch, addElements, patchElements, removeElements, addFeatures, patchFeatures, removeFeatures, logicDocPatch.",
-                "Feature schema (for addFeatures/patchFeatures.patch): id, name, description, goal, objects[], states[], rules[], lamps[] (optional parts[] legacy).",
+                "Feature schema (for addFeatures/patchFeatures.patch): id, name, description, goal, objects[], states[], rules[], lamps[].",
                 "Prefer feature-first updates: add/patch feature metadata when creating or changing gameplay logic.",
                 "When editing logic, write into logicDocPatch using current schema keys only:",
                 "logicVersion, switchRegistry, stateTable, computedState, lampBindings, actionRules, resetRules.",
@@ -639,7 +636,7 @@
                 "- actionRules.trigger and resetRules.trigger must be switch IDs from switchRegistry.",
                 "- Never use state ids as triggers.",
                 "- Built-in timer switches available: timer_100ms and timer_1s.",
-                "Do not output legacy graph/sequence node edits.",
+                "Only output the current patch keys listed above.",
                 "For wiring tasks, always generate complete arrays in logicDocPatch for any lists you modify.",
                 "When wiring a target to light when hit, ensure all of these are present:",
                 "1) switchRegistry row mapping trigger switch id/sourceElementId",

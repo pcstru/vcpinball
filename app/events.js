@@ -43,24 +43,9 @@
             if (!raw) return [];
             const out = [];
             const seen = {};
-            const switchMap = world && world.table && world.table.rulesEngine && Array.isArray(world.table.rulesEngine.switchMap)
-                ? world.table.rulesEngine.switchMap
-                : [];
             const logicSwitches = world && world.logicRuntime && world.logicRuntime.doc && Array.isArray(world.logicRuntime.doc.switchRegistry)
                 ? world.logicRuntime.doc.switchRegistry
                 : [];
-            switchMap.forEach(function each(row) {
-                if (!row) return;
-                const logicalId = row.id != null ? String(row.id) : "";
-                const physicalId = row.sourceElementId != null ? String(row.sourceElementId) : "";
-                if (!logicalId) return;
-                if (logicalId === raw || physicalId === raw) {
-                    if (!seen[logicalId]) {
-                        seen[logicalId] = true;
-                        out.push(logicalId);
-                    }
-                }
-            });
             logicSwitches.forEach(function each(row) {
                 if (!row) return;
                 const logicalId = row.id != null ? String(row.id) : "";
@@ -86,12 +71,27 @@
             world.lampState = next;
         }
 
+        function hasTimerSwitches(runtime) {
+            /* What: Cache whether this logic document has cadence-driven switches.
+             * Why: Most playfield rules are event-driven and should not copy lamp
+             * and element-property maps on every physics tick.
+             */
+            if (!runtime || !runtime.doc) return false;
+            if (runtime._hasTimerSwitches != null) return runtime._hasTimerSwitches;
+            runtime._hasTimerSwitches = (runtime.doc.switchRegistry || []).some(function some(row) {
+                return row && row.kind === "timer" && row.id;
+            });
+            return runtime._hasTimerSwitches;
+        }
+
         if (Pin.logicSim) {
             ensureLogicRuntime();
-            if (world.logicRuntime && typeof Pin.logicSim.advanceTime === "function") {
-                Pin.logicSim.advanceTime(world.logicRuntime, dt);
-                syncLogicLamps(world.logicRuntime);
-                syncRuleElementProperties(world.logicRuntime);
+            if (world.logicRuntime && typeof Pin.logicSim.advanceTime === "function" && hasTimerSwitches(world.logicRuntime)) {
+                const firedTimers = Pin.logicSim.advanceTime(world.logicRuntime, dt);
+                if (firedTimers && firedTimers.length) {
+                    syncLogicLamps(world.logicRuntime);
+                    syncRuleElementProperties(world.logicRuntime);
+                }
             }
         }
         const processed = [];

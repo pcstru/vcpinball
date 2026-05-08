@@ -25,7 +25,15 @@
             name: "Untitled Table",
             playfield: Object.assign({}, DEFAULT_PLAYFIELD),
             rules: { balls: 3, highScoreKey: "pinball.generic.highscore" },
-            launcher: { x: 439, y: 710, dir: { x: 0, y: -1 }, maxPower: 42 },
+            logicDocument: {
+                logicVersion: 1,
+                switchRegistry: [],
+                stateTable: [],
+                computedState: [],
+                lampBindings: [],
+                actionRules: [],
+                resetRules: []
+            },
             levels: [
                 { level: 0, name: "Playfield", parentLevel: null, elevation: 0, editorVisible: true },
                 { level: 1, name: "Upper Level", parentLevel: 0, elevation: 48, editorVisible: true }
@@ -126,10 +134,10 @@
     }
 
     function normalizeTable(input) {
-        const source = input && input.version === 1 ? input : migrateLegacyToV1(input || {});
+        const source = input && typeof input === "object" ? input : {};
         const table = cloneTable(source);
         const defaults = createEmptyTable();
-        table.version = 1;
+        if (table.version == null) table.version = defaults.version;
         if (typeof table.name !== "string") table.name = defaults.name;
         table.playfield = Object.assign({}, defaults.playfield, table.playfield || {});
         table.rules = Object.assign({}, defaults.rules, table.rules || {});
@@ -143,15 +151,13 @@
         if (!Array.isArray(table.features)) table.features = [];
         if (!Array.isArray(table.images)) table.images = [];
         if (!Array.isArray(table.elements)) table.elements = [];
+        if (!table.logicDocument || typeof table.logicDocument !== "object") {
+            table.logicDocument = cloneTable(defaults.logicDocument);
+        }
         table.elements.forEach(function ensureElementName(el) {
             if (!el || typeof el !== "object") return;
             if (typeof el.name !== "string" || !el.name.trim()) el.name = fallbackElementName(el);
-            if (el.type === "spinner" && typeof el.radius !== "number") {
-                if (typeof el.size === "number") el.radius = el.size * 0.5;
-                else if (typeof el.length === "number") el.radius = el.length * 0.5;
-            }
         });
-        table.launcher = Object.assign({}, defaults.launcher, table.launcher || {});
         return table;
     }
 
@@ -169,25 +175,8 @@
         if (!table || !table.playfield) issue("error", "Missing playfield.");
         if (!table || !table.rules || typeof table.rules !== "object") issue("error", "Missing rules.");
         if (table && !Array.isArray(table.elements)) issue("error", "elements must be an array.");
-        if (table && table.rulesEngine != null && typeof table.rulesEngine !== "object") {
-            issue("error", "rulesEngine must be an object when present.");
-        }
-        if (table && table.rulesEngine && typeof table.rulesEngine === "object") {
-            if (table.rulesEngine.switchMap != null && !Array.isArray(table.rulesEngine.switchMap)) {
-                issue("error", "rulesEngine.switchMap must be an array when present.");
-            }
-            if (table.rulesEngine.sequenceRules != null && !Array.isArray(table.rulesEngine.sequenceRules)) {
-                issue("error", "rulesEngine.sequenceRules must be an array when present.");
-            }
-            if (table.rulesEngine.triggers != null && !Array.isArray(table.rulesEngine.triggers)) {
-                issue("error", "rulesEngine.triggers must be an array when present.");
-            }
-            if (table.rulesEngine.variables != null && !Array.isArray(table.rulesEngine.variables)) {
-                issue("error", "rulesEngine.variables must be an array when present.");
-            }
-            if (table.rulesEngine.logicGraphs != null && typeof table.rulesEngine.logicGraphs !== "object") {
-                issue("error", "rulesEngine.logicGraphs must be an object when present.");
-            }
+        if (table && table.logicDocument != null && typeof table.logicDocument !== "object") {
+            issue("error", "logicDocument must be an object when present.");
         }
         if (table && table.playfield) {
             ["width", "height", "ballRadius", "gravity", "friction", "restitution", "maxSpeed"].forEach(function checkNumber(k) {
@@ -233,7 +222,7 @@
                 if (feature.goal != null && typeof feature.goal !== "string") {
                     issue("warning", "features[" + i + "].goal should be a string.");
                 }
-                ["objects", "states", "rules", "lamps", "parts"].forEach(function checkList(key) {
+                ["objects", "states", "rules", "lamps"].forEach(function checkList(key) {
                     if (feature[key] == null) return;
                     if (!Array.isArray(feature[key])) {
                         issue("warning", "features[" + i + "]." + key + " should be an array.");
@@ -355,22 +344,12 @@
         return issues;
     }
 
-    function migrateLegacyToV1(legacy) {
-        const table = createEmptyTable();
-        table.name = legacy && legacy.name ? String(legacy.name) : "Migrated Table";
-        if (legacy && legacy.playfield) Object.assign(table.playfield, legacy.playfield);
-        if (legacy && Array.isArray(legacy.images)) table.images = cloneTable(legacy.images);
-        if (legacy && Array.isArray(legacy.elements)) table.elements = cloneTable(legacy.elements);
-        return table;
-    }
-
     Pin.table = {
         createEmptyTable: createEmptyTable,
         cloneTable: cloneTable,
         normalizeTable: normalizeTable,
         validateTable: validateTable,
         validatePlayability: validatePlayability,
-        migrateLegacyToV1: migrateLegacyToV1,
         DEFAULT_PLAYFIELD: DEFAULT_PLAYFIELD,
         DEFAULT_FLIPPER_TUNING: DEFAULT_FLIPPER_TUNING
     };

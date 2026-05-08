@@ -70,12 +70,10 @@
     }
 
     function buildGeometry(el, state) {
-        const pivotX = typeof el.x === "number" ? el.x : (typeof el.x1 === "number" ? el.x1 : 0);
-        const pivotY = typeof el.y === "number" ? el.y : (typeof el.y1 === "number" ? el.y1 : 0);
-        const legacyDx = (typeof el.x2 === "number" ? el.x2 : pivotX + 64) - pivotX;
-        const legacyDy = (typeof el.y2 === "number" ? el.y2 : pivotY) - pivotY;
-        const length = Math.max(8, typeof el.length === "number" ? el.length : Math.sqrt(legacyDx * legacyDx + legacyDy * legacyDy));
-        const restAngle = typeof el.angle === "number" ? el.angle : Math.atan2(legacyDy, legacyDx);
+        const pivotX = typeof el.x === "number" ? el.x : 0;
+        const pivotY = typeof el.y === "number" ? el.y : 0;
+        const length = Math.max(8, typeof el.length === "number" ? el.length : 64);
+        const restAngle = typeof el.angle === "number" ? el.angle : 0;
         const localAngle = state && typeof state.angle === "number" ? state.angle : 0;
         const absolute = restAngle + localAngle;
         return {
@@ -116,7 +114,7 @@
                 Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0 }) :
                 { angle: 0, angularVelocity: 0 };
             const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
-            const restAngle = typeof el.angle === "number" ? el.angle : (typeof el.y2 === "number" && typeof el.x2 === "number" ? Math.atan2(el.y2 - (el.y || el.y1 || 0), el.x2 - (el.x || el.x1 || 0)) : 0);
+            const restAngle = typeof el.angle === "number" ? el.angle : 0;
             const limits = gateSwingLimits(el, restAngle);
             const returnStrength = typeof el.returnStrength === "number" ? el.returnStrength : 24;
             const damping = typeof el.returnDamping === "number" ? el.returnDamping : 8;

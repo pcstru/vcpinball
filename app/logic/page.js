@@ -418,7 +418,7 @@
                 };
                 card.appendChild(cardTitle(feature.name || feature.id || "Feature", feature.id || ""));
                 card.appendChild(metaLine("Goal", feature.goal || "No goal set"));
-                card.appendChild(metaLine("Objects", formatFeatureItems(feature.objects || feature.parts || [], labelForElement)));
+                card.appendChild(metaLine("Objects", formatFeatureItems(feature.objects || [], labelForElement)));
                 card.appendChild(metaLine("States", formatFeatureItems(feature.states || [], labelForState)));
                 card.appendChild(metaLine("Rules", formatFeatureItems(feature.rules || [], labelForRuleId)));
                 card.appendChild(metaLine("Lamps", formatFeatureItems(feature.lamps || [], labelForLamp)));
@@ -429,7 +429,6 @@
                 fields.appendChild(inputField("ID", feature.id || "", function onId(next) { feature.id = next; }));
                 fields.appendChild(inputField("Goal", feature.goal || "", function onGoal(next) { feature.goal = next; }));
                 fields.appendChild(inputField("Description", feature.description || "", function onDesc(next) { feature.description = next; }));
-                fields.appendChild(inputField("Parts (legacy ids)", (feature.parts || []).join(", "), function onParts(next) { feature.parts = parseCsvList(next); }));
                 card.appendChild(fields);
                 card.appendChild(featureChecklist("Objects", featureObjectOptions(), feature.objects || [], function onToggle(id, enabled) {
                     toggleFeatureLink(feature, "objects", id, enabled);
@@ -1596,8 +1595,8 @@
         }
 
         function renderExport(validation) {
-            /* What: Render export actions for source logic, compiled rules, and full table JSON.
-             * Why: Authoring stays simple while runtime compatibility remains explicit.
+            /* What: Render export actions for source logic and full table JSON.
+             * Why: Authoring and runtime now share the same logic document.
              */
             main.innerHTML = "";
             var card = document.createElement("div");
@@ -1605,16 +1604,13 @@
             var h = document.createElement("h2");
             h.textContent = "Export";
             var p = document.createElement("p");
-            p.textContent = "The editor source is saved as a logic document and compiled into TBSpec-compatible rulesEngine fields.";
+            p.textContent = "The table stores this logic document directly as table.logicDocument.";
             card.appendChild(h);
             card.appendChild(p);
             var actions = document.createElement("div");
             actions.className = "logic-switch-grid";
             appendActionButton(actions, "Export Logic Document", function onclick() {
                 exportBlob((table.name || "table") + ".logic.json", doc);
-            });
-            appendActionButton(actions, "Export Compiled Rules", function onclick() {
-                exportBlob((table.name || "table") + ".rulesEngine.json", Pin.logicCompile.compileToRulesEngine(doc));
             });
             appendActionButton(actions, "Export Full Table", function onclick() {
                 Pin.storage.file.export(Pin.logicCompile.applyToTable(table, doc));

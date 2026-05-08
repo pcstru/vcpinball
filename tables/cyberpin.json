@@ -14,15 +14,6 @@
     "balls": 3,
     "highScoreKey": "cyberpinHighScore"
   },
-  "launcher": {
-    "x": 439,
-    "y": 710,
-    "dir": {
-      "x": 0,
-      "y": -1
-    },
-    "maxPower": 42
-  },
   "elements": [
     {
       "id": "outerWall",
@@ -340,24 +331,29 @@
     {
       "id": "gate1",
       "type": "gate",
-      "x1": 390,
-      "y1": 170,
-      "x2": 420,
-      "y2": 205,
       "maxAngle": 0.85,
       "returnStrength": 22,
       "returnDamping": 7,
       "thickness": 2,
-      "color": "#99ffcc"
+      "color": "#99ffcc",
+      "x": 390,
+      "y": 170,
+      "length": 46.09772228646444,
+      "angle": 0.8621700546672264
     },
     {
       "id": "kicker1",
       "type": "kicker",
-      "x": 118,
-      "y": 370,
       "radius": 18,
       "kickPower": 12,
-      "color": "#aa66ff"
+      "color": "#aa66ff",
+      "anchors": [
+        {
+          "x": 118,
+          "y": 370,
+          "radius": 18
+        }
+      ]
     },
     {
       "id": "scoreZone1",

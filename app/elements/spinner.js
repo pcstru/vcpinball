@@ -4,14 +4,11 @@
         return Date.now();
     }
 
-    /* What: Resolve spinner blade radius with legacy fallbacks.
-     * Why: Spinner sizing is now radius-based, while older tables may still use size/length.
-     * Correctness: Prefers radius, then converts full-span size/length to radius.
+    /* What: Resolve spinner blade radius from the current schema.
+     * Why: Spinner physics and drawing share one authored radius field.
      */
     function getSpinnerRadius(el) {
         if (el && typeof el.radius === "number") return el.radius;
-        if (el && typeof el.size === "number") return el.size * 0.5;
-        if (el && typeof el.length === "number") return el.length * 0.5;
         return 30;
     }
 
@@ -19,12 +16,8 @@
         compile: function compile(el, table, world) {
             const radius = getSpinnerRadius(el);
             const state = Pin.elements.getState ?
-                Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0, lastTime: now() }, el.id) :
+                Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0, lastTime: now() }) :
                 { angle: 0, angularVelocity: 0, lastTime: now() };
-            if (typeof state.angularVelocity !== "number" && typeof state.velocity === "number") {
-                state.angularVelocity = state.velocity * 22;
-                delete state.velocity;
-            }
             const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
             const damping = typeof el.damping === "number" ? el.damping : 3.5;
             state.angle = (state.angle || 0) + (state.angularVelocity || 0) * dt;
@@ -50,7 +43,7 @@
                                 Pin.events.emit(world, { type: "switchClosed", sourceId: el.id, elementType: el.type });
                             }
                             const hitState = Pin.elements.getState ?
-                                Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0, lastTime: now() }, el.id) :
+                                Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0, lastTime: now() }) :
                                 { angle: 0, angularVelocity: 0, lastTime: now() };
                             const contactT = Math.max(0, Math.min(1, hit && typeof hit.t === "number" ? hit.t : 0.5));
                             const arm = (contactT - 0.5) * radius * 2;
@@ -75,7 +68,7 @@
         draw: function draw(ctx, el, runtime, world) {
             const radius = getSpinnerRadius(el);
             let angle = 0;
-            const state = Pin.elements.peekState ? Pin.elements.peekState(world, el, el.id) : null;
+            const state = Pin.elements.peekState ? Pin.elements.peekState(world, el) : null;
             if (state) {
                 angle = state.angle || 0;
             }

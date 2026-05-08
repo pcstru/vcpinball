@@ -24,15 +24,6 @@
     }
   ],
   "images": [],
-  "launcher": {
-    "x": 455,
-    "y": 760,
-    "dir": {
-      "x": 0,
-      "y": -1
-    },
-    "maxPower": 42
-  },
   "elements": [
     {
       "id": "outerWall",

@@ -75,7 +75,6 @@
         if (type === "spinner") return { id: makeId(type), type: "spinner", level: 0, x: 250, y: 220, radius: 30, angle: 0, score: 100 };
         if (type === "launcher") return { id: makeId(type), type: "launcher", level: 0, x: 439, y: 710, top: 195, bottom: 735, width: 38, maxPower: 42, maxRetract: 65, pullSpeed: 95, returnSpeed: 220, springStrength: 1 };
         if (type === "gate") return { id: makeId(type), type: "gate", level: 0, x: 230, y: 360, length: 64, angle: -0.2, direction: "forward", open: false, locked: false, swingStartAngle: -0.2, swingEndAngle: 0.85, maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, restitution: 0.55, color: "#99ffcc", pinColor: "#f7fbff" };
-        if (type === "valve") return { id: makeId(type), type: "valve", level: 0, x: 230, y: 360, length: 64, angle: -0.2, direction: "forward", maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, color: "#a8e4ff", pinColor: "#f7fbff" };
         if (type === "drain") return { id: makeId(type), type: "drain", level: 0, x: 250, y: 835, w: 150, h: 24 };
         if (type === "trough") return { id: makeId(type), type: "trough", level: 0, x: 250, y: 820, radius: 18, holdSeconds: 0.75, reactivateDelay: 2, ejectPower: 10, ejectAngle: -Math.PI * 0.5, color: "#88aaff", pitColor: "#08101f", opacity: 1 };
         if (type === "kicker") return {
@@ -192,34 +191,20 @@
     function ensureSelectableLauncher(table) {
         table.elements = table.elements || [];
         if (table.elements.some(function hasLauncher(el) { return el.type === "launcher"; })) return;
-        const legacy = table.launcher || {};
         table.elements.unshift({
             id: "launcher",
             type: "launcher",
-            x: legacy.x || 439,
-            y: legacy.y || 710,
-            top: legacy.top || 195,
-            bottom: legacy.bottom || 735,
-            width: legacy.width || 38,
-            maxPower: legacy.maxPower || 42
+            x: 439,
+            y: 710,
+            top: 195,
+            bottom: 735,
+            width: 38,
+            maxPower: 42
         });
     }
 
     function syncLauncherConfig(table) {
-        const lane = getLauncherElement(table);
-        if (!lane) return;
-        table.launcher = table.launcher || {};
-        table.launcher.x = lane.x || 439;
-        const bottom = lane.bottom || 735;
-        const top = lane.top || 195;
-        const y = lane.y || bottom - 25;
-        table.launcher.y = Math.max(top + 12, Math.min(bottom - 8, y));
-        table.launcher.top = lane.top || 195;
-        table.launcher.bottom = bottom;
-        table.launcher.width = lane.width || 38;
-        table.launcher.maxPower = lane.maxPower || table.launcher.maxPower || 42;
-        table.launcher.maxRetract = lane.maxRetract || table.launcher.maxRetract || 65;
-        table.launcher.springStrength = lane.springStrength || table.launcher.springStrength || 1;
+        return table;
     }
 
     function ensureImageLayers(table) {
@@ -243,7 +228,7 @@
 
     function firstSwitchElementId(table) {
         const element = (table.elements || []).find(function find(el) {
-            return el && el.id && ["lane", "scoreZone", "spinner", "gate", "valve", "drain", "launcher", "dropTarget", "bumper", "kicker"].indexOf(el.type) >= 0;
+            return el && el.id && ["lane", "scoreZone", "spinner", "gate", "drain", "launcher", "dropTarget", "bumper", "kicker"].indexOf(el.type) >= 0;
         });
         return element ? element.id : "";
     }

@@ -1,6 +1,6 @@
 /*
  * Kicker element.
- * What: supports a legacy single-post kicker and a composite 1-3 post rubber-ring kicker.
+ * What: supports a 1-3 post rubber-ring kicker.
  * Why: real kickers are often formed from several round posts with a rubber band perimeter.
  */
 (function registerKicker(Pin) {
@@ -10,12 +10,9 @@
     }
 
     function getPosts(el) {
-        if (Array.isArray(el.anchors) && el.anchors.length) {
-            return el.anchors.slice(0, 3).map(function map(anchor) {
-                return { x: anchor.x, y: anchor.y, radius: postRadius(el, anchor) };
-            });
-        }
-        return [{ x: el.x, y: el.y, radius: Math.max(4, el.radius || 14) }];
+        return (el.anchors || []).slice(0, 3).map(function map(anchor) {
+            return { x: anchor.x, y: anchor.y, radius: postRadius(el, anchor) };
+        });
     }
 
     function getSegments(posts, closed) {

@@ -146,33 +146,25 @@
     /*
      * Resolve the flipper surface restitution.
      * Why: this is the physically meaningful normal bounce parameter for the
-     * rubberized flipper face. A small legacy fallback keeps old tables sane.
+     * rubberized flipper face.
      */
     function getSurfaceRestitution(el) {
         if (typeof el.surfaceRestitution === "number") return el.surfaceRestitution;
-        if (typeof el.trapDamping === "number") {
-            return Math.max(0.08, Math.min(0.4, el.trapDamping * 0.28));
-        }
         return 0.28;
     }
 
     /*
      * Resolve the flipper surface friction.
-     * Why: this controls tangential slip reduction along the blade. Legacy
-     * damping fields are only used as a rough fallback for older tables.
+     * Why: this controls tangential slip reduction along the blade.
      */
     function getSurfaceFriction(el) {
         if (typeof el.surfaceFriction === "number") return el.surfaceFriction;
-        if (typeof el.tangentialDamping === "number") {
-            return Math.max(0.02, Math.min(0.35, 1 - el.tangentialDamping));
-        }
         return 0.08;
     }
 
     /*
-     * Resolve tip restitution, preserving legacy per-tip overrides.
-     * Why: modern tuning is surface-first, but older tables may still include
-     * explicit tip material fields.
+     * Resolve tip restitution from current flipper tuning.
+     * Why: tip behavior can be authored separately from the blade surface.
      */
     function getTipRestitution(el) {
         if (typeof el.tipRestitution === "number") return el.tipRestitution;
@@ -180,9 +172,8 @@
     }
 
     /*
-     * Resolve tip friction, preserving legacy per-tip overrides.
-     * Why: surface friction is the default authored control, while legacy tip
-     * fields remain optional compatibility inputs.
+     * Resolve tip friction from current flipper tuning.
+     * Why: tip behavior can be authored separately from the blade surface.
      */
     function getTipFriction(el) {
         if (typeof el.tipFriction === "number") return el.tipFriction;
@@ -196,14 +187,12 @@
      */
     function getStrikeBoost(el) {
         if (typeof el.strikeBoost === "number") return el.strikeBoost;
-        if (typeof el.impulse === "number") return Math.max(0, el.impulse * 0.2);
         return 0.52;
     }
 
     /*
-     * Resolve tip strike assist while keeping legacy overrides.
-     * Why: new tables tune strike at the blade level; older tables can still
-     * provide a dedicated tip term.
+     * Resolve tip strike assist from current flipper tuning.
+     * Why: tip shots can need a different strike profile from blade hits.
      */
     function getTipStrikeBoost(el) {
         if (typeof el.tipStrikeBoost === "number") return el.tipStrikeBoost;

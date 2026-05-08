@@ -194,7 +194,7 @@
     }
 
     function propertyTabForField(path) {
-        if (path === "name" || path === "level" || path === "side" || path === "control" || path === "role" || path === "direction" || path === "valve" || path === "capacity" || path === "closed") {
+        if (path === "name" || path === "level" || path === "side" || path === "control" || path === "role" || path === "direction" || path === "capacity" || path === "closed") {
             return "meta";
         }
         if (/(^|\.)(color|glowColor|pinColor|label|lampId|bandThickness)$/.test(path)) {
@@ -295,7 +295,7 @@
                 { path: "radius", label: "radius", groupKey: "Shape" },
                 { path: "lampId", label: "lamp id", groupKey: "Logic" },
                 { path: "text", label: "text", groupKey: "Text" },
-                { path: "label", label: "legacy label", groupKey: "Text" },
+                { path: "label", label: "label", groupKey: "Text" },
                 { path: "color", label: "color", groupKey: "Appearance" },
                 { path: "transparency", label: "transparency", groupKey: "Appearance" }
             ],
@@ -305,7 +305,7 @@
                 { path: "angle", label: "angle", groupKey: "Shape" },
                 { path: "lampId", label: "lamp id", groupKey: "Logic" },
                 { path: "text", label: "text", groupKey: "Text" },
-                { path: "label", label: "legacy label", groupKey: "Text" },
+                { path: "label", label: "label", groupKey: "Text" },
                 { path: "color", label: "color", groupKey: "Appearance" },
                 { path: "transparency", label: "transparency", groupKey: "Appearance" }
             ],
@@ -316,7 +316,7 @@
                 { path: "cornerRadius", label: "corner radius", groupKey: "Shape" },
                 { path: "lampId", label: "lamp id", groupKey: "Logic" },
                 { path: "text", label: "text", groupKey: "Text" },
-                { path: "label", label: "legacy label", groupKey: "Text" },
+                { path: "label", label: "label", groupKey: "Text" },
                 { path: "color", label: "color", groupKey: "Appearance" },
                 { path: "transparency", label: "transparency", groupKey: "Appearance" }
             ],
@@ -539,7 +539,6 @@
             launcher: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="21" y="6" width="6" height="26" rx="2" fill="#7ea1ff"/><rect x="18" y="33" width="12" height="7" rx="3.5" fill="#ee4444"/><rect x="17" y="5" width="14" height="37" rx="4" fill="none" stroke="rgba(214,228,255,0.45)" stroke-width="1.5"/></svg>',
             spinner: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="3" fill="#f3f7ff"/><path d="M10 24 H38" stroke="#ffdd00" stroke-width="5" stroke-linecap="round"/><path d="M24 10 V38" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"/></svg>',
             gate: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="14" cy="24" r="3" fill="#f3f7ff"/><path d="M14 24 L35 17" stroke="#99ffcc" stroke-width="4" stroke-linecap="round"/></svg>',
-            valve: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="16" cy="24" r="3.5" fill="#f3f7ff"/><path d="M16 24 L34 18" stroke="#a8e4ff" stroke-width="4" stroke-linecap="round"/><path d="M34 18 L30 28" stroke="#a8e4ff" stroke-width="3" stroke-linecap="round"/></svg>',
             kicker: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="10" fill="rgba(136,255,204,0.18)" stroke="#88ffcc" stroke-width="3"/><circle cx="24" cy="24" r="4" fill="#dffbf1"/></svg>',
             trough: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="14" fill="#08101f" stroke="#88aaff" stroke-width="3"/><circle cx="20" cy="20" r="5" fill="rgba(255,255,255,0.18)"/><circle cx="24" cy="24" r="6" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/></svg>',
             bumper: '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="12" fill="#ff3377"/><circle cx="24" cy="24" r="6" fill="#ffd6e6"/><circle cx="24" cy="24" r="16" fill="none" stroke="rgba(255,51,119,0.45)" stroke-width="3"/></svg>',

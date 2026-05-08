@@ -306,9 +306,14 @@
      * initial collision response, not just the stale segment snapshot from impact.
      */
     function findColliderByHitKey(world, hitKey) {
-        const segments = (world.dynamicSegments || []).concat(world.staticSegments || []);
-        for (let i = 0; i < segments.length; i++) {
-            const seg = segments[i];
+        const dynamicSegments = world.dynamicSegments || [];
+        for (let i = 0; i < dynamicSegments.length; i++) {
+            const seg = dynamicSegments[i];
+            if (seg && seg.hitKey === hitKey) return seg;
+        }
+        const staticSegments = world.staticSegments || [];
+        for (let i = 0; i < staticSegments.length; i++) {
+            const seg = staticSegments[i];
             if (seg && seg.hitKey === hitKey) return seg;
         }
         return null;
@@ -403,8 +408,6 @@
         const staticRefs = queryBroadPhase(world.staticBroadPhase, ballQuery);
         for (let pass = 0; pass < iterations; pass++) {
             let passHit = false;
-            const staticSegRefs = staticRefs ? staticRefs.filter(function onlySeg(ref) { return ref.kind === "s"; }) : null;
-            const staticCircleRefs = staticRefs ? staticRefs.filter(function onlyCircle(ref) { return ref.kind === "c"; }) : null;
             const dynamicSegmentOffset = world.staticSegments ? world.staticSegments.length : 0;
             const dynamicCircleOffset = world.staticCircles ? world.staticCircles.length : 0;
 
@@ -438,15 +441,19 @@
                 }
             }
 
-            if (staticSegRefs) {
-                staticSegRefs.forEach(function each(ref) { testSegment(world.staticSegments[ref.index], "s" + ref.index); });
+            if (staticRefs) {
+                staticRefs.forEach(function each(ref) {
+                    if (ref.kind === "s") testSegment(world.staticSegments[ref.index], "s" + ref.index);
+                });
             } else {
                 (world.staticSegments || world.runtimeSegments || []).forEach(function each(seg, i) { testSegment(seg, "s" + i); });
             }
             (world.dynamicSegments || []).forEach(function each(seg, i) { testSegment(seg, "s" + (dynamicSegmentOffset + i)); });
 
-            if (staticCircleRefs) {
-                staticCircleRefs.forEach(function each(ref) { testCircle(world.staticCircles[ref.index], "c" + ref.index); });
+            if (staticRefs) {
+                staticRefs.forEach(function each(ref) {
+                    if (ref.kind === "c") testCircle(world.staticCircles[ref.index], "c" + ref.index);
+                });
             } else {
                 (world.staticCircles || world.runtimeCircles || []).forEach(function each(circle, i) { testCircle(circle, "c" + i); });
             }
@@ -633,14 +640,23 @@
     }
 
     function getLauncherConfig(world) {
-        const lane = (world.table.elements || []).find(function find(el) { return el.type === "launcher"; });
-        const legacy = world.table.launcher || {};
-        const x = (lane && lane.x) || legacy.x || 439;
-        const top = (lane && lane.top) || legacy.top || 195;
-        const bottom = (lane && lane.bottom) || legacy.bottom || 735;
+        if (world && world._launcherConfig && world._launcherConfigTable === world.table) {
+            return world._launcherConfig;
+        }
+        let lane = null;
+        const elements = (world.table && world.table.elements) || [];
+        for (let i = 0; i < elements.length; i++) {
+            if (elements[i] && elements[i].type === "launcher") {
+                lane = elements[i];
+                break;
+            }
+        }
+        const x = (lane && lane.x) || 439;
+        const top = (lane && lane.top) || 195;
+        const bottom = (lane && lane.bottom) || 735;
         const width = (lane && lane.width) || 38;
-        const rawY = (lane && lane.y) || legacy.y || bottom - 25;
-        return {
+        const rawY = (lane && lane.y) || bottom - 25;
+        const config = {
             x: x,
             y: Math.max(top + 12, Math.min(bottom - 8, rawY)),
             top: top,
@@ -650,10 +666,15 @@
             right: x + width * 0.5,
             id: lane && lane.id,
             element: lane,
-            maxPower: (lane && lane.maxPower) || legacy.maxPower || 42,
-            maxRetract: (lane && lane.maxRetract) || legacy.maxRetract || 65,
-            springStrength: (lane && lane.springStrength) || legacy.springStrength || 1
+            maxPower: (lane && lane.maxPower) || 42,
+            maxRetract: (lane && lane.maxRetract) || 65,
+            springStrength: (lane && lane.springStrength) || 1
         };
+        if (world) {
+            world._launcherConfig = config;
+            world._launcherConfigTable = world.table;
+        }
+        return config;
     }
 
     function getLauncherState(world, launcher) {

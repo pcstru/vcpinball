@@ -1,10 +1,10 @@
 # TBSpec (Current Runtime + Assistant Contract)
 
 ## What
-This document is the authoritative table/logic contract for:
+This document is the authoritative current table/logic contract for:
 - table JSON used by play/design/logic pages
 - assistant + agentic patch generation/validation
-- runtime-compatible logic compilation
+- direct logic-document runtime execution
 
 ## Why
 Assistant/agentic output is only valid when it matches the exact schema and behavior implemented in the app. This spec is intentionally implementation-shaped.
@@ -14,23 +14,22 @@ Assistant/agentic output is only valid when it matches the exact schema and beha
 - `name`
 - `playfield`
 - `rules`
-- `launcher` (legacy compatibility mirror of launcher element)
 - `levels`
 - `features`
 - `images`
 - `elements`
-- `rulesEngine`
+- `logicDocument`
 
 Expected key payloads:
 - `playfield`: width/height and render-safe geometry bounds
-- `rules`: at least balls/highScoreKey compatible values
+- `rules`: `balls` and `highScoreKey`
 - `features`: optional human-facing gameplay grouping metadata
 - `images`: optional background/overlay image layers (`mode`: `play|design|both`)
 - `elements`: physical/mechanism/lamp objects used by physics/render/logic mapping
-- `rulesEngine`: compiled runtime logic + embedded authoring source document
+- `logicDocument`: executable gameplay logic source
 
 ## 2) Feature Metadata (`table.features`)
-`features` is editorial authoring metadata (not runtime state machine execution).  
+`features` is editorial authoring metadata, not runtime state machine execution.
 Each feature entry may include:
 - `id` (string)
 - `name` (string)
@@ -40,11 +39,10 @@ Each feature entry may include:
 - `states` (string[])
 - `rules` (string[])
 - `lamps` (string[])
-- `parts` (string[], legacy compatibility)
 
 ## 3) Logic Source of Truth
 Feature-first authoring lives in:
-- `table.rulesEngine.logicGraphs.logicDocument`
+- `table.logicDocument`
 
 Logic document schema (`logicVersion: 1`):
 - `logicVersion: 1`
@@ -54,13 +52,6 @@ Logic document schema (`logicVersion: 1`):
 - `lampBindings: []`
 - `actionRules: []`
 - `resetRules: []`
-
-Compiled compatibility payloads still exist under `rulesEngine`:
-- `switchMap`
-- `sequenceRules` (kept for compatibility, typically empty from new logic flow)
-- `triggers`
-- `variables`
-- `logicGraphs.logicDocument` (source document round-trip)
 
 ## 4) Assistant/Agentic Patch Contract
 Patch object may only use these top-level keys:
@@ -88,10 +79,10 @@ Strict logic row rules:
 - action `effects` rows: `{ type, target?, value? }`
 - allowed effect `type`: `set|add|score|reset|setElementProperty|clearElementProperty`
 - `resetRules` rows: `{ id, trigger, scope, resets }`
-- `trigger` fields reference switch IDs (not state IDs)
+- `trigger` fields reference switch IDs, not state IDs
 - `logicVersion` must be `1` when present
 
-## 5) Supported Element Types (Current)
+## 5) Supported Element Types
 Current authoring/runtime element families include:
 - `flipper`
 - `launcher`
@@ -99,7 +90,7 @@ Current authoring/runtime element families include:
 - `lane`
 - `dropTarget`
 - `spinner`
-- `gate` (`valve` is legacy/loadable compatibility alias)
+- `gate`
 - `kicker`
 - `bumper`
 - `scoreZone`
@@ -110,17 +101,17 @@ Current authoring/runtime element families include:
 - `boxLight`
 - `ramp`
 
-## 6) Notable Current Element Properties
+## 6) Notable Element Properties
 Only list fields that materially affect assistant/agentic correctness:
 - `lane`: includes `x,y,w,h,angle,score,label,color,opacity`
 - `trough`: includes `x,y,radius,holdSeconds,reactivateDelay,ejectPower,ejectAngle,color,pitColor,opacity`
 - `drain`: includes `x,y,w,h,color`; runtime sensor marks balls drained
 - lamp types use `lampId`/`color`/shape fields
-- launcher runtime behavior comes from launcher element + synced `table.launcher` compatibility fields
+- launcher runtime behavior comes from the `launcher` element
 
 ## 7) Current Mode-Specific Behavior Constraints
 These are behavior constraints assistant/agentic should not violate:
-- `drain` is design-visible and play-hidden (render suppression in play mode)
+- `drain` is design-visible and play-hidden
 - lane/trough visual transparency is controlled via `opacity`
 - play mode starts in attract/high-score state; mobile restart flow uses launch button:
   - label is `Play` between games
@@ -128,7 +119,7 @@ These are behavior constraints assistant/agentic should not violate:
   - `Launch` then performs staged-ball launch
 
 ## 8) Authoring Guidance for Assistant/Agentic
-- Prefer feature-first logic updates (`features` + `logicDocPatch`) over legacy trigger prose.
+- Prefer feature-first logic updates with `features` + `logicDocPatch`.
 - Keep edits surgical: only mutate requested fields/rows.
 - Do not invent unsupported keys, effect types, or alternate logic schemas.
-- Treat `rulesEngine.logicGraphs.logicDocument` as the editable logic source.
+- Treat `table.logicDocument` as the editable logic source.

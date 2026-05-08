@@ -20,8 +20,8 @@
 
     function tableKey(table) {
         /* What: Resolve the high-score namespace for a table.
-         * Why: Custom table keys should remain honored, while the legacy generic
-         *      default must not make unrelated named tables share one leaderboard.
+         * Why: Custom table keys should remain honored, while the built-in default
+         *      must not make unrelated named tables share one leaderboard.
          */
         const rules = table && table.rules ? table.rules : {};
         const explicit = typeof rules.highScoreKey === "string" ? rules.highScoreKey.trim() : "";

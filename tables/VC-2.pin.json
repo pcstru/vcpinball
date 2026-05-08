@@ -14,21 +14,6 @@
     "balls": 3,
     "highScoreKey": "pinball.generic.highscore"
   },
-  "launcher": {
-    "x": 460,
-    "y": 795,
-    "dir": {
-      "x": 0,
-      "y": -1
-    },
-    "maxPower": 42,
-    "valve": false,
-    "top": 640,
-    "bottom": 820,
-    "width": 38,
-    "maxRetract": 65,
-    "springStrength": 1
-  },
   "levels": [
     {
       "level": 0,
@@ -147,8 +132,7 @@
       "maxRetract": 65,
       "pullSpeed": 95,
       "returnSpeed": 220,
-      "springStrength": 1,
-      "valve": false
+      "springStrength": 1
     },
     {
       "id": "lf",

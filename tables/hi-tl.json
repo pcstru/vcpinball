@@ -14,20 +14,6 @@
     "balls": 3,
     "highScoreKey": "pinball.generic.highscore"
   },
-  "launcher": {
-    "x": 464.842050607606,
-    "y": 829.5575053217659,
-    "dir": {
-      "x": 0,
-      "y": -1
-    },
-    "maxPower": 42,
-    "top": 734.5575053217659,
-    "bottom": 854.5575053217659,
-    "width": 38,
-    "maxRetract": 65,
-    "springStrength": 1
-  },
   "levels": [
     {
       "level": 0,
@@ -1189,134 +1175,283 @@
       "name": "TLaneLight-A"
     }
   ],
-  "rulesEngine": {
-    "switchMap": [
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [
       {
         "id": "timer_100ms",
+        "name": "Timer 100ms",
+        "kind": "timer",
         "sourceElementId": "timer_100ms",
-        "kind": "timer"
+        "intervalMs": 100
       },
       {
         "id": "timer_1s",
+        "name": "Timer 1s",
+        "kind": "timer",
         "sourceElementId": "timer_1s",
-        "kind": "timer"
+        "intervalMs": 1000
       },
       {
         "id": "drain_4vhmox",
-        "sourceElementId": "drain_4vhmox",
-        "kind": "drain"
+        "name": "drain_4vhmox",
+        "kind": "drain",
+        "sourceElementId": "drain_4vhmox"
       },
       {
         "id": "dropTarget_uj96mp",
-        "sourceElementId": "dropTarget_uj96mp",
-        "kind": "dropTarget"
+        "name": "T1",
+        "kind": "dropTarget",
+        "sourceElementId": "dropTarget_uj96mp"
       },
       {
         "id": "dropTarget_bhkzh4",
-        "sourceElementId": "dropTarget_bhkzh4",
-        "kind": "dropTarget"
+        "name": "T1",
+        "kind": "dropTarget",
+        "sourceElementId": "dropTarget_bhkzh4"
       },
       {
         "id": "dropTarget_j0fo4f",
-        "sourceElementId": "dropTarget_j0fo4f",
-        "kind": "dropTarget"
+        "name": "T1",
+        "kind": "dropTarget",
+        "sourceElementId": "dropTarget_j0fo4f"
       },
       {
         "id": "dropTarget_e5isck",
-        "sourceElementId": "dropTarget_e5isck",
-        "kind": "dropTarget"
+        "name": "T2",
+        "kind": "dropTarget",
+        "sourceElementId": "dropTarget_e5isck"
       },
       {
         "id": "dropTarget_s9fga6",
-        "sourceElementId": "dropTarget_s9fga6",
-        "kind": "dropTarget"
+        "name": "T2",
+        "kind": "dropTarget",
+        "sourceElementId": "dropTarget_s9fga6"
       },
       {
         "id": "dropTarget_5l1v8j",
-        "sourceElementId": "dropTarget_5l1v8j",
-        "kind": "dropTarget"
+        "name": "T2",
+        "kind": "dropTarget",
+        "sourceElementId": "dropTarget_5l1v8j"
       },
       {
         "id": "lane_dygv85",
-        "sourceElementId": "lane_dygv85",
-        "kind": "lane"
+        "name": "TLane1a",
+        "kind": "lane",
+        "sourceElementId": "lane_dygv85"
       },
       {
         "id": "lane_81dld4",
-        "sourceElementId": "lane_81dld4",
-        "kind": "lane"
+        "name": "TLane1b",
+        "kind": "lane",
+        "sourceElementId": "lane_81dld4"
       },
       {
         "id": "lane_foxf5x",
-        "sourceElementId": "lane_foxf5x",
-        "kind": "lane"
+        "name": "TLane1c",
+        "kind": "lane",
+        "sourceElementId": "lane_foxf5x"
       },
       {
         "id": "trough_81phwo",
-        "sourceElementId": "trough_81phwo",
-        "kind": "trough"
+        "name": "T1Trough",
+        "kind": "trough",
+        "sourceElementId": "trough_81phwo"
       },
       {
         "id": "trough_425c15",
-        "sourceElementId": "trough_425c15",
-        "kind": "trough"
+        "name": "T2Trough",
+        "kind": "trough",
+        "sourceElementId": "trough_425c15"
       },
       {
         "id": "trough_r0obo3",
-        "sourceElementId": "trough_r0obo3",
-        "kind": "trough"
+        "name": "TLaneTrough",
+        "kind": "trough",
+        "sourceElementId": "trough_r0obo3"
       },
       {
         "id": "bumper_glxqxx",
-        "sourceElementId": "bumper_glxqxx",
-        "kind": "bumper"
+        "name": "bumper_glxqxx",
+        "kind": "bumper",
+        "sourceElementId": "bumper_glxqxx"
       },
       {
         "id": "bumper_xvpuq2",
-        "sourceElementId": "bumper_xvpuq2",
-        "kind": "bumper"
+        "name": "bumper_xvpuq2",
+        "kind": "bumper",
+        "sourceElementId": "bumper_xvpuq2"
       },
       {
         "id": "bumper_5p9b0r",
-        "sourceElementId": "bumper_5p9b0r",
-        "kind": "bumper"
+        "name": "bumper_5p9b0r",
+        "kind": "bumper",
+        "sourceElementId": "bumper_5p9b0r"
       },
       {
         "id": "kicker_e5sqr5",
-        "sourceElementId": "kicker_e5sqr5",
-        "kind": "kicker"
+        "name": "kicker_e5sqr5",
+        "kind": "kicker",
+        "sourceElementId": "kicker_e5sqr5"
       },
       {
         "id": "kicker_7gydfo",
-        "sourceElementId": "kicker_7gydfo",
-        "kind": "kicker"
+        "name": "kicker_7gydfo",
+        "kind": "kicker",
+        "sourceElementId": "kicker_7gydfo"
       },
       {
         "id": "spinner_zip3tv",
-        "sourceElementId": "spinner_zip3tv",
-        "kind": "spinner"
+        "name": "spinner_zip3tv",
+        "kind": "spinner",
+        "sourceElementId": "spinner_zip3tv"
       },
       {
         "id": "gate_4usyda",
-        "sourceElementId": "gate_4usyda",
-        "kind": "gate"
+        "name": "gate_4usyda",
+        "kind": "gate",
+        "sourceElementId": "gate_4usyda"
       },
       {
         "id": "dropTarget_qd1wf2",
-        "sourceElementId": "dropTarget_qd1wf2",
-        "kind": "dropTarget"
+        "name": "PachencoMan",
+        "kind": "dropTarget",
+        "sourceElementId": "dropTarget_qd1wf2"
       },
       {
         "id": "dropTarget_uqzo0i",
-        "sourceElementId": "dropTarget_uqzo0i",
-        "kind": "dropTarget"
+        "name": "PachencoMan",
+        "kind": "dropTarget",
+        "sourceElementId": "dropTarget_uqzo0i"
       }
     ],
-    "sequenceRules": [],
-    "triggers": [
+    "stateTable": [
+      {
+        "id": "t1_a_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "t1_b_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "t1_c_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "t2_a_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "t2_b_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "t2_c_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "lane_a_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "lane_b_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "lane_c_lit",
+        "type": "bool",
+        "initial": false
+      },
+      {
+        "id": "blink_phase",
+        "type": "int",
+        "initial": 0
+      }
+    ],
+    "computedState": [
+      {
+        "id": "t1_bonus_ready",
+        "expr": "t1_a_lit && t1_b_lit && t1_c_lit"
+      },
+      {
+        "id": "t2_bonus_ready",
+        "expr": "t2_a_lit && t2_b_lit && t2_c_lit"
+      },
+      {
+        "id": "lane_bonus_ready",
+        "expr": "lane_a_lit && lane_b_lit && lane_c_lit"
+      },
+      {
+        "id": "all_bonus_ready",
+        "expr": "t1_bonus_ready && t2_bonus_ready && lane_bonus_ready"
+      },
+      {
+        "id": "blink_on",
+        "expr": "blink_phase == 0"
+      }
+    ],
+    "lampBindings": [
+      {
+        "lampId": "dropTarget_uj96mp",
+        "expr": "t1_a_lit"
+      },
+      {
+        "lampId": "dropTarget_bhkzh4",
+        "expr": "t1_b_lit"
+      },
+      {
+        "lampId": "dropTarget_j0fo4f",
+        "expr": "t1_c_lit"
+      },
+      {
+        "lampId": "dropTarget_e5isck",
+        "expr": "t2_a_lit"
+      },
+      {
+        "lampId": "dropTarget_s9fga6",
+        "expr": "t2_b_lit"
+      },
+      {
+        "lampId": "dropTarget_5l1v8j",
+        "expr": "t2_c_lit"
+      },
+      {
+        "lampId": "light_zjxzqd",
+        "expr": "lane_a_lit"
+      },
+      {
+        "lampId": "light_qhasfc",
+        "expr": "lane_b_lit"
+      },
+      {
+        "lampId": "light_pdv9pb",
+        "expr": "lane_c_lit"
+      },
+      {
+        "lampId": "arrowLight_lfob7r",
+        "expr": "t1_bonus_ready && blink_on"
+      },
+      {
+        "lampId": "arrowLight_9xqs3d",
+        "expr": "t2_bonus_ready && blink_on"
+      },
+      {
+        "lampId": "arrowLight_bul5tq",
+        "expr": "lane_bonus_ready && blink_on"
+      }
+    ],
+    "actionRules": [
       {
         "id": "r_t1_a_hit",
-        "kind": "action",
         "trigger": "dropTarget_uj96mp",
         "condition": "",
         "effects": [
@@ -1334,7 +1469,6 @@
       },
       {
         "id": "r_t1_b_hit",
-        "kind": "action",
         "trigger": "dropTarget_bhkzh4",
         "condition": "",
         "effects": [
@@ -1352,7 +1486,6 @@
       },
       {
         "id": "r_t1_c_hit",
-        "kind": "action",
         "trigger": "dropTarget_j0fo4f",
         "condition": "",
         "effects": [
@@ -1370,7 +1503,6 @@
       },
       {
         "id": "r_t2_a_hit",
-        "kind": "action",
         "trigger": "dropTarget_e5isck",
         "condition": "",
         "effects": [
@@ -1388,7 +1520,6 @@
       },
       {
         "id": "r_t2_b_hit",
-        "kind": "action",
         "trigger": "dropTarget_s9fga6",
         "condition": "",
         "effects": [
@@ -1406,7 +1537,6 @@
       },
       {
         "id": "r_t2_c_hit",
-        "kind": "action",
         "trigger": "dropTarget_5l1v8j",
         "condition": "",
         "effects": [
@@ -1424,7 +1554,6 @@
       },
       {
         "id": "r_lane_a_hit",
-        "kind": "action",
         "trigger": "lane_dygv85",
         "condition": "",
         "effects": [
@@ -1442,7 +1571,6 @@
       },
       {
         "id": "r_lane_b_hit",
-        "kind": "action",
         "trigger": "lane_81dld4",
         "condition": "",
         "effects": [
@@ -1460,7 +1588,6 @@
       },
       {
         "id": "r_lane_c_hit",
-        "kind": "action",
         "trigger": "lane_foxf5x",
         "condition": "",
         "effects": [
@@ -1478,7 +1605,6 @@
       },
       {
         "id": "r_bumper_glx_base",
-        "kind": "action",
         "trigger": "bumper_glxqxx",
         "condition": "",
         "effects": [
@@ -1491,7 +1617,6 @@
       },
       {
         "id": "r_bumper_xvp_base",
-        "kind": "action",
         "trigger": "bumper_xvpuq2",
         "condition": "",
         "effects": [
@@ -1504,7 +1629,6 @@
       },
       {
         "id": "r_bumper_5p9_base",
-        "kind": "action",
         "trigger": "bumper_5p9b0r",
         "condition": "",
         "effects": [
@@ -1517,7 +1641,6 @@
       },
       {
         "id": "r_bumper_glx_boost",
-        "kind": "action",
         "trigger": "bumper_glxqxx",
         "condition": "all_bonus_ready",
         "effects": [
@@ -1530,7 +1653,6 @@
       },
       {
         "id": "r_bumper_xvp_boost",
-        "kind": "action",
         "trigger": "bumper_xvpuq2",
         "condition": "all_bonus_ready",
         "effects": [
@@ -1543,7 +1665,6 @@
       },
       {
         "id": "r_bumper_5p9_boost",
-        "kind": "action",
         "trigger": "bumper_5p9b0r",
         "condition": "all_bonus_ready",
         "effects": [
@@ -1556,7 +1677,6 @@
       },
       {
         "id": "r_kicker_e5s_base",
-        "kind": "action",
         "trigger": "kicker_e5sqr5",
         "condition": "",
         "effects": [
@@ -1569,7 +1689,6 @@
       },
       {
         "id": "r_kicker_7gy_base",
-        "kind": "action",
         "trigger": "kicker_7gydfo",
         "condition": "",
         "effects": [
@@ -1582,7 +1701,6 @@
       },
       {
         "id": "r_spinner_base",
-        "kind": "action",
         "trigger": "spinner_zip3tv",
         "condition": "",
         "effects": [
@@ -1595,7 +1713,6 @@
       },
       {
         "id": "r_gate_base",
-        "kind": "action",
         "trigger": "gate_4usyda",
         "condition": "",
         "effects": [
@@ -1608,7 +1725,6 @@
       },
       {
         "id": "r_pach_a_base",
-        "kind": "action",
         "trigger": "dropTarget_qd1wf2",
         "condition": "",
         "effects": [
@@ -1621,7 +1737,6 @@
       },
       {
         "id": "r_pach_b_base",
-        "kind": "action",
         "trigger": "dropTarget_uqzo0i",
         "condition": "",
         "effects": [
@@ -1634,7 +1749,6 @@
       },
       {
         "id": "r_collect_t1_bonus",
-        "kind": "action",
         "trigger": "trough_81phwo",
         "condition": "t1_bonus_ready",
         "effects": [
@@ -1662,7 +1776,6 @@
       },
       {
         "id": "r_collect_t2_bonus",
-        "kind": "action",
         "trigger": "trough_425c15",
         "condition": "t2_bonus_ready",
         "effects": [
@@ -1690,7 +1803,6 @@
       },
       {
         "id": "r_collect_lane_bonus",
-        "kind": "action",
         "trigger": "trough_r0obo3",
         "condition": "lane_bonus_ready",
         "effects": [
@@ -1718,7 +1830,6 @@
       },
       {
         "id": "r_blink_tick_add",
-        "kind": "action",
         "trigger": "timer_100ms",
         "condition": "",
         "effects": [
@@ -1732,7 +1843,6 @@
       },
       {
         "id": "r_blink_tick_wrap",
-        "kind": "action",
         "trigger": "timer_100ms",
         "condition": "blink_phase >= 2",
         "effects": [
@@ -1746,7 +1856,6 @@
       },
       {
         "id": "r_drain_reset_all",
-        "kind": "action",
         "trigger": "drain_4vhmox",
         "condition": "",
         "effects": [
@@ -1804,849 +1913,6 @@
         "enabled": true
       }
     ],
-    "variables": [
-      {
-        "id": "t1_a_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "t1_b_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "t1_c_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "t2_a_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "t2_b_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "t2_c_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "lane_a_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "lane_b_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "lane_c_lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "blink_phase",
-        "type": "int",
-        "initial": 0,
-        "volatile": false,
-        "derived": false
-      },
-      {
-        "id": "t1_bonus_ready",
-        "type": "bool",
-        "expr": "t1_a_lit && t1_b_lit && t1_c_lit",
-        "derived": true
-      },
-      {
-        "id": "t2_bonus_ready",
-        "type": "bool",
-        "expr": "t2_a_lit && t2_b_lit && t2_c_lit",
-        "derived": true
-      },
-      {
-        "id": "lane_bonus_ready",
-        "type": "bool",
-        "expr": "lane_a_lit && lane_b_lit && lane_c_lit",
-        "derived": true
-      },
-      {
-        "id": "all_bonus_ready",
-        "type": "bool",
-        "expr": "t1_bonus_ready && t2_bonus_ready && lane_bonus_ready",
-        "derived": true
-      },
-      {
-        "id": "blink_on",
-        "type": "bool",
-        "expr": "blink_phase == 0",
-        "derived": true
-      }
-    ],
-    "logicGraphs": {
-      "logicDocument": {
-        "logicVersion": 1,
-        "switchRegistry": [
-          {
-            "id": "timer_100ms",
-            "name": "Timer 100ms",
-            "kind": "timer",
-            "sourceElementId": "timer_100ms",
-            "intervalMs": 100
-          },
-          {
-            "id": "timer_1s",
-            "name": "Timer 1s",
-            "kind": "timer",
-            "sourceElementId": "timer_1s",
-            "intervalMs": 1000
-          },
-          {
-            "id": "drain_4vhmox",
-            "name": "drain_4vhmox",
-            "kind": "drain",
-            "sourceElementId": "drain_4vhmox"
-          },
-          {
-            "id": "dropTarget_uj96mp",
-            "name": "T1",
-            "kind": "dropTarget",
-            "sourceElementId": "dropTarget_uj96mp"
-          },
-          {
-            "id": "dropTarget_bhkzh4",
-            "name": "T1",
-            "kind": "dropTarget",
-            "sourceElementId": "dropTarget_bhkzh4"
-          },
-          {
-            "id": "dropTarget_j0fo4f",
-            "name": "T1",
-            "kind": "dropTarget",
-            "sourceElementId": "dropTarget_j0fo4f"
-          },
-          {
-            "id": "dropTarget_e5isck",
-            "name": "T2",
-            "kind": "dropTarget",
-            "sourceElementId": "dropTarget_e5isck"
-          },
-          {
-            "id": "dropTarget_s9fga6",
-            "name": "T2",
-            "kind": "dropTarget",
-            "sourceElementId": "dropTarget_s9fga6"
-          },
-          {
-            "id": "dropTarget_5l1v8j",
-            "name": "T2",
-            "kind": "dropTarget",
-            "sourceElementId": "dropTarget_5l1v8j"
-          },
-          {
-            "id": "lane_dygv85",
-            "name": "TLane1a",
-            "kind": "lane",
-            "sourceElementId": "lane_dygv85"
-          },
-          {
-            "id": "lane_81dld4",
-            "name": "TLane1b",
-            "kind": "lane",
-            "sourceElementId": "lane_81dld4"
-          },
-          {
-            "id": "lane_foxf5x",
-            "name": "TLane1c",
-            "kind": "lane",
-            "sourceElementId": "lane_foxf5x"
-          },
-          {
-            "id": "trough_81phwo",
-            "name": "T1Trough",
-            "kind": "trough",
-            "sourceElementId": "trough_81phwo"
-          },
-          {
-            "id": "trough_425c15",
-            "name": "T2Trough",
-            "kind": "trough",
-            "sourceElementId": "trough_425c15"
-          },
-          {
-            "id": "trough_r0obo3",
-            "name": "TLaneTrough",
-            "kind": "trough",
-            "sourceElementId": "trough_r0obo3"
-          },
-          {
-            "id": "bumper_glxqxx",
-            "name": "bumper_glxqxx",
-            "kind": "bumper",
-            "sourceElementId": "bumper_glxqxx"
-          },
-          {
-            "id": "bumper_xvpuq2",
-            "name": "bumper_xvpuq2",
-            "kind": "bumper",
-            "sourceElementId": "bumper_xvpuq2"
-          },
-          {
-            "id": "bumper_5p9b0r",
-            "name": "bumper_5p9b0r",
-            "kind": "bumper",
-            "sourceElementId": "bumper_5p9b0r"
-          },
-          {
-            "id": "kicker_e5sqr5",
-            "name": "kicker_e5sqr5",
-            "kind": "kicker",
-            "sourceElementId": "kicker_e5sqr5"
-          },
-          {
-            "id": "kicker_7gydfo",
-            "name": "kicker_7gydfo",
-            "kind": "kicker",
-            "sourceElementId": "kicker_7gydfo"
-          },
-          {
-            "id": "spinner_zip3tv",
-            "name": "spinner_zip3tv",
-            "kind": "spinner",
-            "sourceElementId": "spinner_zip3tv"
-          },
-          {
-            "id": "gate_4usyda",
-            "name": "gate_4usyda",
-            "kind": "gate",
-            "sourceElementId": "gate_4usyda"
-          },
-          {
-            "id": "dropTarget_qd1wf2",
-            "name": "PachencoMan",
-            "kind": "dropTarget",
-            "sourceElementId": "dropTarget_qd1wf2"
-          },
-          {
-            "id": "dropTarget_uqzo0i",
-            "name": "PachencoMan",
-            "kind": "dropTarget",
-            "sourceElementId": "dropTarget_uqzo0i"
-          }
-        ],
-        "stateTable": [
-          {
-            "id": "t1_a_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "t1_b_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "t1_c_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "t2_a_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "t2_b_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "t2_c_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "lane_a_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "lane_b_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "lane_c_lit",
-            "type": "bool",
-            "initial": false
-          },
-          {
-            "id": "blink_phase",
-            "type": "int",
-            "initial": 0
-          }
-        ],
-        "computedState": [
-          {
-            "id": "t1_bonus_ready",
-            "expr": "t1_a_lit && t1_b_lit && t1_c_lit"
-          },
-          {
-            "id": "t2_bonus_ready",
-            "expr": "t2_a_lit && t2_b_lit && t2_c_lit"
-          },
-          {
-            "id": "lane_bonus_ready",
-            "expr": "lane_a_lit && lane_b_lit && lane_c_lit"
-          },
-          {
-            "id": "all_bonus_ready",
-            "expr": "t1_bonus_ready && t2_bonus_ready && lane_bonus_ready"
-          },
-          {
-            "id": "blink_on",
-            "expr": "blink_phase == 0"
-          }
-        ],
-        "lampBindings": [
-          {
-            "lampId": "dropTarget_uj96mp",
-            "expr": "t1_a_lit"
-          },
-          {
-            "lampId": "dropTarget_bhkzh4",
-            "expr": "t1_b_lit"
-          },
-          {
-            "lampId": "dropTarget_j0fo4f",
-            "expr": "t1_c_lit"
-          },
-          {
-            "lampId": "dropTarget_e5isck",
-            "expr": "t2_a_lit"
-          },
-          {
-            "lampId": "dropTarget_s9fga6",
-            "expr": "t2_b_lit"
-          },
-          {
-            "lampId": "dropTarget_5l1v8j",
-            "expr": "t2_c_lit"
-          },
-          {
-            "lampId": "light_zjxzqd",
-            "expr": "lane_a_lit"
-          },
-          {
-            "lampId": "light_qhasfc",
-            "expr": "lane_b_lit"
-          },
-          {
-            "lampId": "light_pdv9pb",
-            "expr": "lane_c_lit"
-          },
-          {
-            "lampId": "arrowLight_lfob7r",
-            "expr": "t1_bonus_ready && blink_on"
-          },
-          {
-            "lampId": "arrowLight_9xqs3d",
-            "expr": "t2_bonus_ready && blink_on"
-          },
-          {
-            "lampId": "arrowLight_bul5tq",
-            "expr": "lane_bonus_ready && blink_on"
-          }
-        ],
-        "actionRules": [
-          {
-            "id": "r_t1_a_hit",
-            "trigger": "dropTarget_uj96mp",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "t1_a_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_t1_b_hit",
-            "trigger": "dropTarget_bhkzh4",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "t1_b_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_t1_c_hit",
-            "trigger": "dropTarget_j0fo4f",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "t1_c_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_t2_a_hit",
-            "trigger": "dropTarget_e5isck",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "t2_a_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_t2_b_hit",
-            "trigger": "dropTarget_s9fga6",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "t2_b_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_t2_c_hit",
-            "trigger": "dropTarget_5l1v8j",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "t2_c_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_lane_a_hit",
-            "trigger": "lane_dygv85",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "lane_a_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_lane_b_hit",
-            "trigger": "lane_81dld4",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "lane_b_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_lane_c_hit",
-            "trigger": "lane_foxf5x",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              },
-              {
-                "type": "set",
-                "target": "lane_c_lit",
-                "value": true
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_bumper_glx_base",
-            "trigger": "bumper_glxqxx",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_bumper_xvp_base",
-            "trigger": "bumper_xvpuq2",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_bumper_5p9_base",
-            "trigger": "bumper_5p9b0r",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_bumper_glx_boost",
-            "trigger": "bumper_glxqxx",
-            "condition": "all_bonus_ready",
-            "effects": [
-              {
-                "type": "score",
-                "value": 4
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_bumper_xvp_boost",
-            "trigger": "bumper_xvpuq2",
-            "condition": "all_bonus_ready",
-            "effects": [
-              {
-                "type": "score",
-                "value": 4
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_bumper_5p9_boost",
-            "trigger": "bumper_5p9b0r",
-            "condition": "all_bonus_ready",
-            "effects": [
-              {
-                "type": "score",
-                "value": 4
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_kicker_e5s_base",
-            "trigger": "kicker_e5sqr5",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_kicker_7gy_base",
-            "trigger": "kicker_7gydfo",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_spinner_base",
-            "trigger": "spinner_zip3tv",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_gate_base",
-            "trigger": "gate_4usyda",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_pach_a_base",
-            "trigger": "dropTarget_qd1wf2",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_pach_b_base",
-            "trigger": "dropTarget_uqzo0i",
-            "condition": "",
-            "effects": [
-              {
-                "type": "score",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_collect_t1_bonus",
-            "trigger": "trough_81phwo",
-            "condition": "t1_bonus_ready",
-            "effects": [
-              {
-                "type": "score",
-                "value": 50
-              },
-              {
-                "type": "set",
-                "target": "t1_a_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t1_b_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t1_c_lit",
-                "value": false
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_collect_t2_bonus",
-            "trigger": "trough_425c15",
-            "condition": "t2_bonus_ready",
-            "effects": [
-              {
-                "type": "score",
-                "value": 50
-              },
-              {
-                "type": "set",
-                "target": "t2_a_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t2_b_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t2_c_lit",
-                "value": false
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_collect_lane_bonus",
-            "trigger": "trough_r0obo3",
-            "condition": "lane_bonus_ready",
-            "effects": [
-              {
-                "type": "score",
-                "value": 100
-              },
-              {
-                "type": "set",
-                "target": "lane_a_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "lane_b_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "lane_c_lit",
-                "value": false
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_blink_tick_add",
-            "trigger": "timer_100ms",
-            "condition": "",
-            "effects": [
-              {
-                "type": "add",
-                "target": "blink_phase",
-                "value": 1
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_blink_tick_wrap",
-            "trigger": "timer_100ms",
-            "condition": "blink_phase >= 2",
-            "effects": [
-              {
-                "type": "set",
-                "target": "blink_phase",
-                "value": 0
-              }
-            ],
-            "enabled": true
-          },
-          {
-            "id": "r_drain_reset_all",
-            "trigger": "drain_4vhmox",
-            "condition": "",
-            "effects": [
-              {
-                "type": "set",
-                "target": "t1_a_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t1_b_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t1_c_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t2_a_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t2_b_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "t2_c_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "lane_a_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "lane_b_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "lane_c_lit",
-                "value": false
-              },
-              {
-                "type": "set",
-                "target": "blink_phase",
-                "value": 0
-              }
-            ],
-            "enabled": true
-          }
-        ],
-        "resetRules": []
-      }
-    }
+    "resetRules": []
   }
 }

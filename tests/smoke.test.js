@@ -61,6 +61,32 @@ function loadFlipperModuleHarness() {
     return ctx.window.Pin;
 }
 
+function loadElementRegistryHarness() {
+    // What: Load the element registry with tiny fake modules.
+    // Why: Runtime split behavior should be testable without a browser canvas.
+    const pin = {
+        elements: {
+            registry: {},
+            register: function register(type, mod) {
+                this.registry[type] = mod;
+            }
+        }
+    };
+    const ctx = { window: { Pin: pin } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/elements/index.js"), ctx, { filename: "app/elements/index.js" });
+    ["path", "light", "dropTarget", "kicker", "flipper", "launcher"].forEach(function each(type) {
+        pin.elements.registry[type] = {
+            compile: function compile(el) {
+                return { segments: [{ x1: 0, y1: 0, x2: 1, y2: 1, elementType: el.type }] };
+            },
+            draw: function draw() {}
+        };
+    });
+    return pin;
+}
+
 function loadAssistantModule(storage, injectedFetch) {
     const ctx = {
         window: { Pin: {}, localStorage: storage },
@@ -120,9 +146,7 @@ function testDefaultTableNormalizesAndValidates() {
 
     assert.strictEqual(validation.ok, true, "tables/DefTable.json should normalize into a structurally valid table");
     assert.strictEqual(typeof table.rules.balls, "number", "default table should have a runtime ball count");
-    table.rulesEngine = { switchMap: [], sequenceRules: [], triggers: [], variables: [], logicGraphs: {} };
-    const withRules = tableApi.validateTable(table);
-    assert.strictEqual(withRules.ok, true, "rulesEngine should be accepted when structurally valid");
+    assert.strictEqual(typeof table.logicDocument, "object", "default table should expose a current logic document");
 }
 
 function testDrainWithoutTroughIsPlayable() {
@@ -199,6 +223,36 @@ function testFlipperAngleStaysWithinAuthoredBounds() {
         const phase = tick % 9;
         return { right: phase === 0 || phase === 1 || phase === 5 };
     });
+}
+
+function testRuntimeSplitKeepsOnlyPhysicsElementsDynamic() {
+    // What: Verify static compile keeps stateful visual drawables while dynamic
+    // physics only recompiles collider-producing mechanisms.
+    // Why: This protects the render cache and the 120 Hz physics hot path.
+    const pin = loadElementRegistryHarness();
+    const table = {
+        elements: [
+            { id: "wall", type: "path" },
+            { id: "lamp", type: "light" },
+            { id: "target", type: "dropTarget" },
+            { id: "kick", type: "kicker" },
+            { id: "flip", type: "flipper" },
+            { id: "launch", type: "launcher" }
+        ]
+    };
+    const staticRuntime = pin.elements.compileElements(table, {}, { dynamic: false });
+    assert(staticRuntime.drawables.some(function some(entry) { return entry.element.type === "light"; }), "lights should stay in static runtime drawables for dynamic drawing");
+    assert(staticRuntime.drawables.some(function some(entry) { return entry.element.type === "dropTarget"; }), "lit targets should stay available for dynamic drawing");
+    assert(staticRuntime.drawables.some(function some(entry) { return entry.element.type === "kicker"; }), "kicker pulse drawing should stay available");
+    assert(!staticRuntime.drawables.some(function some(entry) { return entry.element.type === "flipper"; }), "flippers should not compile into the static runtime");
+
+    const dynamicElements = pin.elements.filterElements(table, pin.elements.isDynamicPhysicsType);
+    const dynamicRuntime = pin.elements.compileElements(table, {}, { static: false, dynamicPhysicsOnly: true, elements: dynamicElements });
+    const dynamicTypes = Array.prototype.slice.call(dynamicRuntime.drawables).map(function map(entry) { return entry.element.type; }).sort();
+    assert.deepStrictEqual(dynamicTypes, ["flipper", "launcher"], "dynamic physics compile should only include collider-producing dynamic elements");
+    assert.strictEqual(pin.elements.isDynamicType("light"), true, "lights should remain dynamically drawn");
+    assert.strictEqual(pin.elements.isDynamicType("dropTarget"), true, "lit targets should remain dynamically drawn");
+    assert.strictEqual(pin.elements.isDynamicPhysicsType("light"), false, "lights should not recompile in physics ticks");
 }
 
 function testFeatureSchemaNormalizesAndValidates() {
@@ -421,7 +475,7 @@ function testAssistantChatUsesProviderPath() {
         elements: [
             { id: "dt_left", type: "dropTarget", name: "DT Left" }
         ],
-        rulesEngine: { logicGraphs: { logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] } } }
+        logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] }
     };
     const runtime = assistantApi.create({
         getTable: function getTable() { return table; },
@@ -459,7 +513,7 @@ function testAgenticBypassesShortcutAndRequiresProvider() {
         playfield: {},
         rules: {},
         elements: [{ id: "dt_left", type: "dropTarget", name: "DT Left" }],
-        rulesEngine: { logicGraphs: { logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] } } }
+        logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] }
     };
     const runtime = assistantApi.create({
         getTable: function getTable() { return table; },
@@ -520,7 +574,7 @@ function testAssistantRepairsPatchAcrossAttempts() {
         playfield: {},
         rules: {},
         elements: [{ id: "dt_left", type: "dropTarget", name: "DT Left" }],
-        rulesEngine: { logicGraphs: { logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] } } }
+        logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] }
     };
     const runtime = assistantApi.create({
         getTable: function getTable() { return table; },
@@ -595,7 +649,7 @@ function testAssistantRepairsContractValidationFailures() {
         playfield: {},
         rules: {},
         elements: [{ id: "dt_left", type: "dropTarget", name: "DT Left" }],
-        rulesEngine: { logicGraphs: { logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] } } }
+        logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] }
     };
     const runtime = assistantApi.create({
         getTable: function getTable() { return table; },
@@ -684,7 +738,7 @@ function testAssistantRepairsInvalidFeaturePatchShape() {
         rules: {},
         elements: [{ id: "dt_left", type: "dropTarget", name: "DT Left" }, { id: "lhs_arrow", type: "arrowLight", name: "LHS Arrow" }],
         features: [],
-        rulesEngine: { logicGraphs: { logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] } } }
+        logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] }
     };
     const runtime = assistantApi.create({
         getTable: function getTable() { return table; },
@@ -769,6 +823,7 @@ Promise.resolve()
     .then(function run() { testDefaultTableNormalizesAndValidates(); })
     .then(function run() { testDrainWithoutTroughIsPlayable(); })
     .then(function run() { testFlipperAngleStaysWithinAuthoredBounds(); })
+    .then(function run() { testRuntimeSplitKeepsOnlyPhysicsElementsDynamic(); })
     .then(function run() { testFeatureSchemaNormalizesAndValidates(); })
     .then(function run() { testBundledTableImagePathsExist(); })
     .then(function run() { testExplicitTableRequestDoesNotSilentlyFallback(); })

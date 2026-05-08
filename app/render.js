@@ -282,11 +282,11 @@
     }
 
     function drawLauncherFallback(ctx, world) {
-        const launcher = world.table.launcher || {};
-        const x = launcher.x || 439;
-        const top = launcher.top || 195;
-        const bottom = launcher.bottom || 735;
-        const width = launcher.width || 38;
+        const launcher = Pin.physics && Pin.physics.getLauncherConfig ? Pin.physics.getLauncherConfig(world) : null;
+        const x = launcher && launcher.x || 439;
+        const top = launcher && launcher.top || 195;
+        const bottom = launcher && launcher.bottom || 735;
+        const width = launcher && launcher.width || 38;
         const left = x - width * 0.5;
         const launchT = world && world.launchCharging ? Math.max(0, Math.min(1, (performance.now() - world.launchStart) / 2000)) : 0;
         const plungerBaseY = bottom - 10;
@@ -422,13 +422,21 @@
         clearImageCache: clearImageCache,
         setQuality: function setQuality(next) {
             if (!next) return;
+            let changed = false;
             if (typeof next.glowScale === "number" && Number.isFinite(next.glowScale)) {
-                quality.glowScale = Math.max(0, Math.min(1, next.glowScale));
+                const glowScale = Math.max(0, Math.min(1, next.glowScale));
+                if (quality.glowScale !== glowScale) {
+                    quality.glowScale = glowScale;
+                    changed = true;
+                }
             }
             if (typeof next.reducedEffects === "boolean") {
-                quality.reducedEffects = next.reducedEffects;
+                if (quality.reducedEffects !== next.reducedEffects) {
+                    quality.reducedEffects = next.reducedEffects;
+                    changed = true;
+                }
             }
-            staticCache.dirty = true;
+            if (changed) staticCache.dirty = true;
         }
     };
 })(window.Pin);

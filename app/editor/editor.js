@@ -300,10 +300,7 @@
                     key.indexOf("anchor:") === 0 ||
                     key.indexOf("image:") === 0 ||
                     key.indexOf("level:") === 0 ||
-                    key.indexOf("rule:") === 0 ||
-                    key.indexOf("switchMap:") === 0 ||
-                    key.indexOf("logicVariable:") === 0 ||
-                    key.indexOf("logicTrigger:") === 0;
+                    key.indexOf("rule:") === 0;
             });
         }
 
@@ -368,26 +365,6 @@
                     resetCardDraft(key);
                     return;
                 }
-                if (key.indexOf("switchMap:") === 0) {
-                    const mapIndex = Number(key.slice("switchMap:".length));
-                    if (!Number.isFinite(mapIndex)) return;
-                    patchSwitchMapFields(mapIndex, entry.draft);
-                    resetCardDraft(key);
-                    return;
-                }
-                if (key.indexOf("logicVariable:") === 0) {
-                    const variableIndex = Number(key.slice("logicVariable:".length));
-                    if (!Number.isFinite(variableIndex)) return;
-                    patchVariableFields(variableIndex, entry.draft);
-                    resetCardDraft(key);
-                    return;
-                }
-                if (key.indexOf("logicTrigger:") === 0) {
-                    const triggerIndex = Number(key.slice("logicTrigger:".length));
-                    if (!Number.isFinite(triggerIndex)) return;
-                    patchTriggerFields(triggerIndex, entry.draft);
-                    resetCardDraft(key);
-                }
             });
         }
 
@@ -406,8 +383,8 @@
         }
 
         /*
-         * What: Placeholder for removed gameplay logic compiler.
-         * Why: preserve editor wiring without legacy logic behavior.
+         * What: Placeholder for removed inline gameplay logic compiler.
+         * Why: current logic authoring lives in the dedicated #logic workspace.
          */
         function compileGameLogicIntoTable() {
             return { ok: false, issues: [{ severity: "error", message: "Logic compiler has been removed." }] };
@@ -449,10 +426,6 @@
             setPendingEdgeSourceNodeId: function setPendingEdgeSourceNodeId(next) { pendingEdgeSourceNodeId = next; },
             setInspectorTab: function setInspectorTab(next) { inspectorTab = next; }
         });
-
-        function ensureRulesEngine() {
-            return {};
-        }
 
         function ensureImageLayers() {
             return model.ensureImageLayers(state.table);
@@ -497,7 +470,6 @@
         }
 
         function getSelectedRule() {
-            const rules = ensureRulesEngine();
             return null;
         }
 
@@ -534,9 +506,7 @@
         }
 
         function getLogicDocForTable(table) {
-            const rulesEngine = table.rulesEngine = table.rulesEngine || {};
-            const logicGraphs = rulesEngine.logicGraphs = rulesEngine.logicGraphs || {};
-            const logicDoc = logicGraphs.logicDocument = logicGraphs.logicDocument || {
+            table.logicDocument = table.logicDocument || {
                 logicVersion: 1,
                 switchRegistry: [],
                 stateTable: [],
@@ -545,7 +515,7 @@
                 actionRules: [],
                 resetRules: []
             };
-            return logicDoc;
+            return table.logicDocument;
         }
 
         function applyAssistantPatchToTable(table, patch) {
@@ -605,14 +575,8 @@
                 const logicDoc = getLogicDocForTable(working);
                 applyNormalizedPatch(logicDoc, patch.logicDocPatch);
                 if (Pin.logicTypes && Pin.logicTypes.normalizeLogicDocument) {
-                    working.rulesEngine.logicGraphs.logicDocument = Pin.logicTypes.normalizeLogicDocument(logicDoc);
+                    working.logicDocument = Pin.logicTypes.normalizeLogicDocument(logicDoc);
                 }
-            }
-
-            if (working.rulesEngine && working.rulesEngine.logicGraphs && working.rulesEngine.logicGraphs.logicDocument &&
-                Pin.logicCompile && Pin.logicCompile.applyToTable) {
-                const compiled = Pin.logicCompile.applyToTable(working, working.rulesEngine.logicGraphs.logicDocument);
-                working.rulesEngine = compiled.rulesEngine;
             }
 
             const normalized = Pin.table.normalizeTable(working);
@@ -635,7 +599,7 @@
             };
         }
 
-        const legacyOps = {
+        const assistantPatchOps = {
             applyAssistantPatch: function applyAssistantPatch(patch) {
                 const result = applyAssistantPatchToTable(state.table, patch);
                 if (!result.ok) return { ok: false, message: result.message, issues: result.issues || [] };
@@ -688,7 +652,7 @@
                 return Pin.table && Pin.table.validatePlayability ? Pin.table.validatePlayability(state.table) : [];
             },
             applyPatch: function applyPatch(patch) {
-                return legacyOps.applyAssistantPatch(patch);
+                return assistantPatchOps.applyAssistantPatch(patch);
             },
             previewPatch: function previewPatch(patch) {
                 const previewTable = Pin.editorTools.clone(state.table);
@@ -710,23 +674,23 @@
         }
 
         function markLogicEdgeSource(nodeId) {
-            legacyOps.markLogicEdgeSource(nodeId);
+            assistantPatchOps.markLogicEdgeSource(nodeId);
         }
 
         function connectLogicNodes(graphId, fromNodeId, toNodeId) {
-            legacyOps.connectLogicNodes(graphId, fromNodeId, toNodeId);
+            assistantPatchOps.connectLogicNodes(graphId, fromNodeId, toNodeId);
         }
 
         function addLogicNode(graphId, type, props) {
-            legacyOps.addLogicNode(graphId, type, props);
+            assistantPatchOps.addLogicNode(graphId, type, props);
         }
 
         function assignSelectedToLogicNode(node) {
-            legacyOps.assignSelectedToLogicNode(node);
+            assistantPatchOps.assignSelectedToLogicNode(node);
         }
 
         function assignElementIdToLogicNode(node, elementId) {
-            legacyOps.assignElementIdToLogicNode(node, elementId);
+            assistantPatchOps.assignElementIdToLogicNode(node, elementId);
         }
 
         function patchTable(path, value) {
@@ -740,55 +704,55 @@
         }
 
         function addSequenceRule() {
-            legacyOps.addSequenceRule();
+            assistantPatchOps.addSequenceRule();
         }
 
         function addRuleTemplate(kind) {
-            legacyOps.addRuleTemplate(kind);
+            assistantPatchOps.addRuleTemplate(kind);
         }
 
         function addLogicStep(graphId) {
-            legacyOps.addLogicStep(graphId);
+            assistantPatchOps.addLogicStep(graphId);
         }
 
         function deleteGraphEdge(graphId, edgeId) {
-            legacyOps.deleteGraphEdge(graphId, edgeId);
+            assistantPatchOps.deleteGraphEdge(graphId, edgeId);
         }
 
         function patchGraphNode(graphId, nodeId, key, value) {
-            legacyOps.patchGraphNode(graphId, nodeId, key, value);
+            assistantPatchOps.patchGraphNode(graphId, nodeId, key, value);
         }
 
         function patchGraphNodeFields(graphId, nodeId, patch) {
-            legacyOps.patchGraphNodeFields(graphId, nodeId, patch);
+            assistantPatchOps.patchGraphNodeFields(graphId, nodeId, patch);
         }
 
         function moveGraphNode(graphId, nodeId, x, y) {
-            legacyOps.moveGraphNode(graphId, nodeId, x, y);
+            assistantPatchOps.moveGraphNode(graphId, nodeId, x, y);
         }
 
         function deleteGraphNode(graphId, nodeId) {
-            legacyOps.deleteGraphNode(graphId, nodeId);
+            assistantPatchOps.deleteGraphNode(graphId, nodeId);
         }
 
         function patchRule(id, key, value) {
-            legacyOps.patchRule(id, key, value);
+            assistantPatchOps.patchRule(id, key, value);
         }
 
         function patchRuleFields(id, patch) {
-            legacyOps.patchRuleFields(id, patch);
+            assistantPatchOps.patchRuleFields(id, patch);
         }
 
         function duplicateRule(id) {
-            legacyOps.duplicateRule(id);
+            assistantPatchOps.duplicateRule(id);
         }
 
         function deleteRule(id) {
-            legacyOps.deleteRule(id);
+            assistantPatchOps.deleteRule(id);
         }
 
         function addSwitchMap() {
-            legacyOps.addSwitchMap();
+            assistantPatchOps.addSwitchMap();
         }
 
         function addImageLayer() {
@@ -812,39 +776,39 @@
         }
 
         function patchSwitchMap(index, key, value) {
-            legacyOps.patchSwitchMap(index, key, value);
+            assistantPatchOps.patchSwitchMap(index, key, value);
         }
 
         function patchSwitchMapFields(index, patch) {
-            legacyOps.patchSwitchMapFields(index, patch);
+            assistantPatchOps.patchSwitchMapFields(index, patch);
         }
 
         function removeSwitchMap(index) {
-            legacyOps.removeSwitchMap(index);
+            assistantPatchOps.removeSwitchMap(index);
         }
 
         function addVariable() {
-            legacyOps.addVariable();
+            assistantPatchOps.addVariable();
         }
 
         function patchVariableFields(index, patch) {
-            legacyOps.patchVariableFields(index, patch);
+            assistantPatchOps.patchVariableFields(index, patch);
         }
 
         function removeVariable(index) {
-            legacyOps.removeVariable(index);
+            assistantPatchOps.removeVariable(index);
         }
 
         function addTrigger() {
-            legacyOps.addTrigger();
+            assistantPatchOps.addTrigger();
         }
 
         function patchTriggerFields(index, patch) {
-            legacyOps.patchTriggerFields(index, patch);
+            assistantPatchOps.patchTriggerFields(index, patch);
         }
 
         function removeTrigger(index) {
-            legacyOps.removeTrigger(index);
+            assistantPatchOps.removeTrigger(index);
         }
 
         function focusValidationIssue(issue) {
