@@ -29,6 +29,20 @@
         var selectedFeatureId = "";
         var activeSection = "features";
         var featureDraft = null;
+        var visualBuilder = {
+            selectedObjectId: "",
+            triggerSwitchId: "",
+            lampId: "",
+            targetSwitchIds: [],
+            collectSwitchId: "",
+            drainSwitchId: "",
+            featureName: "New Visual Feature",
+            targetHitScore: 250,
+            collectAward: 1000,
+            resetOnCollect: true,
+            triggerScore: 100,
+            error: ""
+        };
 
         hydrateSwitchRegistry();
         ensureBuiltInTimerSwitches();
@@ -90,6 +104,20 @@
             selected = { collection: "", index: -1 };
             selectedFeatureId = "";
             featureDraft = null;
+            visualBuilder = {
+                selectedObjectId: "",
+                triggerSwitchId: "",
+                lampId: "",
+                targetSwitchIds: [],
+                collectSwitchId: "",
+                drainSwitchId: "",
+                featureName: "New Visual Feature",
+                targetHitScore: 250,
+                collectAward: 1000,
+                resetOnCollect: true,
+                triggerScore: 100,
+                error: ""
+            };
             rerunRuntime();
             persistLogicDocument();
             render();
@@ -292,9 +320,15 @@
             options.forEach(function each(option) {
                 var row = document.createElement("label");
                 row.className = "logic-check-row";
+                row.onclick = function onclick(evt) {
+                    if (evt && evt.stopPropagation) evt.stopPropagation();
+                };
                 var input = document.createElement("input");
                 input.type = "checkbox";
                 input.checked = selectedIds.indexOf(option.id) >= 0;
+                input.onclick = function onInputClick(evt) {
+                    if (evt && evt.stopPropagation) evt.stopPropagation();
+                };
                 input.onchange = function onchange() { onToggle(option.id, input.checked); };
                 var text = document.createElement("span");
                 text.textContent = option.label;
@@ -400,9 +434,11 @@
                         lamps: []
                     };
                     list.push(feature);
+                    setSelectedFeature(feature.id);
                     commitDocChange({ runtime: false, render: true });
                 }
             ));
+            main.appendChild(visualBuilderCard());
             var list = featureList();
             if (!list.length) {
                 main.appendChild(emptyCard("No features yet. Add one to define the table story above raw rules."));
@@ -432,15 +468,19 @@
                 card.appendChild(fields);
                 card.appendChild(featureChecklist("Objects", featureObjectOptions(), feature.objects || [], function onToggle(id, enabled) {
                     toggleFeatureLink(feature, "objects", id, enabled);
+                    commitDocChange({ runtime: false, render: true });
                 }));
                 card.appendChild(featureChecklist("States", featureStateOptions(), feature.states || [], function onToggle(id, enabled) {
                     toggleFeatureLink(feature, "states", id, enabled);
+                    commitDocChange({ runtime: false, render: true });
                 }));
                 card.appendChild(featureChecklist("Rules", featureRuleOptions(), feature.rules || [], function onToggle(id, enabled) {
                     toggleFeatureLink(feature, "rules", id, enabled);
+                    commitDocChange({ runtime: false, render: true });
                 }));
                 card.appendChild(featureChecklist("Lamps", featureLampOptions(), feature.lamps || [], function onToggle(id, enabled) {
                     toggleFeatureLink(feature, "lamps", id, enabled);
+                    commitDocChange({ runtime: false, render: true });
                 }));
 
                 var actions = document.createElement("div");
@@ -460,6 +500,463 @@
                 card.appendChild(actions);
                 main.appendChild(card);
             });
+        }
+
+        function visualBuilderCard() {
+            /* What: Provide visual-first feature authoring from table object clicks.
+             * Why: Common logic should be buildable without knowing schema table details.
+             */
+            var card = document.createElement("div");
+            card.className = "logic-card logic-visual-builder";
+            var head = document.createElement("div");
+            head.className = "logic-card-head";
+            var h = document.createElement("h3");
+            h.textContent = "Visual Builder";
+            head.appendChild(h);
+            appendActionButton(head, "Clear Visual Selections", function onClear() {
+                visualBuilder.selectedObjectId = "";
+                visualBuilder.triggerSwitchId = "";
+                visualBuilder.lampId = "";
+                visualBuilder.targetSwitchIds = [];
+                visualBuilder.collectSwitchId = "";
+                visualBuilder.drainSwitchId = "";
+                visualBuilder.error = "";
+                render();
+            });
+            card.appendChild(head);
+
+            var world = buildSimulatorPreviewWorld();
+            var preview = document.createElement("div");
+            preview.className = "logic-visual-preview";
+            var canvas = document.createElement("canvas");
+            canvas.className = "logic-visual-canvas";
+            canvas.width = world.table.playfield.width;
+            canvas.height = world.table.playfield.height;
+            preview.appendChild(canvas);
+            card.appendChild(preview);
+            drawVisualBuilderCanvas(canvas, world);
+
+            var selectedLabel = labelForElement(visualBuilder.selectedObjectId);
+            card.appendChild(readOnlyLine("Selected Object", visualBuilder.selectedObjectId ? (selectedLabel + " (" + visualBuilder.selectedObjectId + ")") : "None"));
+
+            var roleButtons = document.createElement("div");
+            roleButtons.className = "logic-switch-grid";
+            appendActionButton(roleButtons, "Use Selected as Trigger", function onTrigger() {
+                assignVisualRoleFromSelection("trigger");
+            });
+            appendActionButton(roleButtons, "Use Selected as Lamp", function onLamp() {
+                assignVisualRoleFromSelection("lamp");
+            });
+            appendActionButton(roleButtons, "Toggle Selected Target", function onTarget() {
+                assignVisualRoleFromSelection("target");
+            });
+            appendActionButton(roleButtons, "Use Selected as Collect", function onCollect() {
+                assignVisualRoleFromSelection("collect");
+            });
+            appendActionButton(roleButtons, "Use Selected as Drain", function onDrain() {
+                assignVisualRoleFromSelection("drain");
+            });
+            card.appendChild(roleButtons);
+
+            card.appendChild(inputField("Feature Name", visualBuilder.featureName, function setName(v) {
+                visualBuilder.featureName = v;
+                visualBuilder.error = "";
+            }));
+            card.appendChild(inputField("Trigger Score", visualBuilder.triggerScore, function setScore(v) {
+                visualBuilder.triggerScore = Number(v || 0);
+                visualBuilder.error = "";
+            }));
+            card.appendChild(inputField("Target Hit Score", visualBuilder.targetHitScore, function setScore(v) {
+                visualBuilder.targetHitScore = Number(v || 0);
+                visualBuilder.error = "";
+            }));
+            card.appendChild(inputField("Collect Award", visualBuilder.collectAward, function setAward(v) {
+                visualBuilder.collectAward = Number(v || 0);
+                visualBuilder.error = "";
+            }));
+            card.appendChild(boolField("Clear target states on collect", visualBuilder.resetOnCollect, function setReset(v) {
+                visualBuilder.resetOnCollect = !!v;
+                visualBuilder.error = "";
+            }));
+            card.appendChild(visualRoleSummary());
+
+            var actionRow = document.createElement("div");
+            actionRow.className = "logic-switch-grid";
+            appendActionButton(actionRow, "Create Switch -> Lamp", function onCreate() {
+                createVisualSwitchLampFeature();
+            });
+            appendActionButton(actionRow, "Create Target Bank + Collect", function onCreate() {
+                createVisualTargetBankCollectFeature();
+            });
+            appendActionButton(actionRow, "Create Drain Reset (Targets)", function onCreate() {
+                createVisualDrainResetFeature();
+            });
+            card.appendChild(actionRow);
+            if (visualBuilder.error) {
+                var err = document.createElement("div");
+                err.className = "logic-issue error";
+                err.textContent = visualBuilder.error;
+                card.appendChild(err);
+            }
+            return card;
+        }
+
+        function visualRoleSummary() {
+            /* What: Summarize current visual role assignments.
+             * Why: Users need to confirm mappings before generating logic rows.
+             */
+            var wrap = document.createElement("div");
+            wrap.className = "logic-check-list";
+            wrap.appendChild(metaLine("Trigger", visualBuilder.triggerSwitchId ? labelForSwitch(visualBuilder.triggerSwitchId) + " (" + visualBuilder.triggerSwitchId + ")" : "None"));
+            wrap.appendChild(metaLine("Lamp", visualBuilder.lampId ? labelForLamp(visualBuilder.lampId) + " (" + visualBuilder.lampId + ")" : "None"));
+            wrap.appendChild(metaLine("Targets", visualBuilder.targetSwitchIds.length ? visualBuilder.targetSwitchIds.map(labelForSwitch).join(", ") : "None"));
+            wrap.appendChild(metaLine("Collect", visualBuilder.collectSwitchId ? labelForSwitch(visualBuilder.collectSwitchId) + " (" + visualBuilder.collectSwitchId + ")" : "None"));
+            wrap.appendChild(metaLine("Drain", visualBuilder.drainSwitchId ? labelForSwitch(visualBuilder.drainSwitchId) + " (" + visualBuilder.drainSwitchId + ")" : "None"));
+            return wrap;
+        }
+
+        function drawVisualBuilderCanvas(canvas, world) {
+            /* What: Render a clickable table preview with object markers.
+             * Why: Visual-first logic authoring starts from selecting physical objects.
+             */
+            var ctx = canvas.getContext("2d");
+            if (!ctx) return;
+            var nodes = visualSelectableNodes(world.table);
+            function drawFrame() {
+                Pin.render.renderWorld(ctx, world, { showHud: false, showCabinet: false });
+                nodes.forEach(function eachNode(node) {
+                    var isSelected = node.elementId === visualBuilder.selectedObjectId;
+                    var isRole = node.switchId && (node.switchId === visualBuilder.triggerSwitchId || node.switchId === visualBuilder.collectSwitchId || node.switchId === visualBuilder.drainSwitchId || visualBuilder.targetSwitchIds.indexOf(node.switchId) >= 0);
+                    var isLamp = node.lampId && node.lampId === visualBuilder.lampId;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, isSelected ? 10 : 7, 0, Math.PI * 2);
+                    ctx.fillStyle = isSelected ? "#9fc0ff" : (isLamp ? "#ffd86a" : (isRole ? "#8ef0be" : "rgba(180,195,236,0.75)"));
+                    ctx.fill();
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = "rgba(8,12,24,0.9)";
+                    ctx.stroke();
+                    ctx.restore();
+                });
+            }
+            Pin.render.renderWorld(ctx, world, {
+                showHud: false,
+                showCabinet: false,
+                onImageReady: function onImageReady() { drawFrame(); }
+            });
+            drawFrame();
+            canvas.onclick = function onCanvasClick(evt) {
+                var rect = canvas.getBoundingClientRect();
+                var x = (evt.clientX - rect.left) * (canvas.width / Math.max(1, rect.width));
+                var y = (evt.clientY - rect.top) * (canvas.height / Math.max(1, rect.height));
+                var picked = null;
+                var best = Infinity;
+                nodes.forEach(function eachNode(node) {
+                    var dx = node.x - x;
+                    var dy = node.y - y;
+                    var d2 = dx * dx + dy * dy;
+                    if (d2 < best) {
+                        best = d2;
+                        picked = node;
+                    }
+                });
+                if (!picked || best > 24 * 24) return;
+                visualBuilder.selectedObjectId = picked.elementId;
+                visualBuilder.error = "";
+                render();
+            };
+        }
+
+        function visualSelectableNodes(currentTable) {
+            /* What: Build clickable preview nodes for switch/lamp-capable objects.
+             * Why: Table picking should align with logic authoring candidates.
+             */
+            var byId = {};
+            (currentTable.elements || []).forEach(function each(el) {
+                if (el && el.id) byId[el.id] = el;
+            });
+            var used = {};
+            var out = [];
+            assets.switchCandidates.forEach(function each(asset) {
+                var id = asset && asset.sourceElementId ? asset.sourceElementId : "";
+                if (!id || !byId[id] || used[id]) return;
+                var center = elementCenterPoint(byId[id], currentTable.playfield);
+                if (!center) return;
+                used[id] = true;
+                out.push({ elementId: id, switchId: asset.id, lampId: "", x: center.x, y: center.y });
+            });
+            assets.lampCandidates.forEach(function each(asset) {
+                var id = asset && asset.sourceElementId ? asset.sourceElementId : "";
+                if (!id || !byId[id]) return;
+                var center = elementCenterPoint(byId[id], currentTable.playfield);
+                if (!center) return;
+                var existing = out.find(function find(node) { return node.elementId === id; });
+                if (existing) {
+                    existing.lampId = asset.id;
+                    return;
+                }
+                out.push({ elementId: id, switchId: "", lampId: asset.id, x: center.x, y: center.y });
+            });
+            return out;
+        }
+
+        function elementCenterPoint(el, playfield) {
+            /* What: Estimate a stable center point for clicking a table object.
+             * Why: Visual selection needs a single anchor for each logic-capable object.
+             */
+            if (!el) return null;
+            if (typeof el.x === "number" && typeof el.y === "number") return { x: el.x, y: el.y };
+            if (typeof el.x === "number" && typeof el.top === "number" && typeof el.bottom === "number") {
+                return { x: el.x, y: (el.top + el.bottom) * 0.5 };
+            }
+            if (typeof el.x === "number" && typeof el.w === "number" && typeof el.h === "number") {
+                return { x: el.x + el.w * 0.5, y: el.y + el.h * 0.5 };
+            }
+            if (el.pivot && typeof el.pivot.x === "number" && typeof el.pivot.y === "number") return { x: el.pivot.x, y: el.pivot.y };
+            if (Array.isArray(el.anchors) && el.anchors.length) {
+                var sx = 0;
+                var sy = 0;
+                var count = 0;
+                el.anchors.forEach(function each(anchor) {
+                    if (!anchor || typeof anchor.x !== "number" || typeof anchor.y !== "number") return;
+                    sx += anchor.x;
+                    sy += anchor.y;
+                    count += 1;
+                });
+                if (count) return { x: sx / count, y: sy / count };
+            }
+            if (playfield) return { x: (playfield.width || 500) * 0.5, y: (playfield.height || 880) * 0.5 };
+            return null;
+        }
+
+        function assignVisualRoleFromSelection(role) {
+            /* What: Assign selected table object into a visual-builder role.
+             * Why: Role assignment should be one click after selecting an object.
+             */
+            var elementId = String(visualBuilder.selectedObjectId || "");
+            if (!elementId) return;
+            var switchId = switchIdForElementId(elementId);
+            var lampId = lampIdForElementId(elementId);
+            if (role === "trigger" || role === "collect" || role === "drain" || role === "target") {
+                if (!switchId) {
+                    visualBuilder.error = "Selected object is not switch-capable for this role.";
+                    render();
+                    return;
+                }
+            }
+            if (role === "lamp" && !lampId) {
+                visualBuilder.error = "Selected object is not lamp-capable.";
+                render();
+                return;
+            }
+            if (role === "trigger") visualBuilder.triggerSwitchId = switchId;
+            if (role === "collect") visualBuilder.collectSwitchId = switchId;
+            if (role === "drain") visualBuilder.drainSwitchId = switchId;
+            if (role === "lamp") visualBuilder.lampId = lampId;
+            if (role === "target") {
+                var idx = visualBuilder.targetSwitchIds.indexOf(switchId);
+                if (idx >= 0) visualBuilder.targetSwitchIds.splice(idx, 1);
+                else visualBuilder.targetSwitchIds.push(switchId);
+            }
+            visualBuilder.error = "";
+            render();
+        }
+
+        function switchIdForElementId(elementId) {
+            var asset = assets.switchCandidates.find(function find(row) {
+                return row && (row.sourceElementId === elementId || row.id === elementId);
+            });
+            if (!asset) return "";
+            upsertSwitchFromAsset(asset);
+            return asset.id;
+        }
+
+        function lampIdForElementId(elementId) {
+            var asset = assets.lampCandidates.find(function find(row) {
+                return row && row.sourceElementId === elementId;
+            });
+            return asset ? asset.id : "";
+        }
+
+        function createVisualSwitchLampFeature() {
+            /* What: Generate switch->state->lamp flow from visual roles.
+             * Why: This is the most common starter interaction users need.
+             */
+            if (!visualBuilder.triggerSwitchId) return rejectVisualBuilder("Choose a trigger object.");
+            if (!visualBuilder.lampId) return rejectVisualBuilder("Choose a lamp object.");
+            var name = String(visualBuilder.featureName || "").trim() || "Visual Feature";
+            var feature = {
+                id: createFeatureId(name),
+                name: name,
+                description: "Generated from Visual Builder: switch lights lamp.",
+                goal: "Hit trigger to light selected lamp.",
+                objects: [sourceElementIdForSwitchId(visualBuilder.triggerSwitchId), sourceElementIdForLampId(visualBuilder.lampId)].filter(Boolean),
+                states: [],
+                rules: [],
+                lamps: [visualBuilder.lampId]
+            };
+            var stateId = uniqueLogicId(slugify(name) + "_lit");
+            var ruleId = uniqueLogicId("A_" + slugify(name) + "_trigger");
+            doc.stateTable.push({ id: stateId, name: name + " Lit", type: "bool", initial: false, volatile: true });
+            var effects = [{ type: "set", target: stateId, value: true }];
+            if (Number(visualBuilder.triggerScore || 0) > 0) effects.push({ type: "score", value: Number(visualBuilder.triggerScore || 0) });
+            doc.actionRules.push({
+                id: ruleId,
+                name: "Light " + labelForLamp(visualBuilder.lampId),
+                trigger: visualBuilder.triggerSwitchId,
+                condition: "!" + stateId,
+                effects: effects,
+                enabled: true
+            });
+            upsertLampBindingFromAsset(assetByLampId(visualBuilder.lampId));
+            var binding = doc.lampBindings.find(function find(row) { return row && row.lampId === visualBuilder.lampId; });
+            if (binding) binding.expr = stateId;
+            feature.states.push(stateId);
+            feature.rules.push(ruleId);
+            featureList().push(feature);
+            selectedFeatureId = feature.id;
+            visualBuilder.error = "";
+            commitDocChange({ render: true });
+        }
+
+        function createVisualTargetBankCollectFeature() {
+            /* What: Generate target-bank collect flow from visual roles.
+             * Why: Multi-target progression should be buildable from clicked table objects.
+             */
+            if (!visualBuilder.targetSwitchIds.length) return rejectVisualBuilder("Choose one or more target objects.");
+            if (!visualBuilder.collectSwitchId) return rejectVisualBuilder("Choose a collect object.");
+            var name = String(visualBuilder.featureName || "").trim() || "Target Bank";
+            var feature = {
+                id: createFeatureId(name),
+                name: name,
+                description: "Generated from Visual Builder: target bank collect.",
+                goal: "Complete selected targets, then collect.",
+                objects: visualBuilder.targetSwitchIds.map(sourceElementIdForSwitchId).concat([sourceElementIdForSwitchId(visualBuilder.collectSwitchId)]).filter(Boolean),
+                states: [],
+                rules: [],
+                lamps: []
+            };
+            var base = uniqueLogicId(slugify(name));
+            var stateIds = [];
+            visualBuilder.targetSwitchIds.forEach(function eachTarget(switchId, index) {
+                var stateId = uniqueLogicId(base + "_target_" + String(index + 1) + "_lit");
+                stateIds.push(stateId);
+                feature.states.push(stateId);
+                doc.stateTable.push({ id: stateId, name: labelForSwitch(switchId) + " Lit", type: "bool", initial: false, volatile: true });
+                var hitRuleId = uniqueLogicId("A_" + base + "_hit_" + String(index + 1));
+                var hitEffects = [{ type: "set", target: stateId, value: true }];
+                if (Number(visualBuilder.targetHitScore || 0) > 0) hitEffects.push({ type: "score", value: Number(visualBuilder.targetHitScore || 0) });
+                doc.actionRules.push({
+                    id: hitRuleId,
+                    name: "Light " + labelForSwitch(switchId),
+                    trigger: switchId,
+                    condition: "!" + stateId,
+                    effects: hitEffects,
+                    enabled: true
+                });
+                feature.rules.push(hitRuleId);
+                bindLampForSwitch(switchId, stateId);
+                var targetLampId = lampIdForSwitchId(switchId);
+                if (targetLampId && feature.lamps.indexOf(targetLampId) < 0) feature.lamps.push(targetLampId);
+            });
+            var readyId = uniqueLogicId(base + "_ready");
+            feature.states.push(readyId);
+            doc.computedState.push({ id: readyId, name: name + " Ready", type: "bool", expr: stateIds.join(" && ") });
+            bindLampForSwitch(visualBuilder.collectSwitchId, readyId);
+            var collectRuleId = uniqueLogicId("A_" + base + "_collect");
+            var collectEffects = [];
+            if (Number(visualBuilder.collectAward || 0) > 0) collectEffects.push({ type: "score", value: Number(visualBuilder.collectAward || 0) });
+            if (visualBuilder.resetOnCollect) {
+                stateIds.forEach(function eachState(stateId) {
+                    collectEffects.push({ type: "set", target: stateId, value: false });
+                });
+            }
+            doc.actionRules.push({
+                id: collectRuleId,
+                name: "Collect " + name,
+                trigger: visualBuilder.collectSwitchId,
+                condition: readyId,
+                effects: collectEffects,
+                enabled: true
+            });
+            feature.rules.push(collectRuleId);
+            var collectLampId = lampIdForSwitchId(visualBuilder.collectSwitchId);
+            if (collectLampId && feature.lamps.indexOf(collectLampId) < 0) feature.lamps.push(collectLampId);
+            featureList().push(feature);
+            selectedFeatureId = feature.id;
+            visualBuilder.error = "";
+            commitDocChange({ render: true });
+        }
+
+        function createVisualDrainResetFeature() {
+            /* What: Generate a drain reset rule for target states from visual roles.
+             * Why: Reset behavior should be buildable from selected drain/targets.
+             */
+            if (!visualBuilder.drainSwitchId) return rejectVisualBuilder("Choose a drain object.");
+            if (!visualBuilder.targetSwitchIds.length) return rejectVisualBuilder("Choose one or more target objects to reset.");
+            var stateTargets = [];
+            visualBuilder.targetSwitchIds.forEach(function eachSwitch(switchId) {
+                var linkedState = firstStateSetBySwitch(switchId);
+                if (linkedState && stateTargets.indexOf(linkedState) < 0) stateTargets.push(linkedState);
+            });
+            if (!stateTargets.length) return rejectVisualBuilder("No target states found for selected targets. Create target rules first.");
+            var name = String(visualBuilder.featureName || "").trim() || "Drain Reset";
+            var ruleId = uniqueLogicId("R_" + slugify(name) + "_drain");
+            doc.resetRules.push({
+                id: ruleId,
+                name: "Reset on " + labelForSwitch(visualBuilder.drainSwitchId),
+                trigger: visualBuilder.drainSwitchId,
+                scope: "volatile",
+                resets: stateTargets
+            });
+            var feature = {
+                id: createFeatureId(name),
+                name: name,
+                description: "Generated from Visual Builder: drain reset.",
+                goal: "Reset selected target progression on drain.",
+                objects: [sourceElementIdForSwitchId(visualBuilder.drainSwitchId)].concat(visualBuilder.targetSwitchIds.map(sourceElementIdForSwitchId)).filter(Boolean),
+                states: stateTargets.slice(),
+                rules: [],
+                lamps: []
+            };
+            featureList().push(feature);
+            selectedFeatureId = feature.id;
+            visualBuilder.error = "";
+            commitDocChange({ render: true });
+        }
+
+        function firstStateSetBySwitch(switchId) {
+            var match = null;
+            doc.actionRules.some(function some(rule) {
+                if (!rule || rule.trigger !== switchId) return false;
+                return (Array.isArray(rule.effects) ? rule.effects : []).some(function someEffect(effect) {
+                    if (!effect || effect.type !== "set" || effect.value !== true) return false;
+                    if (!stateById(effect.target)) return false;
+                    match = effect.target;
+                    return true;
+                });
+            });
+            return match || "";
+        }
+
+        function sourceElementIdForSwitchId(switchId) {
+            var sw = doc.switchRegistry.find(function find(row) { return row && row.id === switchId; });
+            return sw && sw.sourceElementId ? sw.sourceElementId : "";
+        }
+
+        function sourceElementIdForLampId(lampId) {
+            var lamp = assetByLampId(lampId);
+            return lamp && lamp.sourceElementId ? lamp.sourceElementId : "";
+        }
+
+        function lampIdForSwitchId(switchId) {
+            var sourceId = sourceElementIdForSwitchId(switchId);
+            return sourceId ? lampIdForElementId(sourceId) : "";
+        }
+
+        function rejectVisualBuilder(message) {
+            visualBuilder.error = message;
+            render();
         }
 
         function listForCollection(collection) {
@@ -506,11 +1003,30 @@
              * Why: Users need a direct way to extend logic without editing JSON.
              */
             var list = listForCollection(collection);
+            var scopedFeature = selectedFeature();
             if (collection === "switchRegistry") list.push({ id: Pin.logicTypes.nextId("sw"), name: "", sourceElementId: "", kind: "switch" });
-            if (collection === "stateTable") list.push({ id: Pin.logicTypes.nextId("state"), name: "", type: "bool", initial: false, volatile: true });
-            if (collection === "computedState") list.push({ id: Pin.logicTypes.nextId("cmp"), name: "", type: "bool", expr: "false" });
-            if (collection === "lampBindings") list.push({ lampId: "", expr: "false" });
-            if (collection === "actionRules") list.push({ id: Pin.logicTypes.nextId("A"), name: "", trigger: "", condition: "", effects: [], enabled: true });
+            if (collection === "stateTable") {
+                var stateRow = { id: Pin.logicTypes.nextId("state"), name: "", type: "bool", initial: false, volatile: true };
+                list.push(stateRow);
+                if (scopedFeature) toggleFeatureLink(scopedFeature, "states", stateRow.id, true);
+            }
+            if (collection === "computedState") {
+                var computedRow = { id: Pin.logicTypes.nextId("cmp"), name: "", type: "bool", expr: "false" };
+                list.push(computedRow);
+                if (scopedFeature) toggleFeatureLink(scopedFeature, "states", computedRow.id, true);
+            }
+            if (collection === "lampBindings") {
+                var firstLampId = assets.lampCandidates[0] ? assets.lampCandidates[0].id : "";
+                var lampRow = { lampId: firstLampId, expr: "false" };
+                list.push(lampRow);
+                if (scopedFeature && firstLampId) toggleFeatureLink(scopedFeature, "lamps", firstLampId, true);
+            }
+            if (collection === "actionRules") {
+                var firstSwitchId = doc.switchRegistry[0] ? doc.switchRegistry[0].id : "";
+                var ruleRow = { id: Pin.logicTypes.nextId("A"), name: "", trigger: firstSwitchId, condition: "", effects: [], enabled: true };
+                list.push(ruleRow);
+                if (scopedFeature) toggleFeatureLink(scopedFeature, "rules", ruleRow.id, true);
+            }
             if (collection === "resetRules") list.push({ id: Pin.logicTypes.nextId("R"), name: "", trigger: "", scope: "volatile", resets: [] });
             selected = { collection: collection, index: list.length - 1 };
             commitDocChange({ render: true });
@@ -1305,7 +1821,11 @@
                 item.className = "logic-feature-card muted";
                 item.onclick = function onclick() {
                     upsertLampBindingFromAsset(asset);
-                    selected = { collection: "lampBindings", index: doc.lampBindings.length - 1 };
+                    if (scopedFeature) toggleFeatureLink(scopedFeature, "lamps", asset.id, true);
+                    var bindingIndex = doc.lampBindings.findIndex(function find(row) {
+                        return row && row.lampId === asset.id;
+                    });
+                    selected = { collection: "lampBindings", index: bindingIndex >= 0 ? bindingIndex : doc.lampBindings.length - 1 };
                     commitDocChange({ render: true });
                 };
                 item.appendChild(cardTitle(asset.name || asset.id, asset.id));
@@ -1648,6 +2168,10 @@
              * Why: The main workspace is human-readable, while the inspector preserves precise control.
              */
             inspector.innerHTML = "";
+            if (activeSection === "simulator") {
+                renderSimulatorInspector();
+                return;
+            }
             var title = document.createElement("h3");
             title.textContent = "Inspector";
             inspector.appendChild(title);
@@ -1669,6 +2193,216 @@
             remove.textContent = "Delete";
             remove.onclick = removeSelectedRow;
             inspector.appendChild(remove);
+        }
+
+        function renderSimulatorInspector() {
+            /* What: Replace the simulator inspector with a live table + object-state rail.
+             * Why: Simulator users need physical object feedback, not edit controls.
+             */
+            var title = document.createElement("h3");
+            title.textContent = "Simulator View";
+            inspector.appendChild(title);
+            var world = buildSimulatorPreviewWorld();
+            inspector.appendChild(simulatorTablePreviewCard(world));
+            inspector.appendChild(simulatorObjectStateCard(world));
+        }
+
+        function buildSimulatorPreviewWorld() {
+            /* What: Build a lightweight render world from logic simulator state.
+             * Why: The right-rail preview should match current simulated lamps and overrides.
+             */
+            var compiledTable = Pin.logicCompile.applyToTable(table, doc);
+            var world = {
+                table: compiledTable,
+                balls: [],
+                score: Number(runtime.score || 0),
+                ruleState: { elementProperties: {} },
+                lampState: {},
+                controls: { left: false, right: false },
+                elementState: {},
+                tableAssetBaseHref: ""
+            };
+            Object.keys(runtime.lamps || {}).forEach(function eachLamp(id) {
+                world.lampState[id] = { on: !!runtime.lamps[id], intensity: runtime.lamps[id] ? 1 : 0 };
+            });
+            Object.keys(runtime.elementProperties || {}).forEach(function eachElement(id) {
+                var row = runtime.elementProperties[id];
+                if (!row || typeof row !== "object") return;
+                world.ruleState.elementProperties[id] = {};
+                Object.keys(row).forEach(function eachProp(prop) {
+                    world.ruleState.elementProperties[id][prop] = row[prop];
+                });
+            });
+            world.runtime = Pin.elements.compileElements(compiledTable, world);
+            return world;
+        }
+
+        function simulatorTablePreviewCard(world) {
+            /* What: Render a static table snapshot driven by current simulator state.
+             * Why: Lamp and override feedback should be visible in playfield context.
+             */
+            var card = document.createElement("div");
+            card.className = "logic-card logic-sim-rail-card";
+            var h = document.createElement("h4");
+            h.textContent = "Live Table";
+            card.appendChild(h);
+            var shell = document.createElement("div");
+            shell.className = "logic-sim-preview";
+            var canvas = document.createElement("canvas");
+            canvas.className = "logic-sim-canvas";
+            canvas.width = world.table.playfield.width;
+            canvas.height = world.table.playfield.height;
+            shell.appendChild(canvas);
+            card.appendChild(shell);
+            var ctx = canvas.getContext("2d");
+            if (ctx) {
+                Pin.render.renderWorld(ctx, world, {
+                    showHud: false,
+                    showCabinet: false,
+                    onImageReady: function onImageReady() {
+                        Pin.render.renderWorld(ctx, world, { showHud: false, showCabinet: false });
+                    }
+                });
+            }
+            return card;
+        }
+
+        function simulatorObjectStateCard(world) {
+            /* What: Render logic-relevant physical object state for the simulator.
+             * Why: Designers should inspect object-level effects without leaving simulator flow.
+             */
+            var card = document.createElement("div");
+            card.className = "logic-card logic-sim-rail-card";
+            var h = document.createElement("h4");
+            h.textContent = "Object State";
+            card.appendChild(h);
+            var objects = simulatorRelevantElements(world.table);
+            if (!objects.length) {
+                card.appendChild(emptyText("No logic-relevant objects found yet."));
+                return card;
+            }
+            var list = document.createElement("div");
+            list.className = "logic-sim-object-list";
+            var lastFired = simulatorLastFiredSwitchId();
+            objects.forEach(function each(el) {
+                list.appendChild(simulatorObjectStateRow(el, lastFired));
+            });
+            card.appendChild(list);
+            return card;
+        }
+
+        function simulatorRelevantElements(currentTable) {
+            /* What: Resolve physical elements touched by switches, lamps, or property effects.
+             * Why: The simulator rail should stay focused on gameplay-relevant objects.
+             */
+            var byId = {};
+            (currentTable.elements || []).forEach(function each(el) {
+                if (el && el.id) byId[el.id] = el;
+            });
+            var used = {};
+            doc.switchRegistry.forEach(function each(sw) {
+                var sourceId = sw && sw.sourceElementId ? String(sw.sourceElementId) : "";
+                if (sourceId && byId[sourceId]) used[sourceId] = true;
+            });
+            doc.lampBindings.forEach(function each(binding) {
+                var sourceId = lampSourceElementId(binding);
+                if (sourceId && byId[sourceId]) used[sourceId] = true;
+            });
+            doc.actionRules.forEach(function each(rule) {
+                (Array.isArray(rule && rule.effects) ? rule.effects : []).forEach(function eachEffect(effect) {
+                    if (!effect) return;
+                    if (effect.type !== "setElementProperty" && effect.type !== "clearElementProperty") return;
+                    var parts = String(effect.target || "").split(".");
+                    var sourceId = parts[0] || "";
+                    if (sourceId && byId[sourceId]) used[sourceId] = true;
+                });
+            });
+            return Object.keys(used).map(function map(id) {
+                return byId[id];
+            }).sort(function sort(a, b) {
+                return labelForElement(a.id).localeCompare(labelForElement(b.id));
+            });
+        }
+
+        function simulatorObjectStateRow(el, lastFiredSwitchId) {
+            /* What: Render one physical object's simulator state row.
+             * Why: Object rows consolidate trigger, lamp, state, and override visibility.
+             */
+            var row = document.createElement("div");
+            row.className = "logic-sim-object-row";
+            var title = document.createElement("div");
+            title.className = "logic-card-title-line";
+            var strong = document.createElement("strong");
+            strong.textContent = labelForElement(el.id);
+            var small = document.createElement("small");
+            small.textContent = el.type + " (" + el.id + ")";
+            title.appendChild(strong);
+            title.appendChild(small);
+            row.appendChild(title);
+
+            var switchRows = doc.switchRegistry.filter(function filter(sw) {
+                return sw && (sw.sourceElementId === el.id || sw.id === el.id);
+            });
+            var switchText = switchRows.length ? switchRows.map(function map(sw) {
+                var fired = lastFiredSwitchId && sw.id === lastFiredSwitchId;
+                return labelForSwitch(sw.id) + (fired ? " [last fired]" : "");
+            }).join(", ") : "None";
+            row.appendChild(readOnlyLine("Switches", switchText));
+
+            var lampRows = doc.lampBindings.filter(function filter(binding) {
+                return lampSourceElementId(binding) === el.id;
+            });
+            var lampText = lampRows.length ? lampRows.map(function map(binding) {
+                return labelForLamp(binding.lampId) + ": " + (runtime.lamps[binding.lampId] ? "ON" : "off");
+            }).join(", ") : "None";
+            row.appendChild(readOnlyLine("Lights", lampText));
+
+            var overrides = runtime.elementProperties && runtime.elementProperties[el.id] ? runtime.elementProperties[el.id] : null;
+            var overrideText = overrides ? Object.keys(overrides).map(function map(key) {
+                return key + "=" + String(overrides[key]);
+            }).join(", ") : "None";
+            row.appendChild(readOnlyLine("Overrides", overrideText));
+
+            var touchedStateIds = {};
+            switchRows.forEach(function eachSwitch(sw) {
+                doc.actionRules.forEach(function eachRule(rule) {
+                    if (!rule || rule.trigger !== sw.id) return;
+                    (Array.isArray(rule.effects) ? rule.effects : []).forEach(function eachEffect(effect) {
+                        if (!effect || !effect.target) return;
+                        if (effect.type === "set" || effect.type === "add" || effect.type === "reset") touchedStateIds[String(effect.target)] = true;
+                    });
+                });
+                doc.resetRules.forEach(function eachReset(rule) {
+                    if (!rule || rule.trigger !== sw.id) return;
+                    (Array.isArray(rule.resets) ? rule.resets : []).forEach(function eachTarget(targetId) {
+                        if (targetId) touchedStateIds[String(targetId)] = true;
+                    });
+                });
+            });
+            var stateText = Object.keys(touchedStateIds).length ? Object.keys(touchedStateIds).map(function map(id) {
+                return labelForState(id) + "=" + String(runtime.values[id]);
+            }).join(", ") : "None";
+            row.appendChild(readOnlyLine("State Impact", stateText));
+            return row;
+        }
+
+        function lampSourceElementId(binding) {
+            /* What: Resolve which table element a lamp binding belongs to.
+             * Why: Lamp IDs may refer to lamp IDs or direct element IDs depending on type.
+             */
+            var lampId = binding && binding.lampId ? String(binding.lampId) : "";
+            if (!lampId) return "";
+            var asset = assetByLampId(lampId);
+            return asset && asset.sourceElementId ? asset.sourceElementId : lampId;
+        }
+
+        function simulatorLastFiredSwitchId() {
+            /* What: Read the most recent switch from simulator log output.
+             * Why: Object rows should indicate which switch was just exercised.
+             */
+            var firstLine = runtime.log && runtime.log.length ? String(runtime.log[0]).split("\n")[0] : "";
+            var match = /^Switch Fired:\s+(.+)$/.exec(firstLine);
+            return match ? String(match[1]).trim() : "";
         }
 
         function renderSwitchInspector(row) {
@@ -1874,10 +2608,19 @@
             row.resets.forEach(function eachReset(targetId, resetIndex) {
                 var resetRow = document.createElement("div");
                 resetRow.className = "logic-reset-row";
-                resetRow.appendChild(selectField("State", targetId || "", stateOptions(), function setState(v) {
-                    row.resets[resetIndex] = v;
-                    commitDocChange();
-                }));
+                var resetStateOptions = stateOptions();
+                if (resetStateOptions.length > 1) {
+                    resetRow.appendChild(selectField("State", targetId || "", resetStateOptions, function setState(v) {
+                        row.resets[resetIndex] = v;
+                        commitDocChange();
+                    }));
+                } else {
+                    resetRow.appendChild(inputField("State", targetId || "", function setState(v) {
+                        row.resets[resetIndex] = v.trim();
+                        commitDocChange();
+                    }));
+                    resetRow.appendChild(emptyText("No stored states yet. Add one in State, or type a target ID."));
+                }
                 appendDangerButton(resetRow, "Delete Target", function onclick() {
                     row.resets.splice(resetIndex, 1);
                     commitDocChange({ render: true });
@@ -1897,18 +2640,6 @@
             /* What: Render one editable effect block.
              * Why: Effects need structured controls so users avoid malformed JSON.
              */
-            function elementPropertyOptions() {
-                var out = [{ value: "", label: "(select element property)" }];
-                (table.elements || []).forEach(function each(el) {
-                    if (!el || !el.id) return;
-                    if (el.type === "gate") {
-                        out.push({ value: el.id + ".open", label: labelForElement(el.id) + " (" + el.id + ").open" });
-                        out.push({ value: el.id + ".locked", label: labelForElement(el.id) + " (" + el.id + ").locked" });
-                    }
-                });
-                return out;
-            }
-
             var effectBox = document.createElement("div");
             effectBox.className = "logic-effect-row";
             var effectType = effect.type || "set";
@@ -1925,7 +2656,7 @@
                     delete effect.target;
                     effect.value = Number(effect.value || 0);
                 } else if (nextType === "setElementProperty" || nextType === "clearElementProperty") {
-                    if (!effect.target) effect.target = elementPropertyOptions()[1] ? elementPropertyOptions()[1].value : "";
+                    if (!effect.target) effect.target = runtimeElementPropertyOptions()[1] ? runtimeElementPropertyOptions()[1].value : "";
                     if (nextType === "setElementProperty" && effect.value == null) effect.value = true;
                 } else {
                     if (!effect.target) effect.target = firstStateId();
@@ -1936,15 +2667,33 @@
                 commitDocChange({ render: true });
             }));
             if (effectType === "set" || effectType === "add" || effectType === "reset") {
-                effectBox.appendChild(selectField("State", effect.target || "", stateOptions(), function setTarget(v) {
-                    effect.target = v;
-                    commitDocChange();
-                }));
+                var targetStateOptions = stateOptions();
+                if (targetStateOptions.length > 1) {
+                    effectBox.appendChild(selectField("State", effect.target || "", targetStateOptions, function setTarget(v) {
+                        effect.target = v;
+                        commitDocChange();
+                    }));
+                } else {
+                    effectBox.appendChild(inputField("State", effect.target || "", function setTarget(v) {
+                        effect.target = v.trim();
+                        commitDocChange();
+                    }));
+                    effectBox.appendChild(emptyText("No stored states yet. Add one in State, or type a target ID."));
+                }
             } else if (effectType === "setElementProperty" || effectType === "clearElementProperty") {
-                effectBox.appendChild(selectField("Property", effect.target || "", elementPropertyOptions(), function setTarget(v) {
-                    effect.target = v;
-                    commitDocChange();
-                }));
+                var propertyOptions = runtimeElementPropertyOptions();
+                if (propertyOptions.length > 1) {
+                    effectBox.appendChild(selectField("Property", effect.target || "", propertyOptions, function setTarget(v) {
+                        effect.target = v;
+                        commitDocChange();
+                    }));
+                } else {
+                    effectBox.appendChild(inputField("Property", effect.target || "", function setTarget(v) {
+                        effect.target = v.trim();
+                        commitDocChange();
+                    }));
+                    effectBox.appendChild(emptyText("No runtime properties detected yet. Type elementId.property directly."));
+                }
             }
             if (effectType === "set") {
                 effectBox.appendChild(inputField("Value", effect.value, function setValue(v) {
@@ -1975,6 +2724,76 @@
                 commitDocChange({ render: true });
             });
             return effectBox;
+        }
+
+        function runtimeElementPropertyOptions() {
+            /* What: Build runtime-safe table object property targets for set/clear property effects.
+             * Why: Logic authors need lookup coverage across table objects, not only gate fields.
+             */
+            var out = [{ value: "", label: "(select element property)" }];
+            var seen = {};
+            var textRefMap = textPropertyRefsByElementId();
+
+            function pushOption(elementId, prop, hint) {
+                var id = String(elementId || "");
+                var key = String(prop || "").trim();
+                if (!id || !key) return;
+                var value = id + "." + key;
+                if (seen[value]) return;
+                seen[value] = true;
+                var label = labelForElement(id) + " (" + id + ")." + key;
+                if (hint) label += " [" + hint + "]";
+                out.push({ value: value, label: label });
+            }
+
+            (table.elements || []).forEach(function each(el) {
+                if (!el || !el.id) return;
+                if (typeof el.score === "number") pushOption(el.id, "score", "score");
+                if (el.type === "gate") {
+                    pushOption(el.id, "open", "gate");
+                    pushOption(el.id, "locked", "gate");
+                    pushOption(el.id, "direction", "gate");
+                }
+                if (el.type === "trough" || typeof el.active === "boolean") {
+                    pushOption(el.id, "active", "active");
+                }
+                (textRefMap[el.id] || []).forEach(function eachProp(prop) {
+                    pushOption(el.id, prop, "text");
+                });
+            });
+
+            doc.actionRules.forEach(function eachRule(actionRule) {
+                (Array.isArray(actionRule && actionRule.effects) ? actionRule.effects : []).forEach(function eachEffect(effect) {
+                    if (!effect) return;
+                    if (effect.type !== "setElementProperty" && effect.type !== "clearElementProperty") return;
+                    var target = String(effect.target || "");
+                    var dot = target.indexOf(".");
+                    if (dot <= 0 || dot >= target.length - 1) return;
+                    pushOption(target.slice(0, dot), target.slice(dot + 1), "existing");
+                });
+            });
+
+            return out;
+        }
+
+        function textPropertyRefsByElementId() {
+            /* What: Map source element IDs to properties referenced by light text bindings.
+             * Why: Text-driven readouts should be selectable from the same property lookup.
+             */
+            var map = {};
+            (table.elements || []).forEach(function each(el) {
+                if (!el || !el.textElementId) return;
+                var sourceId = String(el.textElementId || "");
+                if (!sourceId) return;
+                var prop = typeof el.textProperty === "string" && el.textProperty.trim() ? el.textProperty.trim() : "score";
+                if (!map[sourceId]) map[sourceId] = {};
+                map[sourceId][prop] = true;
+            });
+            var out = {};
+            Object.keys(map).forEach(function eachId(id) {
+                out[id] = Object.keys(map[id]).sort();
+            });
+            return out;
         }
 
         function sectionHeader(title, description, primaryLabel, primaryAction, secondaryLabel, secondaryAction) {

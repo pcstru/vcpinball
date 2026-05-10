@@ -13,7 +13,7 @@
         trough: true,
         gate: true
     };
-    var LAMP_TYPES = { light: true, arrowLight: true, boxLight: true, dropTarget: true };
+    var LAMP_TYPES = { light: true, arrowLight: true, boxLight: true, dropTarget: true, lane: true };
 
     function extractAssets(table) {
         /* What: Gather switch/lamp candidates from the current table.

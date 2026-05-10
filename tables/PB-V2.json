@@ -1,0 +1,3487 @@
+{
+  "version": 1,
+  "name": "PB-V2",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 15,
+    "gravity": 0.2,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [
+      {
+        "id": "dropTarget_5ydirb",
+        "name": "TargGroupA-1",
+        "sourceElementId": "dropTarget_5ydirb",
+        "kind": "switch"
+      },
+      {
+        "id": "dropTarget_oqqevx",
+        "name": "TargGroupA-2",
+        "sourceElementId": "dropTarget_oqqevx",
+        "kind": "switch"
+      },
+      {
+        "id": "dropTarget_8og2fx",
+        "name": "TargGroupA-3",
+        "sourceElementId": "dropTarget_8og2fx",
+        "kind": "switch"
+      },
+      {
+        "id": "drain_s0f2ox",
+        "name": "drain_s0f2ox",
+        "sourceElementId": "drain_s0f2ox",
+        "kind": "switch"
+      },
+      {
+        "id": "trough_ftgkei",
+        "name": "Group-ABonusTrough",
+        "sourceElementId": "trough_ftgkei",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_rkh7d6",
+        "name": "bumper_rkh7d6",
+        "sourceElementId": "bumper_rkh7d6",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_018abm",
+        "name": "bumper_018abm",
+        "sourceElementId": "bumper_018abm",
+        "kind": "switch"
+      },
+      {
+        "id": "lane_qkjvmk",
+        "name": "GroupBLane-1",
+        "sourceElementId": "lane_qkjvmk",
+        "kind": "switch"
+      },
+      {
+        "id": "lane_ja8ajn",
+        "name": "GroupBLane-2",
+        "sourceElementId": "lane_ja8ajn",
+        "kind": "switch"
+      },
+      {
+        "id": "lane_5j4uny",
+        "name": "GroupBLane-3",
+        "sourceElementId": "lane_5j4uny",
+        "kind": "switch"
+      },
+      {
+        "id": "gate_cs8tod",
+        "name": "gate_cs8tod",
+        "sourceElementId": "gate_cs8tod",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_qt73gc",
+        "name": "bumper_qt73gc",
+        "sourceElementId": "bumper_qt73gc",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_qcp6o6",
+        "name": "bumper_qcp6o6",
+        "sourceElementId": "bumper_qcp6o6",
+        "kind": "switch"
+      },
+      {
+        "id": "trough_6rzmuf",
+        "name": "Group-bBonusTrough",
+        "sourceElementId": "trough_6rzmuf",
+        "kind": "switch"
+      },
+      {
+        "id": "timer_100ms",
+        "name": "Timer 100ms",
+        "kind": "timer",
+        "sourceElementId": "timer_100ms",
+        "intervalMs": 100
+      },
+      {
+        "id": "timer_1s",
+        "name": "Timer 1s",
+        "kind": "timer",
+        "sourceElementId": "timer_1s",
+        "intervalMs": 1000
+      }
+    ],
+    "stateTable": [
+      {
+        "id": "a_target_1_lit",
+        "name": "TargGroupA-1 lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "a_target_2_lit",
+        "name": "TargGroupA-2 lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "a_target_3_lit",
+        "name": "TargGroupA-3 lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "b_lane_1_lit",
+        "name": "GroupBLane-1 lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "b_lane_2_lit",
+        "name": "GroupBLane-2 lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "b_lane_3_lit",
+        "name": "GroupBLane-3 lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "a_bonus_ready",
+        "name": "Group A bonus trough active",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "b_bonus_ready",
+        "name": "Group B bonus trough active",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "group_a_claim_lit",
+        "name": "Group A bonus claimed for current multiplier",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "group_b_claim_lit",
+        "name": "Group B bonus claimed for current multiplier",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      },
+      {
+        "id": "score_multiplier",
+        "name": "Current score multiplier",
+        "type": "int",
+        "initial": 1,
+        "volatile": true
+      }
+    ],
+    "computedState": [
+      {
+        "id": "group_a_complete",
+        "name": "All Group A targets lit",
+        "expr": "a_target_1_lit && a_target_2_lit && a_target_3_lit"
+      },
+      {
+        "id": "group_b_complete",
+        "name": "All Group B lanes lit",
+        "expr": "b_lane_1_lit && b_lane_2_lit && b_lane_3_lit"
+      },
+      {
+        "id": "both_group_claims_lit",
+        "name": "Both group bonus claims lit",
+        "expr": "group_a_claim_lit && group_b_claim_lit"
+      }
+    ],
+    "lampBindings": [
+      {
+        "lampId": "dropTarget_5ydirb",
+        "expr": "a_target_1_lit"
+      },
+      {
+        "lampId": "dropTarget_oqqevx",
+        "expr": "a_target_2_lit"
+      },
+      {
+        "lampId": "dropTarget_8og2fx",
+        "expr": "a_target_3_lit"
+      },
+      {
+        "lampId": "lane_qkjvmk",
+        "expr": "b_lane_1_lit"
+      },
+      {
+        "lampId": "lane_ja8ajn",
+        "expr": "b_lane_2_lit"
+      },
+      {
+        "lampId": "lane_5j4uny",
+        "expr": "b_lane_3_lit"
+      },
+      {
+        "lampId": "arrowLight_w6ey3m",
+        "expr": "a_bonus_ready"
+      },
+      {
+        "lampId": "arrowLight_56ediz",
+        "expr": "b_bonus_ready"
+      },
+      {
+        "lampId": "arrowLight_z73tuo",
+        "expr": "b_bonus_ready"
+      },
+      {
+        "lampId": "light_x2ga",
+        "expr": "group_a_claim_lit"
+      },
+      {
+        "lampId": "light_x2gb",
+        "expr": "group_b_claim_lit"
+      },
+      {
+        "lampId": "light_rhfgmu",
+        "expr": "score_multiplier >= 2"
+      },
+      {
+        "lampId": "light_lgg71e",
+        "expr": "score_multiplier >= 3"
+      },
+      {
+        "lampId": "light_0epe4d",
+        "expr": "score_multiplier >= 4"
+      },
+      {
+        "lampId": "light_oimmwr",
+        "expr": "score_multiplier >= 5"
+      },
+      {
+        "lampId": "light_b2cnb2",
+        "expr": "score_multiplier >= 10"
+      },
+      {
+        "lampId": "light_5zz9m0",
+        "expr": "score_multiplier >= 25"
+      },
+      {
+        "lampId": "light_2cyzm5",
+        "expr": "score_multiplier >= 50"
+      },
+      {
+        "lampId": "light_isjcrk",
+        "expr": "score_multiplier >= 100"
+      },
+      {
+        "lampId": "boxLight_lane_b1",
+        "expr": "b_lane_1_lit"
+      },
+      {
+        "lampId": "boxLight_lane_b2",
+        "expr": "b_lane_2_lit"
+      },
+      {
+        "lampId": "boxLight_lane_b3",
+        "expr": "b_lane_3_lit"
+      }
+    ],
+    "actionRules": [
+      {
+        "id": "hit_a_target_1_lit",
+        "name": "TargGroupA-1 latches on hit",
+        "trigger": "dropTarget_5ydirb",
+        "effects": [
+          {
+            "type": "set",
+            "target": "a_target_1_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "hit_a_target_2_lit",
+        "name": "TargGroupA-2 latches on hit",
+        "trigger": "dropTarget_oqqevx",
+        "effects": [
+          {
+            "type": "set",
+            "target": "a_target_2_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "hit_a_target_3_lit",
+        "name": "TargGroupA-3 latches on hit",
+        "trigger": "dropTarget_8og2fx",
+        "effects": [
+          {
+            "type": "set",
+            "target": "a_target_3_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "hit_b_lane_1_lit",
+        "name": "GroupBLane-1 latches on rollover",
+        "trigger": "lane_qkjvmk",
+        "effects": [
+          {
+            "type": "set",
+            "target": "b_lane_1_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "hit_b_lane_2_lit",
+        "name": "GroupBLane-2 latches on rollover",
+        "trigger": "lane_ja8ajn",
+        "effects": [
+          {
+            "type": "set",
+            "target": "b_lane_2_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "hit_b_lane_3_lit",
+        "name": "GroupBLane-3 latches on rollover",
+        "trigger": "lane_5j4uny",
+        "effects": [
+          {
+            "type": "set",
+            "target": "b_lane_3_lit",
+            "value": true
+          }
+        ],
+        "enabled": true
+      },
+      {
+        "id": "arm_a_bonus_from_a_target_1_lit",
+        "name": "Arm Group A bonus trough when all A targets are lit",
+        "trigger": "dropTarget_5ydirb",
+        "effects": [
+          {
+            "type": "set",
+            "target": "a_bonus_ready",
+            "value": true
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_ftgkei.active",
+            "value": true
+          }
+        ],
+        "enabled": true,
+        "condition": "group_a_complete"
+      },
+      {
+        "id": "arm_a_bonus_from_a_target_2_lit",
+        "name": "Arm Group A bonus trough when all A targets are lit",
+        "trigger": "dropTarget_oqqevx",
+        "effects": [
+          {
+            "type": "set",
+            "target": "a_bonus_ready",
+            "value": true
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_ftgkei.active",
+            "value": true
+          }
+        ],
+        "enabled": true,
+        "condition": "group_a_complete"
+      },
+      {
+        "id": "arm_a_bonus_from_a_target_3_lit",
+        "name": "Arm Group A bonus trough when all A targets are lit",
+        "trigger": "dropTarget_8og2fx",
+        "effects": [
+          {
+            "type": "set",
+            "target": "a_bonus_ready",
+            "value": true
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_ftgkei.active",
+            "value": true
+          }
+        ],
+        "enabled": true,
+        "condition": "group_a_complete"
+      },
+      {
+        "id": "arm_b_bonus_from_b_lane_1_lit",
+        "name": "Arm Group B bonus trough when all B lanes are lit",
+        "trigger": "lane_qkjvmk",
+        "effects": [
+          {
+            "type": "set",
+            "target": "b_bonus_ready",
+            "value": true
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_6rzmuf.active",
+            "value": true
+          }
+        ],
+        "enabled": true,
+        "condition": "group_b_complete"
+      },
+      {
+        "id": "arm_b_bonus_from_b_lane_2_lit",
+        "name": "Arm Group B bonus trough when all B lanes are lit",
+        "trigger": "lane_ja8ajn",
+        "effects": [
+          {
+            "type": "set",
+            "target": "b_bonus_ready",
+            "value": true
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_6rzmuf.active",
+            "value": true
+          }
+        ],
+        "enabled": true,
+        "condition": "group_b_complete"
+      },
+      {
+        "id": "arm_b_bonus_from_b_lane_3_lit",
+        "name": "Arm Group B bonus trough when all B lanes are lit",
+        "trigger": "lane_5j4uny",
+        "effects": [
+          {
+            "type": "set",
+            "target": "b_bonus_ready",
+            "value": true
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_6rzmuf.active",
+            "value": true
+          }
+        ],
+        "enabled": true,
+        "condition": "group_b_complete"
+      },
+      {
+        "id": "claim_group_a_bonus",
+        "name": "Claim Group A bonus and reset A targets",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": true
+          },
+          {
+            "type": "set",
+            "target": "a_bonus_ready",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "a_target_1_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "a_target_2_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "a_target_3_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_ftgkei.active",
+            "value": false
+          }
+        ],
+        "enabled": true,
+        "condition": "a_bonus_ready"
+      },
+      {
+        "id": "claim_group_b_bonus",
+        "name": "Claim Group B bonus and reset B lanes",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": true
+          },
+          {
+            "type": "set",
+            "target": "b_bonus_ready",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "b_lane_1_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "b_lane_2_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "b_lane_3_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_6rzmuf.active",
+            "value": false
+          }
+        ],
+        "enabled": true,
+        "condition": "b_bonus_ready"
+      },
+      {
+        "id": "advance_multiplier_1_to_2_via_trough_ftgkei",
+        "name": "Advance multiplier from 1x to 2x",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 2
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 20
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 20
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 2
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 2
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 30
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 10
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 1"
+      },
+      {
+        "id": "advance_multiplier_2_to_3_via_trough_ftgkei",
+        "name": "Advance multiplier from 2x to 3x",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 3
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 75
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 75
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 30
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 30
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 3
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 3
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 45
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 15
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 2"
+      },
+      {
+        "id": "advance_multiplier_3_to_4_via_trough_ftgkei",
+        "name": "Advance multiplier from 3x to 4x",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 4
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 40
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 40
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 4
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 4
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 60
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 20
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 3"
+      },
+      {
+        "id": "advance_multiplier_4_to_5_via_trough_ftgkei",
+        "name": "Advance multiplier from 4x to 5x",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 5
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 125
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 125
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 5
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 5
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 75
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 25
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 4"
+      },
+      {
+        "id": "advance_multiplier_5_to_10_via_trough_ftgkei",
+        "name": "Advance multiplier from 5x to 10x",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 10
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 10
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 10
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 50
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 5"
+      },
+      {
+        "id": "advance_multiplier_10_to_25_via_trough_ftgkei",
+        "name": "Advance multiplier from 10x to 25x",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 25
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 625
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 625
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 25
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 25
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 375
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 125
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 10"
+      },
+      {
+        "id": "advance_multiplier_25_to_50_via_trough_ftgkei",
+        "name": "Advance multiplier from 25x to 50x",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 50
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 750
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 250
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 25"
+      },
+      {
+        "id": "advance_multiplier_50_to_100_via_trough_ftgkei",
+        "name": "Advance multiplier from 50x to 100x",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 100
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 1000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 1000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 1500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 500
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 50"
+      },
+      {
+        "id": "cap_multiplier_100_via_trough_ftgkei",
+        "name": "Reset claim lights after a completed 100x cycle",
+        "trigger": "trough_ftgkei",
+        "effects": [
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 100"
+      },
+      {
+        "id": "advance_multiplier_1_to_2_via_trough_6rzmuf",
+        "name": "Advance multiplier from 1x to 2x",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 2
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 20
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 20
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 2
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 2
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 30
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 10
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 1"
+      },
+      {
+        "id": "advance_multiplier_2_to_3_via_trough_6rzmuf",
+        "name": "Advance multiplier from 2x to 3x",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 3
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 75
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 75
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 30
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 30
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 3
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 3
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 45
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 15
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 2"
+      },
+      {
+        "id": "advance_multiplier_3_to_4_via_trough_6rzmuf",
+        "name": "Advance multiplier from 3x to 4x",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 4
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 200
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 40
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 40
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 4
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 4
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 60
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 20
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 3"
+      },
+      {
+        "id": "advance_multiplier_4_to_5_via_trough_6rzmuf",
+        "name": "Advance multiplier from 4x to 5x",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 5
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 125
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 125
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 5
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 5
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 75
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 25
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 4"
+      },
+      {
+        "id": "advance_multiplier_5_to_10_via_trough_6rzmuf",
+        "name": "Advance multiplier from 5x to 10x",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 10
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 10
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 10
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 150
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 50
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 5"
+      },
+      {
+        "id": "advance_multiplier_10_to_25_via_trough_6rzmuf",
+        "name": "Advance multiplier from 10x to 25x",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 25
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 625
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 625
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 25
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 25
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 375
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 125
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 10"
+      },
+      {
+        "id": "advance_multiplier_25_to_50_via_trough_6rzmuf",
+        "name": "Advance multiplier from 25x to 50x",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 50
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 1250
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 50
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 750
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 250
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 25"
+      },
+      {
+        "id": "advance_multiplier_50_to_100_via_trough_6rzmuf",
+        "name": "Advance multiplier from 50x to 100x",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 100
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_5ydirb.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_oqqevx.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "dropTarget_8og2fx.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_rkh7d6.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_018abm.score",
+            "value": 2500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_qkjvmk.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_ja8ajn.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "lane_5j4uny.score",
+            "value": 5000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qt73gc.score",
+            "value": 1000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_qcp6o6.score",
+            "value": 1000
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_4jwykq.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "kicker_8drzra.score",
+            "value": 100
+          },
+          {
+            "type": "setElementProperty",
+            "target": "bumper_xxkug6.score",
+            "value": 1500
+          },
+          {
+            "type": "setElementProperty",
+            "target": "spinner_hx5xih.score",
+            "value": 500
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 50"
+      },
+      {
+        "id": "cap_multiplier_100_via_trough_6rzmuf",
+        "name": "Reset claim lights after a completed 100x cycle",
+        "trigger": "trough_6rzmuf",
+        "effects": [
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          }
+        ],
+        "enabled": true,
+        "condition": "both_group_claims_lit && score_multiplier == 100"
+      },
+      {
+        "id": "reset_bonus_multiplier_on_drain",
+        "name": "Reset bonus groups and multiplier on ball drain",
+        "trigger": "drain_s0f2ox",
+        "effects": [
+          {
+            "type": "set",
+            "target": "a_target_1_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "a_target_2_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "a_target_3_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "b_lane_1_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "b_lane_2_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "b_lane_3_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "a_bonus_ready",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "b_bonus_ready",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_a_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "group_b_claim_lit",
+            "value": false
+          },
+          {
+            "type": "set",
+            "target": "score_multiplier",
+            "value": 1
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_ftgkei.active",
+            "value": false
+          },
+          {
+            "type": "setElementProperty",
+            "target": "trough_6rzmuf.active",
+            "value": false
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "dropTarget_5ydirb.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "dropTarget_oqqevx.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "dropTarget_8og2fx.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "bumper_rkh7d6.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "bumper_018abm.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "lane_qkjvmk.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "lane_ja8ajn.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "lane_5j4uny.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "bumper_qt73gc.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "bumper_qcp6o6.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "kicker_4jwykq.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "kicker_8drzra.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "bumper_xxkug6.score"
+          },
+          {
+            "type": "clearElementProperty",
+            "target": "spinner_hx5xih.score"
+          }
+        ],
+        "enabled": true
+      }
+    ],
+    "resetRules": []
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "feature_bonus_multiplier_ladder",
+      "name": "A/B Bonus Multiplier Ladder",
+      "description": "Three Group A targets and three Group B lanes latch when activated. Completing either group arms its bonus trough. Claiming both group bonuses advances the score multiplier ladder from 2x through 100x and scales scored switch values from their base scores. Draining the ball resets group progress, claim lights, armed troughs, and the active multiplier.",
+      "goal": "Reward completing both target groups repeatedly with escalating table-wide score multipliers.",
+      "objects": [
+        "dropTarget_5ydirb",
+        "dropTarget_oqqevx",
+        "dropTarget_8og2fx",
+        "lane_qkjvmk",
+        "lane_ja8ajn",
+        "lane_5j4uny",
+        "trough_ftgkei",
+        "trough_6rzmuf",
+        "light_x2ga",
+        "light_x2gb",
+        "light_rhfgmu",
+        "light_lgg71e",
+        "light_0epe4d",
+        "light_oimmwr",
+        "light_b2cnb2",
+        "light_5zz9m0",
+        "light_2cyzm5",
+        "light_isjcrk",
+        "boxLight_lane_b1",
+        "boxLight_lane_b2",
+        "boxLight_lane_b3"
+      ],
+      "states": [
+        "a_target_1_lit",
+        "a_target_2_lit",
+        "a_target_3_lit",
+        "b_lane_1_lit",
+        "b_lane_2_lit",
+        "b_lane_3_lit",
+        "a_bonus_ready",
+        "b_bonus_ready",
+        "group_a_claim_lit",
+        "group_b_claim_lit",
+        "score_multiplier",
+        "group_a_complete",
+        "group_b_complete",
+        "both_group_claims_lit"
+      ],
+      "rules": [
+        "hit_a_target_1_lit",
+        "hit_a_target_2_lit",
+        "hit_a_target_3_lit",
+        "hit_b_lane_1_lit",
+        "hit_b_lane_2_lit",
+        "hit_b_lane_3_lit",
+        "arm_a_bonus_from_a_target_1_lit",
+        "arm_a_bonus_from_a_target_2_lit",
+        "arm_a_bonus_from_a_target_3_lit",
+        "arm_b_bonus_from_b_lane_1_lit",
+        "arm_b_bonus_from_b_lane_2_lit",
+        "arm_b_bonus_from_b_lane_3_lit",
+        "claim_group_a_bonus",
+        "claim_group_b_bonus",
+        "advance_multiplier_1_to_2_via_trough_ftgkei",
+        "advance_multiplier_2_to_3_via_trough_ftgkei",
+        "advance_multiplier_3_to_4_via_trough_ftgkei",
+        "advance_multiplier_4_to_5_via_trough_ftgkei",
+        "advance_multiplier_5_to_10_via_trough_ftgkei",
+        "advance_multiplier_10_to_25_via_trough_ftgkei",
+        "advance_multiplier_25_to_50_via_trough_ftgkei",
+        "advance_multiplier_50_to_100_via_trough_ftgkei",
+        "cap_multiplier_100_via_trough_ftgkei",
+        "advance_multiplier_1_to_2_via_trough_6rzmuf",
+        "advance_multiplier_2_to_3_via_trough_6rzmuf",
+        "advance_multiplier_3_to_4_via_trough_6rzmuf",
+        "advance_multiplier_4_to_5_via_trough_6rzmuf",
+        "advance_multiplier_5_to_10_via_trough_6rzmuf",
+        "advance_multiplier_10_to_25_via_trough_6rzmuf",
+        "advance_multiplier_25_to_50_via_trough_6rzmuf",
+        "advance_multiplier_50_to_100_via_trough_6rzmuf",
+        "cap_multiplier_100_via_trough_6rzmuf",
+        "reset_bonus_multiplier_on_drain"
+      ],
+      "lamps": [
+        "dropTarget_5ydirb",
+        "dropTarget_oqqevx",
+        "dropTarget_8og2fx",
+        "lane_qkjvmk",
+        "lane_ja8ajn",
+        "lane_5j4uny",
+        "arrowLight_w6ey3m",
+        "arrowLight_56ediz",
+        "arrowLight_z73tuo",
+        "light_x2ga",
+        "light_x2gb",
+        "light_rhfgmu",
+        "light_lgg71e",
+        "light_0epe4d",
+        "light_oimmwr",
+        "light_b2cnb2",
+        "light_5zz9m0",
+        "light_2cyzm5",
+        "light_isjcrk",
+        "boxLight_lane_b1",
+        "boxLight_lane_b2",
+        "boxLight_lane_b3"
+      ]
+    }
+  ],
+  "images": [],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 150,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 82,
+          "y": 72,
+          "inHandle": {
+            "x": -34,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 48,
+            "y": -22
+          }
+        },
+        {
+          "x": 250,
+          "y": 28,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 418,
+          "y": 72,
+          "inHandle": {
+            "x": -48,
+            "y": -22
+          },
+          "outHandle": {
+            "x": 34,
+            "y": 0
+          }
+        },
+        {
+          "x": 490,
+          "y": 150,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 490,
+          "y": 220
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 220
+        }
+      ],
+      "name": "outerWall"
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 463.28624869365666,
+      "top": 673.2862486936566,
+      "bottom": 853.2862486936566,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 110,
+        "y": 740
+      },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.75,
+      "flipSpeed": 34,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.5,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#4a4988",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 370,
+        "y": 740
+      },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.8915926535,
+      "flipSpeed": 34,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.5,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#4258ff",
+      "name": "rf"
+    },
+    {
+      "id": "dropTarget_5ydirb",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 470,
+      "y": 330,
+      "w": 20,
+      "h": 60,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 50,
+      "transparency": 1,
+      "name": "TargGroupA-1"
+    },
+    {
+      "id": "dropTarget_oqqevx",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 470,
+      "y": 410,
+      "w": 20,
+      "h": 60,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 50,
+      "transparency": 1,
+      "name": "TargGroupA-2"
+    },
+    {
+      "id": "dropTarget_8og2fx",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 470,
+      "y": 490,
+      "w": 20,
+      "h": 60,
+      "angle": 0.004259880090889068,
+      "restitution": 0.55,
+      "score": 50,
+      "transparency": 1,
+      "name": "TargGroupA-3"
+    },
+    {
+      "id": "drain_s0f2ox",
+      "type": "drain",
+      "level": 0,
+      "x": 240,
+      "y": 850,
+      "w": 200,
+      "h": 40,
+      "name": "drain_s0f2ox"
+    },
+    {
+      "id": "trough_ftgkei",
+      "type": "trough",
+      "level": 0,
+      "x": 43.32816274316104,
+      "y": 421.10421699088135,
+      "radius": 24.172006402538063,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 10,
+      "ejectAngle": 0.3081820460590287,
+      "color": "#000000",
+      "pitColor": "#08101f",
+      "opacity": 1,
+      "name": "Group-ABonusTrough",
+      "active": false
+    },
+    {
+      "id": "path_0sy437",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 430,
+          "y": 860
+        },
+        {
+          "x": 430,
+          "y": 660
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_0sy437"
+    },
+    {
+      "id": "path_sm32pa",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 490,
+          "y": 590,
+          "inHandle": {
+            "x": 0.3665988641577087,
+            "y": 43.176888752919695
+          },
+          "outHandle": {
+            "x": -0.3665988641577087,
+            "y": -43.176888752919695
+          }
+        },
+        {
+          "x": 463.32789320390356,
+          "y": 528.4528175137744,
+          "inHandle": {
+            "x": -8.40375129493151,
+            "y": -1.2005358992759056
+          },
+          "outHandle": {
+            "x": 8.40375129493151,
+            "y": 1.2005358992759056
+          }
+        },
+        {
+          "x": 490,
+          "y": 530,
+          "inHandle": {
+            "x": -10,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 10,
+            "y": 0
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_sm32pa"
+    },
+    {
+      "id": "path_lbam3c",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 170,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 820
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_lbam3c"
+    },
+    {
+      "id": "path_38859c",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 330,
+          "y": 870
+        },
+        {
+          "x": 430,
+          "y": 810
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_38859c"
+    },
+    {
+      "id": "path_ivhy8x",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 380,
+          "y": 720
+        },
+        {
+          "x": 430,
+          "y": 690
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_ivhy8x"
+    },
+    {
+      "id": "path_52a64b",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 110,
+          "y": 720
+        },
+        {
+          "x": 10,
+          "y": 680
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_52a64b"
+    },
+    {
+      "id": "bumper_rkh7d6",
+      "type": "bumper",
+      "x": 100,
+      "y": 170,
+      "radius": 40,
+      "power": 8,
+      "restitution": 0.8,
+      "score": 25,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_rkh7d6"
+    },
+    {
+      "id": "bumper_018abm",
+      "type": "bumper",
+      "x": 400,
+      "y": 170,
+      "radius": 40,
+      "power": 8,
+      "restitution": 0.8,
+      "score": 25,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_018abm"
+    },
+    {
+      "id": "path_h6t9hg",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 490.90810892605856,
+          "y": 290.17574282930894
+        },
+        {
+          "x": 457.04049309770875,
+          "y": 290.17574282930894
+        },
+        {
+          "x": 490,
+          "y": 220,
+          "inHandle": {
+            "x": 1.0705559978197243,
+            "y": 77.39551988845255
+          },
+          "outHandle": {
+            "x": -1.0705559978197243,
+            "y": -77.39551988845255
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_h6t9hg"
+    },
+    {
+      "id": "path_6240vo",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 350,
+          "y": 110
+        },
+        {
+          "x": 370,
+          "y": 120
+        },
+        {
+          "x": 350,
+          "y": 150
+        },
+        {
+          "x": 350,
+          "y": 190
+        },
+        {
+          "x": 360,
+          "y": 200
+        },
+        {
+          "x": 330,
+          "y": 200
+        },
+        {
+          "x": 330,
+          "y": 110
+        },
+        {
+          "x": 350,
+          "y": 110
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_6240vo"
+    },
+    {
+      "id": "lane_qkjvmk",
+      "type": "lane",
+      "level": 0,
+      "x": 300,
+      "y": 160,
+      "w": 40,
+      "h": 20,
+      "angle": 1.5707963267948966,
+      "score": 50,
+      "opacity": 1,
+      "name": "GroupBLane-1"
+    },
+    {
+      "id": "lane_ja8ajn",
+      "type": "lane",
+      "level": 0,
+      "x": 190,
+      "y": 160,
+      "w": 40,
+      "h": 20,
+      "angle": 1.5707963267948966,
+      "score": 50,
+      "opacity": 1,
+      "name": "GroupBLane-2",
+      "label": ""
+    },
+    {
+      "id": "path_hw8fj3",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 160,
+          "y": 200
+        },
+        {
+          "x": 160,
+          "y": 110
+        },
+        {
+          "x": 140,
+          "y": 110
+        },
+        {
+          "x": 120,
+          "y": 120
+        },
+        {
+          "x": 140,
+          "y": 140
+        },
+        {
+          "x": 150,
+          "y": 160
+        },
+        {
+          "x": 140,
+          "y": 200
+        },
+        {
+          "x": 160,
+          "y": 200
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_hw8fj3"
+    },
+    {
+      "id": "path_xk2anz",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 250,
+          "outHandle": {
+            "x": 20,
+            "y": 110
+          },
+          "inHandle": {
+            "x": -20,
+            "y": -110
+          }
+        },
+        {
+          "x": 70,
+          "y": 400,
+          "inHandle": {
+            "x": 11.252747252747241,
+            "y": 13.846153846153868
+          },
+          "outHandle": {
+            "x": -11.252747252747241,
+            "y": -13.846153846153868
+          }
+        },
+        {
+          "x": 9.76944939714467,
+          "y": 414.8770492175709,
+          "outHandle": {
+            "x": 1.48263050151977,
+            "y": 40.03102354103379
+          },
+          "inHandle": {
+            "x": -1.48263050151977,
+            "y": -40.03102354103379
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_xk2anz"
+    },
+    {
+      "id": "path_myqx0j",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 439.62158648936156,
+          "outHandle": {
+            "x": -0.23055060285532925,
+            "y": 21.217008275322257
+          },
+          "inHandle": {
+            "x": 0.23055060285532925,
+            "y": -21.217008275322257
+          }
+        },
+        {
+          "x": 51.28310343969824,
+          "y": 460.8385947646838,
+          "inHandle": {
+            "x": 10.378413510638396,
+            "y": 5.684341886080802e-14
+          },
+          "outHandle": {
+            "x": -10.378413510638396,
+            "y": -5.684341886080802e-14
+          }
+        },
+        {
+          "x": 10,
+          "y": 539.6215864893616,
+          "outHandle": {
+            "x": 0.23055060285532925,
+            "y": 46.16512069124286
+          },
+          "inHandle": {
+            "x": -0.23055060285532925,
+            "y": -46.16512069124286
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_myqx0j"
+    },
+    {
+      "id": "lane_5j4uny",
+      "type": "lane",
+      "level": 0,
+      "x": 245,
+      "y": 160,
+      "w": 40,
+      "h": 20,
+      "angle": 1.5707963267948966,
+      "score": 50,
+      "opacity": 1,
+      "name": "GroupBLane-3"
+    },
+    {
+      "id": "path_jxgguc",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 215,
+          "y": 125
+        },
+        {
+          "x": 215,
+          "y": 195
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_jxgguc"
+    },
+    {
+      "id": "path_wkrrz2",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 275,
+          "y": 120
+        },
+        {
+          "x": 275,
+          "y": 195
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_wkrrz2"
+    },
+    {
+      "id": "gate_cs8tod",
+      "type": "gate",
+      "level": 0,
+      "x": 490,
+      "y": 615,
+      "length": 68.00735254367721,
+      "angle": 2.51279636717436,
+      "direction": "forward",
+      "open": false,
+      "locked": false,
+      "swingStartAngle": 2.5307274153917776,
+      "swingEndAngle": 4.71238898038469,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.75,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff",
+      "name": "gate_cs8tod"
+    },
+    {
+      "id": "bumper_qt73gc",
+      "type": "bumper",
+      "x": 80,
+      "y": 580,
+      "radius": 22.360679774997898,
+      "power": 2,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_qt73gc"
+    },
+    {
+      "id": "bumper_qcp6o6",
+      "type": "bumper",
+      "x": 400,
+      "y": 580,
+      "radius": 20,
+      "power": 4,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_qcp6o6"
+    },
+    {
+      "id": "path_xgqm7n",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 240,
+          "y": 820
+        },
+        {
+          "x": 240,
+          "y": 820
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_xgqm7n"
+    },
+    {
+      "id": "trough_6rzmuf",
+      "type": "trough",
+      "level": 0,
+      "x": 248.9137101966397,
+      "y": 55.654840786558715,
+      "radius": 20,
+      "holdSeconds": 0.75,
+      "reactivateDelay": 2,
+      "ejectPower": 10,
+      "ejectAngle": 0.2737527299047774,
+      "color": "#000000",
+      "pitColor": "#08101f",
+      "opacity": 1,
+      "name": "Group-bBonusTrough",
+      "active": false
+    },
+    {
+      "id": "kicker_4jwykq",
+      "type": "kicker",
+      "level": 0,
+      "radius": 6.758625033664675,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 8,
+      "score": 1,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 120,
+          "y": 270
+        },
+        {
+          "x": 154.0822108222516,
+          "y": 297.6258849463991
+        },
+        {
+          "x": 170,
+          "y": 370
+        }
+      ],
+      "name": "kicker_4jwykq"
+    },
+    {
+      "id": "kicker_8drzra",
+      "type": "kicker",
+      "level": 0,
+      "radius": 7.786591126529119,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 8,
+      "score": 1,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 360,
+          "y": 270
+        },
+        {
+          "x": 330,
+          "y": 300
+        },
+        {
+          "x": 320,
+          "y": 370
+        }
+      ],
+      "name": "kicker_8drzra"
+    },
+    {
+      "id": "bumper_xxkug6",
+      "type": "bumper",
+      "x": 240,
+      "y": 330,
+      "radius": 20,
+      "power": 5,
+      "restitution": 0.8,
+      "score": 15,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_xxkug6"
+    },
+    {
+      "id": "spinner_hx5xih",
+      "type": "spinner",
+      "level": 0,
+      "x": 240,
+      "y": 410,
+      "radius": 15,
+      "angle": 0,
+      "score": 5,
+      "name": "spinner_hx5xih",
+      "damping": 1.2
+    },
+    {
+      "id": "light_rhfgmu",
+      "type": "light",
+      "level": 0,
+      "x": 240,
+      "y": 750,
+      "radius": 10,
+      "lampId": "light_rhfgmu",
+      "text": "*2",
+      "label": "",
+      "color": "#ffee55",
+      "transparency": 1,
+      "name": "X2"
+    },
+    {
+      "id": "light_lgg71e",
+      "type": "light",
+      "level": 0,
+      "x": 240,
+      "y": 720,
+      "radius": 10,
+      "lampId": "light_lgg71e",
+      "text": "*3",
+      "label": "",
+      "color": "#ffee55",
+      "transparency": 1,
+      "name": "X3"
+    },
+    {
+      "id": "light_0epe4d",
+      "type": "light",
+      "level": 0,
+      "x": 240,
+      "y": 690,
+      "radius": 10,
+      "lampId": "light_0epe4d",
+      "text": "*4",
+      "label": "",
+      "color": "#ffee55",
+      "transparency": 1,
+      "name": "X4"
+    },
+    {
+      "id": "light_oimmwr",
+      "type": "light",
+      "level": 0,
+      "x": 240,
+      "y": 660,
+      "radius": 10,
+      "lampId": "light_oimmwr",
+      "text": "*5",
+      "label": "",
+      "color": "#ffee55",
+      "transparency": 1,
+      "name": "X5"
+    },
+    {
+      "id": "light_b2cnb2",
+      "type": "light",
+      "level": 0,
+      "x": 240,
+      "y": 630,
+      "radius": 10,
+      "lampId": "light_b2cnb2",
+      "text": "*10",
+      "label": "",
+      "color": "#ffee55",
+      "transparency": 1,
+      "name": "X10"
+    },
+    {
+      "id": "light_5zz9m0",
+      "type": "light",
+      "level": 0,
+      "x": 240,
+      "y": 600,
+      "radius": 10,
+      "lampId": "light_5zz9m0",
+      "text": "*25",
+      "label": "",
+      "color": "#ffee55",
+      "transparency": 1,
+      "name": "X25"
+    },
+    {
+      "id": "light_2cyzm5",
+      "type": "light",
+      "level": 0,
+      "x": 240,
+      "y": 570,
+      "radius": 10,
+      "lampId": "light_2cyzm5",
+      "text": "*50",
+      "label": "",
+      "color": "#ffee55",
+      "transparency": 1,
+      "name": "X50"
+    },
+    {
+      "id": "light_isjcrk",
+      "type": "light",
+      "level": 0,
+      "x": 240,
+      "y": 530,
+      "radius": 18.110770276274835,
+      "lampId": "light_isjcrk",
+      "text": "*100",
+      "label": "",
+      "color": "#ffee55",
+      "transparency": 1,
+      "name": "X100"
+    },
+    {
+      "id": "arrowLight_56ediz",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 210,
+      "y": 60,
+      "w": 20,
+      "h": 20,
+      "angle": 0,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#66ddff",
+      "transparency": 1,
+      "name": "BBonusArrow1"
+    },
+    {
+      "id": "arrowLight_z73tuo",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 290,
+      "y": 60,
+      "w": 20,
+      "h": 20,
+      "angle": 3.141592653589793,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#66ddff",
+      "transparency": 1,
+      "name": "BBonusArrow2"
+    },
+    {
+      "id": "arrowLight_w6ey3m",
+      "type": "arrowLight",
+      "level": 0,
+      "x": 90,
+      "y": 460,
+      "w": 40,
+      "h": 20,
+      "angle": 3.797898720925412,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#2dd240",
+      "transparency": 1,
+      "name": "ABonusArrow"
+    },
+    {
+      "id": "light_x2ga",
+      "type": "light",
+      "level": 0,
+      "x": 210,
+      "y": 750,
+      "radius": 8,
+      "lampId": "light_x2ga",
+      "text": "A",
+      "label": "",
+      "color": "#66f2ff",
+      "transparency": 1,
+      "name": "X2ga"
+    },
+    {
+      "id": "light_x2gb",
+      "type": "light",
+      "level": 0,
+      "x": 270,
+      "y": 750,
+      "radius": 8,
+      "lampId": "light_x2gb",
+      "text": "B",
+      "label": "",
+      "color": "#ff66b3",
+      "transparency": 1,
+      "name": "X2gb"
+    },
+    {
+      "id": "boxLight_lane_b1",
+      "type": "boxLight",
+      "level": 0,
+      "x": 300,
+      "y": 160,
+      "w": 42,
+      "h": 18,
+      "angle": 1.5707963267948966,
+      "cornerRadius": 5,
+      "lampId": "boxLight_lane_b1",
+      "text": "",
+      "label": "",
+      "color": "#33dd88",
+      "transparency": 1,
+      "name": "GroupBLane-1 Light"
+    },
+    {
+      "id": "boxLight_lane_b2",
+      "type": "boxLight",
+      "level": 0,
+      "x": 190,
+      "y": 160,
+      "w": 42,
+      "h": 18,
+      "angle": 1.5707963267948966,
+      "cornerRadius": 5,
+      "lampId": "boxLight_lane_b2",
+      "text": "",
+      "label": "",
+      "color": "#33dd88",
+      "transparency": 1,
+      "name": "GroupBLane-2 Light"
+    },
+    {
+      "id": "boxLight_lane_b3",
+      "type": "boxLight",
+      "level": 0,
+      "x": 245,
+      "y": 160,
+      "w": 42,
+      "h": 18,
+      "angle": 1.5707963267948966,
+      "cornerRadius": 5,
+      "lampId": "boxLight_lane_b3",
+      "text": "",
+      "label": "",
+      "color": "#33dd88",
+      "transparency": 1,
+      "name": "GroupBLane-3 Light"
+    }
+  ]
+}

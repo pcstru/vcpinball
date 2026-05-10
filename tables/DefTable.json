@@ -5,7 +5,7 @@
     "width": 500,
     "height": 880,
     "ballRadius": 14,
-    "gravity": 0.35,
+    "gravity": 0.25,
     "friction": 0.999,
     "restitution": 0.55,
     "maxSpeed": 24
@@ -33,7 +33,7 @@
   "images": [
     {
       "id": "image_kyczbi",
-      "src": "tables/mtpb.png",
+      "src": "tables/vctable.png",
       "mode": "both",
       "opacity": 0.65,
       "fit": "contain",
@@ -118,7 +118,8 @@
           "x": 10,
           "y": 220
         }
-      ]
+      ],
+      "name": "outerWall"
     },
     {
       "id": "launchLane",
@@ -132,7 +133,8 @@
       "maxRetract": 65,
       "pullSpeed": 95,
       "returnSpeed": 220,
-      "springStrength": 1
+      "springStrength": 1,
+      "name": "launchLane"
     },
     {
       "id": "lf",
@@ -148,7 +150,7 @@
       "restAngle": 0.55,
       "activeAngle": -0.55,
       "flipSpeed": 44,
-      "flipAccel": 420,
+      "flipAccel": 220,
       "returnSpeed": 18,
       "returnAccel": 160,
       "strikeBoost": 0.52,
@@ -158,7 +160,8 @@
       "tipRestitution": 0.28,
       "tipFriction": 0.04,
       "thickness": 10,
-      "color": "#00ddff"
+      "color": "#00ddff",
+      "name": "lf"
     },
     {
       "id": "rf",
@@ -174,7 +177,7 @@
       "restAngle": 2.5915926535,
       "activeAngle": 3.6915926535,
       "flipSpeed": 44,
-      "flipAccel": 420,
+      "flipAccel": 220,
       "returnSpeed": 18,
       "returnAccel": 160,
       "strikeBoost": 0.52,
@@ -184,7 +187,8 @@
       "tipRestitution": 0.28,
       "tipFriction": 0.04,
       "thickness": 10,
-      "color": "#ff4466"
+      "color": "#ff4466",
+      "name": "rf"
     },
     {
       "id": "path_qvli16",
@@ -203,7 +207,8 @@
           "x": 220,
           "y": 830
         }
-      ]
+      ],
+      "name": "path_qvli16"
     },
     {
       "id": "path_nlz3h6",
@@ -266,7 +271,8 @@
           "x": 380,
           "y": 870
         }
-      ]
+      ],
+      "name": "path_nlz3h6"
     },
     {
       "id": "path_9tmpri",
@@ -297,7 +303,8 @@
           "x": 10,
           "y": 680
         }
-      ]
+      ],
+      "name": "path_9tmpri"
     },
     {
       "id": "drain_q24srw",
@@ -306,7 +313,8 @@
       "x": 220,
       "y": 860,
       "w": 150,
-      "h": 24
+      "h": 24,
+      "name": "drain_q24srw"
     },
     {
       "id": "bumper_x6lwoq",
@@ -317,7 +325,8 @@
       "power": 12,
       "restitution": 0.8,
       "score": 20,
-      "level": 0
+      "level": 0,
+      "name": "bumper_x6lwoq"
     },
     {
       "id": "bumper_tand2w",
@@ -328,7 +337,8 @@
       "power": 12,
       "restitution": 0.8,
       "score": 20,
-      "level": 0
+      "level": 0,
+      "name": "bumper_tand2w"
     },
     {
       "id": "path_9z7xgd",
@@ -347,7 +357,8 @@
           "x": 245.53365857077586,
           "y": 297.1547765060275
         }
-      ]
+      ],
+      "name": "path_9z7xgd"
     },
     {
       "id": "path_ikonbi",
@@ -367,7 +378,8 @@
           "y": 272.96522300881037
         }
       ],
-      "color": "#d71d1d"
+      "color": "#d71d1d",
+      "name": "path_ikonbi"
     },
     {
       "id": "bumper_f6m5qx",
@@ -379,7 +391,8 @@
       "restitution": 0.8,
       "score": 30,
       "level": 0,
-      "color": "#223996"
+      "color": "#223996",
+      "name": "bumper_f6m5qx"
     },
     {
       "id": "kicker_4qoijy",
@@ -405,7 +418,8 @@
           "x": 95.92456533699485,
           "y": 692.5145083435473
         }
-      ]
+      ],
+      "name": "kicker_4qoijy"
     },
     {
       "id": "kicker_ty7h9u",
@@ -431,7 +445,8 @@
           "x": 384.40846552620053,
           "y": 693.2353485854977
         }
-      ]
+      ],
+      "name": "kicker_ty7h9u"
     },
     {
       "id": "gate_qtabzo",
@@ -450,7 +465,8 @@
       "thickness": 12,
       "restitution": 0.55,
       "color": "#99ffcc",
-      "pinColor": "#f7fbff"
+      "pinColor": "#f7fbff",
+      "name": "gate_qtabzo"
     },
     {
       "id": "path_zob63h",
@@ -469,7 +485,8 @@
           "x": 300.5090244628987,
           "y": 313.8302404400239
         }
-      ]
+      ],
+      "name": "path_zob63h"
     },
     {
       "id": "path_xg97zf",
@@ -488,7 +505,8 @@
           "x": 192.23317071461202,
           "y": 313.83024044002383
         }
-      ]
+      ],
+      "name": "path_xg97zf"
     },
     {
       "id": "lane_ok1se3",
@@ -499,7 +517,8 @@
       "w": 40,
       "h": 20,
       "score": 10,
-      "angle": 1.5707963267948966
+      "angle": 1.5707963267948966,
+      "name": "lane_ok1se3"
     },
     {
       "id": "lane_2qchpu",
@@ -510,7 +529,8 @@
       "w": 40,
       "h": 20,
       "score": 10,
-      "angle": 1.5707963267948966
+      "angle": 1.5707963267948966,
+      "name": "lane_2qchpu"
     },
     {
       "id": "path_tj7fi3",
@@ -557,7 +577,8 @@
             "y": -0.7538799160270173
           }
         }
-      ]
+      ],
+      "name": "path_tj7fi3"
     },
     {
       "id": "trough_vyoa7t",
@@ -571,7 +592,8 @@
       "ejectPower": 1,
       "ejectAngle": -1.3258176636680326,
       "color": "#88aaff",
-      "pitColor": "#08101f"
+      "pitColor": "#08101f",
+      "name": "trough_vyoa7t"
     },
     {
       "id": "boxLight_3zrpim",
@@ -586,7 +608,8 @@
       "lampId": "",
       "text": "BONUS",
       "label": "",
-      "color": "#8fe36a"
+      "color": "#8fe36a",
+      "name": "boxLight_3zrpim"
     },
     {
       "id": "bumper_apk3fq",
@@ -597,7 +620,8 @@
       "power": 12,
       "restitution": 0.8,
       "score": 30,
-      "level": 0
+      "level": 0,
+      "name": "bumper_apk3fq"
     },
     {
       "id": "kicker_l497f3",
@@ -623,7 +647,8 @@
           "x": 321.31198034332357,
           "y": 263.74133245998985
         }
-      ]
+      ],
+      "name": "kicker_l497f3"
     },
     {
       "id": "path_eaqlr2",
@@ -650,7 +675,8 @@
           "x": 244.97536589212288,
           "y": 317.7132644840263
         }
-      ]
+      ],
+      "name": "path_eaqlr2"
     },
     {
       "id": "kicker_vi3id0",
@@ -676,7 +702,8 @@
           "x": 168.325121964041,
           "y": 281.62268033001794
         }
-      ]
+      ],
+      "name": "kicker_vi3id0"
     },
     {
       "id": "scoreZone_nc7cte",
@@ -686,7 +713,8 @@
       "y": 367.221229546414,
       "radius": 10.434814590038249,
       "restitution": 0.55,
-      "score": 50
+      "score": 50,
+      "name": "scoreZone_nc7cte"
     },
     {
       "id": "light_iazilt",
@@ -698,7 +726,8 @@
       "lampId": "lamp_lane_left",
       "text": "",
       "label": "",
-      "color": "#ffee55"
+      "color": "#ffee55",
+      "name": "light_iazilt"
     },
     {
       "id": "light_oab68o",
@@ -710,7 +739,8 @@
       "lampId": "lamp_lane_right",
       "text": "",
       "label": "",
-      "color": "#ffee55"
+      "color": "#ffee55",
+      "name": "light_oab68o"
     },
     {
       "id": "kicker_p6vfao",
@@ -736,7 +766,8 @@
           "x": 99.04339900578586,
           "y": 204.29124543131192
         }
-      ]
+      ],
+      "name": "kicker_p6vfao"
     },
     {
       "id": "path_a0sams",
@@ -759,7 +790,8 @@
           "x": 10.043662250797313,
           "y": 171.12373705633604
         }
-      ]
+      ],
+      "name": "path_a0sams"
     },
     {
       "id": "path_qb9gpj",
@@ -794,7 +826,8 @@
             "y": -71.67011822674965
           }
         }
-      ]
+      ],
+      "name": "path_qb9gpj"
     },
     {
       "id": "arrowLight_55ase8",
@@ -808,7 +841,8 @@
       "lampId": "lamp_bonus_go",
       "text": "GO",
       "label": "",
-      "color": "#66ddff"
+      "color": "#66ddff",
+      "name": "arrowLight_55ase8"
     },
     {
       "id": "bumper_t6td9r",
@@ -819,7 +853,8 @@
       "power": 12,
       "restitution": 0.8,
       "score": 20,
-      "level": 0
+      "level": 0,
+      "name": "bumper_t6td9r"
     },
     {
       "id": "gate_54o07q",
@@ -838,7 +873,18 @@
       "thickness": 3,
       "restitution": 0.55,
       "color": "#99ffcc",
-      "pinColor": "#f7fbff"
+      "pinColor": "#f7fbff",
+      "name": "gate_54o07q"
     }
-  ]
+  ],
+  "features": [],
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [],
+    "stateTable": [],
+    "computedState": [],
+    "lampBindings": [],
+    "actionRules": [],
+    "resetRules": []
+  }
 }

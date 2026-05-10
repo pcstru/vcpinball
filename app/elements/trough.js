@@ -18,6 +18,16 @@
         if (Pin.events) Pin.events.emit(world, event);
     }
 
+    function isActive(el, world) {
+        /* What: Resolve whether the trough should capture balls right now.
+         * Why: Bonus saucers need to be enabled by table logic without changing
+         * their compiled sensor geometry.
+         */
+        const fallback = el.active !== false;
+        if (!Pin.rules || !Pin.rules.resolveElementProperty) return fallback;
+        return !!Pin.rules.resolveElementProperty(world, el, "active", fallback);
+    }
+
     function isReleaseCoolingDown(ball, sensor, world) {
         if (!ball.troughRelease || ball.troughRelease.id !== sensor.id) return false;
         const now = world && typeof world.physicsTime === "number" ? world.physicsTime : 0;
@@ -44,6 +54,7 @@
                     radius: radius,
                     reactivateDelay: reactivateDelay,
                     onEnter: function onEnter(ball, world, sensor) {
+                        if (!isActive(el, world)) return;
                         if (isReleaseCoolingDown(ball, sensor, world)) return;
                         ball.capturedBy = sensor.id;
                         ball.captureAge = 0;
@@ -78,24 +89,26 @@
                 }]
             };
         },
-        draw: function draw(ctx, el, runtime, world) {
+        draw: function draw(ctx, el, runtime, world, options) {
             const x = el.x || 250;
             const y = el.y || 835;
             const radius = el.radius || 18;
             const rimColor = el.color || "#88aaff";
             const pitColor = el.pitColor || "rgba(5,10,22,0.9)";
             const opacity = clamp01(el.opacity, 1);
+            const active = isActive(el, world) || (options && options.designMode);
             ctx.save();
-            ctx.globalAlpha = opacity;
+            ctx.globalAlpha = active ? opacity : opacity * 0.42;
             const gradient = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.35, radius * 0.2, x, y, radius);
             gradient.addColorStop(0, "rgba(255,255,255,0.18)");
             gradient.addColorStop(0.45, pitColor);
             gradient.addColorStop(1, "rgba(0,0,0,0.95)");
             ctx.fillStyle = gradient;
-            ctx.strokeStyle = rimColor;
+            ctx.strokeStyle = active ? rimColor : "rgba(120,130,155,0.55)";
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
+            if (active) Pin.render.makeGlow(ctx, rimColor, 16);
             ctx.fill();
             ctx.stroke();
             ctx.beginPath();
@@ -104,6 +117,6 @@
             ctx.stroke();
             ctx.restore();
         },
-        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "radius", "holdSeconds", "reactivateDelay", "ejectPower", "ejectAngle", "color", "pitColor", "opacity"] }
+        editor: { handles: true, hitTest: true, inspectorFields: ["x", "y", "radius", "holdSeconds", "reactivateDelay", "ejectPower", "ejectAngle", "active", "color", "pitColor", "opacity"] }
     });
 })(window.Pin);

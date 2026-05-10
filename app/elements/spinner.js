@@ -1,7 +1,13 @@
 (function registerSpinner(Pin) {
+    const MAX_SPINNER_ANGULAR_VELOCITY = 42;
+
     function now() {
         if (typeof performance !== "undefined" && performance.now) return performance.now();
         return Date.now();
+    }
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     /* What: Resolve spinner blade radius from the current schema.
@@ -24,7 +30,7 @@
             state.angularVelocity = (state.angularVelocity || 0) * Math.exp(-damping * dt);
             state.lastTime = now();
             const baseAngle = (el.angle || 0) + (state.angle || 0);
-            function buildBladeSegment(segmentAngle) {
+            function buildBladeSegment(segmentAngle, bladeIndex) {
                 const dx = Math.cos(segmentAngle) * radius;
                 const dy = Math.sin(segmentAngle) * radius;
                 return {
@@ -32,6 +38,8 @@
                     y1: el.y - dy,
                     x2: el.x + dx,
                     y2: el.y + dy,
+                    hitKey: "spinner:" + el.id + ":" + bladeIndex,
+                    skipDefaultResolve: true,
                     onHit: function onHit(ball, hit, world) {
                         const score = Pin.rules && Pin.rules.resolveElementScore ?
                             Pin.rules.resolveElementScore(world, el, (el.score || 100)) :
@@ -49,7 +57,11 @@
                             const arm = (contactT - 0.5) * radius * 2;
                             const tangentV = ball.vx * (-Math.sin(segmentAngle)) + ball.vy * Math.cos(segmentAngle);
                             const direction = arm * tangentV >= 0 ? 1 : -1;
-                            hitState.angularVelocity = (hitState.angularVelocity || 0) + direction * Math.max(4, Math.min(28, speed * 1.2));
+                            hitState.angularVelocity = clamp(
+                                (hitState.angularVelocity || 0) + direction * Math.max(4, Math.min(28, speed * 1.2)),
+                                -MAX_SPINNER_ANGULAR_VELOCITY,
+                                MAX_SPINNER_ANGULAR_VELOCITY
+                            );
                             hitState.lastHit = now();
                         }
                         ball.vx *= 0.98;
@@ -60,8 +72,8 @@
             }
             return {
                 segments: [
-                    buildBladeSegment(baseAngle),
-                    buildBladeSegment(baseAngle + Math.PI * 0.5)
+                    buildBladeSegment(baseAngle, 0),
+                    buildBladeSegment(baseAngle + Math.PI * 0.5, 1)
                 ]
             };
         },

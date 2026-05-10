@@ -202,6 +202,130 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
     background: #1c1f33; border: 1px solid #3a3f5c; border-radius: 3px; color: #e8e8f0;
 }
 .play-instructions code { font-size: 0.95em; color: #c8d0f0; }
+.table-selector {
+    height: 100vh;
+    overflow: auto;
+    padding: 24px;
+    background: #070b14;
+}
+.table-selector-header {
+    max-width: 1080px;
+    margin: 0 auto 18px;
+}
+.table-selector-header h1 {
+    margin: 0;
+    color: #f5f7ff;
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: 0;
+}
+.table-selector-header p {
+    margin: 6px 0 0;
+    color: #aeb8d8;
+    font-size: 14px;
+}
+.table-selector-warning,
+.table-selector-empty {
+    max-width: 1080px;
+    margin: 0 auto 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(219, 170, 74, 0.42);
+    border-radius: 8px;
+    background: rgba(78, 55, 17, 0.32);
+    color: #f4d68b;
+    font-size: 13px;
+}
+.table-card-grid {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding-bottom: 24px;
+}
+.table-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(126, 151, 214, 0.26);
+    border-radius: 8px;
+    background: #0d1320;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+}
+.table-card-local {
+    border-color: rgba(73, 190, 143, 0.42);
+}
+.table-card-invalid {
+    border-color: rgba(209, 89, 106, 0.45);
+}
+.table-card-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+    max-height: 320px;
+    padding: 12px;
+    background: #050812;
+}
+.table-card-preview canvas {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    max-height: 296px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #05070d;
+}
+.table-card-body {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+}
+.table-card-body h2 {
+    margin: 0;
+    color: #f4f7ff;
+    font-size: 17px;
+    line-height: 1.2;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+}
+.table-card-meta,
+.table-card-status,
+.table-card-loading {
+    color: #9eaacc;
+    font-size: 12px;
+}
+.table-card-loading {
+    padding: 18px;
+}
+.table-card-status {
+    color: #70d39e;
+}
+.table-card-status.error {
+    color: #ff8f9d;
+}
+.table-card-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 2px;
+}
+.table-card-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 7px 8px;
+    border: 1px solid rgba(126, 151, 214, 0.34);
+    border-radius: 6px;
+    background: #172440;
+    color: #eef3ff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+}
+.table-card-action:hover {
+    border-color: rgba(159, 192, 255, 0.72);
+    background: #20325a;
+}
 .editor-layout {
     grid-template-columns: 240px minmax(0, 1fr) 8px var(--right-panel-width, 360px);
     display: grid;
@@ -1005,6 +1129,9 @@ canvas.dragging { cursor: grabbing; }
     box-shadow: 0 0 0 2px rgba(159, 192, 255, 0.14);
 }
 @media (max-width: 1100px) {
+    .table-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .editor-layout {
         grid-template-columns: 1fr;
     }
@@ -1020,6 +1147,15 @@ canvas.dragging { cursor: grabbing; }
     }
 }
 @media (max-width: 860px) {
+    .table-selector {
+        padding: 14px;
+    }
+    .table-card-grid {
+        grid-template-columns: 1fr;
+    }
+    .table-card-preview {
+        min-height: 220px;
+    }
     .play-mode {
         grid-template-columns: 1fr;
         grid-template-rows: auto auto auto;
@@ -1914,6 +2050,53 @@ button.logic-god-pill {
     padding: 6px 8px;
     border-radius: 8px;
     background: rgba(6, 10, 22, 0.72);
+}
+.logic-sim-rail-card {
+    margin-bottom: 12px;
+}
+.logic-sim-preview {
+    width: 100%;
+    border: 1px solid rgba(123, 144, 223, 0.2);
+    border-radius: 8px;
+    background: rgba(6, 10, 22, 0.92);
+    overflow: hidden;
+    aspect-ratio: 5 / 8.8;
+    min-height: 220px;
+}
+.logic-sim-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.logic-sim-object-list {
+    display: grid;
+    gap: 8px;
+}
+.logic-sim-object-row {
+    border: 1px solid rgba(123, 144, 223, 0.18);
+    border-radius: 8px;
+    padding: 8px;
+    background: rgba(6, 10, 22, 0.86);
+}
+.logic-visual-builder {
+    border-color: rgba(159, 192, 255, 0.35);
+    background: rgba(7, 12, 24, 0.92);
+}
+.logic-visual-preview {
+    width: 100%;
+    border: 1px solid rgba(123, 144, 223, 0.22);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(5, 8, 16, 0.92);
+    aspect-ratio: 5 / 8.8;
+    min-height: 260px;
+    margin-bottom: 10px;
+}
+.logic-visual-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    cursor: crosshair;
 }
 .logic-card.compact {
     padding: 8px;

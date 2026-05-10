@@ -8,7 +8,9 @@
         arrowLight: true,
         boxLight: true,
         dropTarget: true,
-        kicker: true
+        kicker: true,
+        lane: true,
+        trough: true
     };
     const DYNAMIC_PHYSICS_TYPES = {
         flipper: true,

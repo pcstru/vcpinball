@@ -31,7 +31,13 @@ The design mode is the main human-facing table workshop. It gives a designer:
 - an assistant panel for AI-assisted table and logic patching
 - quick handoff into play mode for rapid testing
 
+![Designer Screen](Doc-DesignerScreenSnip.png)
+
 The screenshot collateral for the project shows this mode: a table canvas in the center, tool palette on the left, and properties/logic/assistant/play panels on the right. That screen is the clearest representation of the project goal: not just a toy game, but a designer-facing environment for building and reasoning about pinball machines.
+
+## Table View
+
+![Cobra Table](Cobra-Table.png)
 
 ## Logic Design Experiment
 

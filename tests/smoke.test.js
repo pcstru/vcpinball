@@ -29,6 +29,17 @@ function loadTableModule() {
     return ctx.window.Pin.table;
 }
 
+function loadTableCatalog() {
+    // What: Load the static table selector manifest in isolation.
+    // Why: bundled table discovery is explicit, so broken catalog entries should
+    // fail smoke checks before the browser tries to render selector cards.
+    const ctx = { window: { Pin: {} } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/tableCatalog.js"), ctx, { filename: "app/tableCatalog.js" });
+    return ctx.window.Pin.tableCatalog;
+}
+
 function loadFlipperModuleHarness() {
     // What: Load flipper compile logic with minimal runtime dependencies.
     // Why: Regression checks should exercise the production integration path.
@@ -58,6 +69,35 @@ function loadFlipperModuleHarness() {
     ctx.Pin = ctx.window.Pin;
     vm.createContext(ctx);
     vm.runInContext(read("app/elements/flipper.js"), ctx, { filename: "app/elements/flipper.js" });
+    return ctx.window.Pin;
+}
+
+function loadSpinnerModuleHarness() {
+    // What: Load spinner compile logic with minimal runtime dependencies.
+    // Why: spinner blades should score and animate without acting as solid walls.
+    const pin = {
+        elements: {
+            registry: {},
+            register: function register(type, mod) {
+                this.registry[type] = mod;
+            },
+            getStateKey: function getStateKey(el) {
+                return (el.type || "element") + ":" + (el.id || "anonymous");
+            },
+            getState: function getState(world, el, defaults) {
+                const key = this.getStateKey(el);
+                world.elementState = world.elementState || {};
+                if (!world.elementState[key]) world.elementState[key] = Object.assign({}, defaults || {});
+                return world.elementState[key];
+            },
+            peekState: function peekState() { return null; }
+        },
+        events: { emit: function emit() {} }
+    };
+    const ctx = { window: { Pin: pin }, performance: { now: function now() { return 0; } } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/elements/spinner.js"), ctx, { filename: "app/elements/spinner.js" });
     return ctx.window.Pin;
 }
 
@@ -112,6 +152,16 @@ function loadHighScoreModule(storage) {
     return ctx.window.Pin.highScores;
 }
 
+function loadPerformanceModule() {
+    // What: Load performance helpers in an isolated VM context.
+    // Why: Adaptive quality behavior should be regression-tested without DOM setup.
+    const ctx = { window: { Pin: {} } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/performance.js"), ctx, { filename: "app/performance.js" });
+    return ctx.window.Pin.performance;
+}
+
 function memoryStorage() {
     const data = {};
     return {
@@ -135,8 +185,25 @@ function testIndexScriptsExistAndOrderCoreBeforeMain() {
 
     assert(sources.indexOf("app/table.js") >= 0, "index.html should load app/table.js");
     assert(sources.indexOf("app/elements/index.js") > sources.indexOf("app/table.js"), "elements registry should load after table helpers");
+    assert(sources.indexOf("app/tableCatalog.js") > sources.indexOf("app/storage.js"), "table catalog should load after storage helpers");
+    assert(sources.indexOf("app/performance.js") > sources.indexOf("app/logic/page.js"), "performance helpers should load after logic scripts");
+    assert(sources.indexOf("app/performance.js") < sources.indexOf("app/main.js"), "performance helpers should load before app bootstrap");
+    assert(sources.indexOf("app/main.js") > sources.indexOf("app/tableCatalog.js"), "table catalog should load before app bootstrap");
     assert(sources.indexOf("app/logic/page.js") > sources.indexOf("app/editor/editor.js"), "logic scripts should load before app bootstrap");
     assert(sources.indexOf("app/main.js") === sources.length - 1, "app/main.js should remain the final bootstrap script");
+}
+
+function testTableCatalogRefsExistAndAreStaticJson() {
+    const catalog = loadTableCatalog();
+    assert(catalog && Array.isArray(catalog.tables), "table catalog should expose a tables array");
+    assert(catalog.tables.length >= 3, "table catalog should include bundled tables");
+    catalog.tables.forEach(function each(entry, index) {
+        assert(entry && typeof entry.ref === "string", "catalog entry " + index + " should have a ref");
+        assert(!/^[a-z][a-z0-9+.-]*:/i.test(entry.ref), "catalog ref should be app-relative: " + entry.ref);
+        assert(entry.ref.indexOf("tables/") === 0, "catalog ref should point into tables/: " + entry.ref);
+        assert(/\.json$/i.test(entry.ref), "catalog ref should point to JSON: " + entry.ref);
+        assert(fs.existsSync(path.join(root, entry.ref)), "Missing catalog table: " + entry.ref);
+    });
 }
 
 function testDefaultTableNormalizesAndValidates() {
@@ -225,6 +292,41 @@ function testFlipperAngleStaysWithinAuthoredBounds() {
     });
 }
 
+function testSpinnerBladesDoNotBlockBall() {
+    const pin = loadSpinnerModuleHarness();
+    const spinner = {
+        id: "spin",
+        type: "spinner",
+        x: 100,
+        y: 100,
+        radius: 30,
+        angle: 0,
+        damping: 0,
+        score: 100
+    };
+    const world = {
+        elementState: {},
+        lastPhysicsDt: 1 / 120,
+        physicsTick: 1
+    };
+    const runtime = pin.elements.registry.spinner.compile(spinner, {}, world);
+
+    assert.strictEqual(runtime.segments.length, 2, "spinner should compile two blade hit surfaces");
+    runtime.segments.forEach(function each(segment) {
+        assert.strictEqual(segment.skipDefaultResolve, true, "spinner blades should not use wall-style collision resolution");
+        assert(/^spinner:spin:/.test(segment.hitKey), "spinner blades should use stable spinner hit keys");
+    });
+
+    const ball = { vx: 80, vy: 40 };
+    for (let i = 0; i < 8; i++) {
+        runtime.segments[0].onHit(ball, { t: 1 }, world);
+    }
+    const state = world.elementState["spinner:spin"];
+    assert(state.angularVelocity <= 42, "spinner angular velocity should be capped");
+    assert(state.angularVelocity >= -42, "spinner angular velocity should be capped in reverse");
+    assert(ball.vx > 0 && ball.vy > 0, "spinner hit should damp but not reverse or trap the ball");
+}
+
 function testRuntimeSplitKeepsOnlyPhysicsElementsDynamic() {
     // What: Verify static compile keeps stateful visual drawables while dynamic
     // physics only recompiles collider-producing mechanisms.
@@ -253,6 +355,91 @@ function testRuntimeSplitKeepsOnlyPhysicsElementsDynamic() {
     assert.strictEqual(pin.elements.isDynamicType("light"), true, "lights should remain dynamically drawn");
     assert.strictEqual(pin.elements.isDynamicType("dropTarget"), true, "lit targets should remain dynamically drawn");
     assert.strictEqual(pin.elements.isDynamicPhysicsType("light"), false, "lights should not recompile in physics ticks");
+}
+
+function runQualityControllerFrames(controller, frames, startNowMs) {
+    // What: Feed synthetic frame samples into the adaptive quality controller.
+    // Why: tests need deterministic timing scenarios for hysteresis behavior.
+    let now = Number.isFinite(startNowMs) ? startNowMs : 0;
+    let last = null;
+    let output = { glowScale: 1, reducedEffects: false };
+    let transitions = 0;
+    frames.forEach(function each(frame) {
+        const dt = frame.dt;
+        now += dt * 1000;
+        output = controller.sample({
+            now: now,
+            frameDt: dt,
+            backlogSteps: frame.backlog
+        });
+        if (last) {
+            if (output.reducedEffects !== last.reducedEffects) transitions += 1;
+        }
+        last = output;
+    });
+    return { output: output, now: now, transitions: transitions };
+}
+
+function testAdaptiveQualityControllerIgnoresSingleSpike() {
+    const performanceApi = loadPerformanceModule();
+    const controller = performanceApi.createAdaptiveQualityController();
+    const frames = [];
+    for (let i = 0; i < 100; i++) {
+        frames.push({ dt: 1 / 60, backlog: 0.2 });
+    }
+    frames.push({ dt: 0.042, backlog: 2.4 });
+    for (let i = 0; i < 90; i++) {
+        frames.push({ dt: 1 / 60, backlog: 0.2 });
+    }
+    const result = runQualityControllerFrames(controller, frames);
+    assert.strictEqual(result.output.reducedEffects, false, "single-frame pressure spikes should not degrade quality");
+    assert.strictEqual(result.output.glowScale, 1, "single-frame pressure spikes should keep full glow scale");
+}
+
+function testAdaptiveQualityControllerDropsOnSustainedPressure() {
+    const performanceApi = loadPerformanceModule();
+    const controller = performanceApi.createAdaptiveQualityController();
+    const frames = [];
+    for (let i = 0; i < 220; i++) {
+        frames.push({ dt: 1 / 28, backlog: 2.2 });
+    }
+    const result = runQualityControllerFrames(controller, frames);
+    assert.strictEqual(result.output.reducedEffects, true, "sustained pressure should trigger reduced effects");
+    assert.strictEqual(result.output.glowScale, 0.55, "sustained pressure should reduce glow scale");
+}
+
+function testAdaptiveQualityControllerNeedsStableRecoveryWindow() {
+    const performanceApi = loadPerformanceModule();
+    const controller = performanceApi.createAdaptiveQualityController();
+    const degraded = [];
+    for (let i = 0; i < 220; i++) degraded.push({ dt: 1 / 28, backlog: 2.2 });
+    const reduced = runQualityControllerFrames(controller, degraded);
+    assert.strictEqual(reduced.output.reducedEffects, true, "precondition should enter reduced quality first");
+
+    const stillReducedWindow = [];
+    for (let i = 0; i < 90; i++) stillReducedWindow.push({ dt: 1 / 60, backlog: 0.2 });
+    const stillReduced = runQualityControllerFrames(controller, stillReducedWindow, reduced.now);
+    assert.strictEqual(stillReduced.output.reducedEffects, true, "quality should not recover before the stable recovery window");
+
+    const recoveryWindow = [];
+    for (let i = 0; i < 300; i++) recoveryWindow.push({ dt: 1 / 60, backlog: 0.2 });
+    const recovered = runQualityControllerFrames(controller, recoveryWindow, stillReduced.now);
+    assert.strictEqual(recovered.output.reducedEffects, false, "quality should recover after sustained stable performance");
+    assert.strictEqual(recovered.output.glowScale, 1, "recovered quality should restore full glow scale");
+}
+
+function testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad() {
+    const performanceApi = loadPerformanceModule();
+    const controller = performanceApi.createAdaptiveQualityController();
+    const frames = [];
+    for (let i = 0; i < 600; i++) {
+        frames.push({
+            dt: i % 2 === 0 ? 1 / 60 : 0.024,
+            backlog: i % 3 === 0 ? 0.95 : 0.55
+        });
+    }
+    const result = runQualityControllerFrames(controller, frames);
+    assert(result.transitions <= 2, "borderline load should not cause rapid quality oscillation");
 }
 
 function testFeatureSchemaNormalizesAndValidates() {
@@ -820,10 +1007,16 @@ function testTimerSwitchValidationAndSimulation() {
 
 Promise.resolve()
     .then(function run() { testIndexScriptsExistAndOrderCoreBeforeMain(); })
+    .then(function run() { testTableCatalogRefsExistAndAreStaticJson(); })
     .then(function run() { testDefaultTableNormalizesAndValidates(); })
     .then(function run() { testDrainWithoutTroughIsPlayable(); })
     .then(function run() { testFlipperAngleStaysWithinAuthoredBounds(); })
+    .then(function run() { testSpinnerBladesDoNotBlockBall(); })
     .then(function run() { testRuntimeSplitKeepsOnlyPhysicsElementsDynamic(); })
+    .then(function run() { testAdaptiveQualityControllerIgnoresSingleSpike(); })
+    .then(function run() { testAdaptiveQualityControllerDropsOnSustainedPressure(); })
+    .then(function run() { testAdaptiveQualityControllerNeedsStableRecoveryWindow(); })
+    .then(function run() { testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad(); })
     .then(function run() { testFeatureSchemaNormalizesAndValidates(); })
     .then(function run() { testBundledTableImagePathsExist(); })
     .then(function run() { testExplicitTableRequestDoesNotSilentlyFallback(); })

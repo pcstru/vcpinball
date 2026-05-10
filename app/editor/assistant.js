@@ -582,7 +582,8 @@
                 light: true,
                 arrowLight: true,
                 boxLight: true,
-                dropTarget: true
+                dropTarget: true,
+                lane: true
             };
             const elements = Array.isArray(table && table.elements) ? table.elements : [];
             const logicDoc = table && table.logicDocument

@@ -590,22 +590,23 @@
         let accumulator = 0;
         const fixedDt = 1 / 120;
         let perfLastLog = performance.now();
-        let lowQualityFrames = 0;
+        const qualityController = (Pin.performance && Pin.performance.createAdaptiveQualityController) ?
+            Pin.performance.createAdaptiveQualityController() :
+            null;
         function frame(now) {
             if (!running) return;
             const frameDt = Math.min(0.08, (now - last) / 1000);
             last = now;
             accumulator = Math.min(0.12, accumulator + frameDt);
-            if (frameDt > 0.025 || accumulator > fixedDt * 2) {
-                lowQualityFrames = 8;
-            } else if (lowQualityFrames > 0) {
-                lowQualityFrames -= 1;
-            }
             if (Pin.render && Pin.render.setQuality) {
-                Pin.render.setQuality({
-                    glowScale: lowQualityFrames > 0 ? 0.55 : 1,
-                    reducedEffects: lowQualityFrames > 3
-                });
+                const quality = qualityController ?
+                    qualityController.sample({
+                        now: now,
+                        frameDt: frameDt,
+                        backlogSteps: accumulator / fixedDt
+                    }) :
+                    { glowScale: 1, reducedEffects: false };
+                Pin.render.setQuality(quality);
             }
             while (accumulator >= fixedDt) {
                 world.lastPhysicsDt = fixedDt;
@@ -705,6 +706,248 @@
         showHighScores("Press Play to start");
         fitRaf = requestAnimationFrame(fitPlayCanvas);
         frameRaf = requestAnimationFrame(frame);
+    }
+
+    function tableSelectorHref(mode, entry) {
+        /* What: Build a route for either a bundled file or a local saved table.
+         * Why: bundled cards should stay small by referencing files, while local
+         * saves need embedded table data because they have no static URL.
+         */
+        if (entry && entry.ref) return "#" + mode + "&table=" + encodeURIComponent(entry.ref);
+        return "#" + mode + "&t=" + Pin.storage.url.encode(entry.table);
+    }
+
+    function tableElementCount(table) {
+        /* What: Count visible authoring objects for selector metadata.
+         * Why: cards need a cheap signal for table complexity without opening it.
+         */
+        return table && Array.isArray(table.elements) ? table.elements.length : 0;
+    }
+
+    function drawSelectorPreview(canvas, table, tableAssetBaseHref) {
+        /* What: Render a static table thumbnail into a small canvas.
+         * Why: geometry previews should be generated in-browser instead of saved
+         * as separate PNG/JPG assets that can clash with playfield art filenames.
+         */
+        const pf = table.playfield || Pin.table.DEFAULT_PLAYFIELD;
+        const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        const previewWidth = 240;
+        const scale = Math.max(0.1, previewWidth / Math.max(1, pf.width || previewWidth));
+        const width = Math.max(1, Math.round((pf.width || previewWidth) * scale * dpr));
+        const height = Math.max(1, Math.round((pf.height || 360) * scale * dpr));
+        const ctx = canvas.getContext("2d");
+        let cancelled = false;
+        let redrawRaf = 0;
+
+        canvas.width = width;
+        canvas.height = height;
+        canvas.style.aspectRatio = String(pf.width || previewWidth) + " / " + String(pf.height || 360);
+
+        function scheduleRedraw() {
+            if (cancelled || redrawRaf) return;
+            redrawRaf = requestAnimationFrame(function redraw() {
+                redrawRaf = 0;
+                render();
+            });
+        }
+
+        function render() {
+            if (cancelled) return;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+            const world = createWorld(table, { tableAssetBaseHref: tableAssetBaseHref || "" });
+            world.balls = [];
+            Pin.render.renderWorld(ctx, world, {
+                designMode: true,
+                showHud: false,
+                showCabinet: false,
+                skipStaticCache: true,
+                onImageReady: scheduleRedraw
+            });
+        }
+
+        render();
+        return function cancelPreview() {
+            cancelled = true;
+            if (redrawRaf) cancelAnimationFrame(redrawRaf);
+        };
+    }
+
+    function appendSelectorActions(actions, entry) {
+        /* What: Add the table entry commands used by each selector card.
+         * Why: selector cards should offer the three existing workspaces without
+         * duplicating table loading code.
+         */
+        [
+            { label: "Play", mode: "play" },
+            { label: "Edit", mode: "design" },
+            { label: "Logic", mode: "logic" }
+        ].forEach(function each(action) {
+            const link = document.createElement("a");
+            link.className = "table-card-action";
+            link.href = tableSelectorHref(action.mode, entry);
+            link.textContent = action.label;
+            actions.appendChild(link);
+        });
+    }
+
+    function renderLoadedSelectorCard(card, entry, table, validation, tableAssetBaseHref, addPreviewDisposer) {
+        /* What: Replace a loading selector card with table metadata and preview.
+         * Why: each table fetch resolves independently, so one bad file should
+         * not block the rest of the catalog.
+         */
+        const safeTable = validation.ok ? table : Pin.table.createEmptyTable();
+        const displayTable = table || safeTable;
+        card.innerHTML = "";
+        card.classList.toggle("table-card-invalid", !validation.ok);
+
+        const preview = document.createElement("div");
+        preview.className = "table-card-preview";
+        const canvas = document.createElement("canvas");
+        preview.appendChild(canvas);
+        card.appendChild(preview);
+        addPreviewDisposer(drawSelectorPreview(canvas, safeTable, tableAssetBaseHref));
+
+        const body = document.createElement("div");
+        body.className = "table-card-body";
+        const title = document.createElement("h2");
+        title.textContent = displayTable.name || entry.label || "Untitled Table";
+        const meta = document.createElement("div");
+        meta.className = "table-card-meta";
+        meta.textContent = String(tableElementCount(safeTable)) + " elements · " +
+            String(safeTable.playfield.width) + " x " + String(safeTable.playfield.height);
+        const status = document.createElement("div");
+        status.className = validation.ok ? "table-card-status" : "table-card-status error";
+        status.textContent = validation.ok ? "Ready" : "Invalid table";
+        const actions = document.createElement("div");
+        actions.className = "table-card-actions";
+        if (validation.ok) appendSelectorActions(actions, Object.assign({}, entry, { table: safeTable }));
+
+        body.appendChild(title);
+        body.appendChild(meta);
+        body.appendChild(status);
+        body.appendChild(actions);
+        card.appendChild(body);
+    }
+
+    function renderFailedSelectorCard(card, entry, message) {
+        /* What: Show an individual catalog loading failure.
+         * Why: a missing file should be visible without hiding usable tables.
+         */
+        card.innerHTML = "";
+        card.classList.add("table-card-invalid");
+        const body = document.createElement("div");
+        body.className = "table-card-body";
+        const title = document.createElement("h2");
+        title.textContent = entry.label || entry.ref || "Table";
+        const status = document.createElement("div");
+        status.className = "table-card-status error";
+        status.textContent = message || "Unable to load";
+        body.appendChild(title);
+        body.appendChild(status);
+        card.appendChild(body);
+    }
+
+    function loadSelectorEntry(entry) {
+        /* What: Load and normalize one bundled catalog entry.
+         * Why: selector thumbnails use the same table contracts as play/design.
+         */
+        return loadTableFromRef(entry.ref).then(function loaded(result) {
+            const table = Pin.table.normalizeTable(result.table);
+            return {
+                table: table,
+                validation: Pin.table.validateTable(table),
+                tableAssetBaseHref: result.tableAssetBaseHref || ""
+            };
+        });
+    }
+
+    function appendLocalSelectorCard(grid, slot, label, addPreviewDisposer) {
+        /* What: Add a card for an in-browser saved table when it exists.
+         * Why: autosave and slot data are useful selector entries but cannot be
+         * represented by static file paths.
+         */
+        const saved = Pin.storage.local.load(slot);
+        if (!saved) return;
+        const table = Pin.table.normalizeTable(saved);
+        const validation = Pin.table.validateTable(table);
+        const card = document.createElement("article");
+        card.className = "table-card table-card-local";
+        renderLoadedSelectorCard(card, { label: label, table: table }, table, validation, "", addPreviewDisposer);
+        grid.insertBefore(card, grid.firstChild);
+    }
+
+    function mountTableSelector(root) {
+        /* What: Mount the bundled table picker.
+         * Why: users need a visual entrypoint for choosing among static tables.
+         */
+        if (typeof root._pinballCleanup === "function") root._pinballCleanup();
+        root.innerHTML = "";
+        let disposed = false;
+        const previewDisposers = [];
+        const addPreviewDisposer = function addPreviewDisposer(dispose) {
+            if (typeof dispose === "function") previewDisposers.push(dispose);
+        };
+
+        const wrap = document.createElement("main");
+        wrap.className = "table-selector";
+        const header = document.createElement("header");
+        header.className = "table-selector-header";
+        const title = document.createElement("h1");
+        title.textContent = "Tables";
+        const sub = document.createElement("p");
+        sub.textContent = "Choose a table to play, edit, or wire in Logic Studio.";
+        header.appendChild(title);
+        header.appendChild(sub);
+        wrap.appendChild(header);
+
+        if (location.protocol === "file:") {
+            const warning = document.createElement("div");
+            warning.className = "table-selector-warning";
+            warning.textContent = "Bundled table browsing needs a local HTTP server. Local autosaves can still appear here.";
+            wrap.appendChild(warning);
+        }
+
+        const grid = document.createElement("section");
+        grid.className = "table-card-grid";
+        wrap.appendChild(grid);
+        root.appendChild(wrap);
+
+        appendLocalSelectorCard(grid, "slot1", "Slot 1", addPreviewDisposer);
+        appendLocalSelectorCard(grid, "autosave", "Autosave", addPreviewDisposer);
+
+        const entries = (Pin.tableCatalog && Array.isArray(Pin.tableCatalog.tables)) ? Pin.tableCatalog.tables : [];
+        if (location.protocol !== "file:") {
+            entries.forEach(function each(entry) {
+                const card = document.createElement("article");
+                card.className = "table-card";
+                const loading = document.createElement("div");
+                loading.className = "table-card-loading";
+                loading.textContent = entry.label || entry.ref || "Loading table";
+                card.appendChild(loading);
+                grid.appendChild(card);
+                loadSelectorEntry(entry).then(function loaded(result) {
+                    if (disposed) return;
+                    renderLoadedSelectorCard(card, entry, result.table, result.validation, result.tableAssetBaseHref, addPreviewDisposer);
+                }).catch(function failed(err) {
+                    if (disposed) return;
+                    renderFailedSelectorCard(card, entry, err && err.message ? err.message : "Unable to load");
+                });
+            });
+        }
+
+        if (!grid.children.length) {
+            const empty = document.createElement("div");
+            empty.className = "table-selector-empty";
+            empty.textContent = "No tables are available.";
+            grid.appendChild(empty);
+        }
+
+        root._pinballCleanup = function cleanupSelector() {
+            disposed = true;
+            while (previewDisposers.length) previewDisposers.pop()();
+        };
     }
 
     function isAbsoluteUrl(value) {
@@ -867,6 +1110,11 @@
         const token = ++bootToken;
         if (typeof root._pinballCleanup === "function") root._pinballCleanup();
         const parsed = parseHash();
+        const hasExplicitRoute = !!(location.hash || parsed.kv.t || tableRefFromParsed(parsed));
+        if (parsed.mode === "tables" || !hasExplicitRoute) {
+            mountTableSelector(root);
+            return;
+        }
         Promise.resolve(loadInitialTable(parsed)).then(function mountLoadedTable(loaded) {
             if (token !== bootToken) return;
             if (Pin.render && Pin.render.clearImageCache) Pin.render.clearImageCache();
