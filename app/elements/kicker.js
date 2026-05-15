@@ -166,19 +166,23 @@
             });
             return {
                 circles: circles,
-                segments: segments
+                segments: segments,
+                posts: posts,
+                bandSpans: getBandSpans(posts, closed),
+                closed: closed,
+                orientation: polygonOrientation(posts)
             };
         },
         draw: function draw(ctx, el, runtime, world) {
-            const posts = getPosts(el);
+            const posts = (runtime && runtime.posts) || getPosts(el);
             const bandThickness = el.bandThickness || 6;
             const state = world && Pin.elements && Pin.elements.getState ? Pin.elements.getState(world, el, { pulse: 0, pulseSegment: -1, pulsePoint: null }) : null;
             if (state && state.pulse > 0) state.pulse = Math.max(0, state.pulse - ((world && world.lastPhysicsDt) || (1 / 60)) * 7);
             ctx.save();
             const color = el.color || "#ffaa66";
-            const closed = el.closed !== false && posts.length > 2;
-            const orientation = polygonOrientation(posts);
-            const segments = getBandSpans(posts, closed);
+            const closed = runtime && typeof runtime.closed === "boolean" ? runtime.closed : (el.closed !== false && posts.length > 2);
+            const orientation = runtime && typeof runtime.orientation === "number" ? runtime.orientation : polygonOrientation(posts);
+            const segments = (runtime && runtime.bandSpans) || getBandSpans(posts, closed);
             if (segments.length) {
                 ctx.strokeStyle = color;
                 ctx.lineWidth = bandThickness;

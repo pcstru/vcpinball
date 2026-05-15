@@ -127,6 +127,7 @@
             Pin.elements.createDrawables(world.table, Pin.elements.isDynamicPhysicsType) :
             { drawables: [] };
         world.staticBroadPhase = Pin.physics.buildBroadPhase(world.staticSegments, world.staticCircles, world.table.playfield);
+        world.staticSensorBroadPhase = Pin.physics.buildSensorBroadPhase(world.staticSensors);
     }
 
     function refreshRuntime(world) {

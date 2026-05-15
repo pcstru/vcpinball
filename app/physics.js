@@ -152,6 +152,53 @@
         };
     }
 
+    /*
+     * What: Build a grid index for non-blocking switch sensors.
+     * Why: rollover-heavy tables should not test every sensor on every physics
+     * substep when the ball only occupies a small area of the playfield.
+     */
+    function buildSensorBroadPhase(sensors) {
+        const cellSize = 80;
+        const grid = {};
+        function sensorAabb(sensor) {
+            if (sensor.shape === "rect" || sensor.w != null || sensor.h != null) {
+                const halfW = (sensor.w || 0) * 0.5;
+                const halfH = (sensor.h || 0) * 0.5;
+                return {
+                    left: sensor.x - halfW,
+                    right: sensor.x + halfW,
+                    top: sensor.y - halfH,
+                    bottom: sensor.y + halfH
+                };
+            }
+            const r = sensor.radius || 0;
+            return {
+                left: sensor.x - r,
+                right: sensor.x + r,
+                top: sensor.y - r,
+                bottom: sensor.y + r
+            };
+        }
+        function add(index, aabb) {
+            const minX = Math.floor(aabb.left / cellSize);
+            const maxX = Math.floor(aabb.right / cellSize);
+            const minY = Math.floor(aabb.top / cellSize);
+            const maxY = Math.floor(aabb.bottom / cellSize);
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    const key = x + "," + y;
+                    if (!grid[key]) grid[key] = [];
+                    grid[key].push(index);
+                }
+            }
+        }
+        (sensors || []).forEach(function each(sensor, i) { add(i, sensorAabb(sensor)); });
+        return {
+            cellSize: cellSize,
+            grid: grid
+        };
+    }
+
     function queryBroadPhase(index, aabb) {
         if (!index || !index.grid) return null;
         const refs = [];
@@ -168,6 +215,27 @@
                     if (seen[key]) return;
                     seen[key] = true;
                     refs.push(ref);
+                });
+            }
+        }
+        return refs;
+    }
+
+    function querySensorBroadPhase(index, aabb) {
+        if (!index || !index.grid) return null;
+        const refs = [];
+        const seen = {};
+        const minX = Math.floor(aabb.left / index.cellSize);
+        const maxX = Math.floor(aabb.right / index.cellSize);
+        const minY = Math.floor(aabb.top / index.cellSize);
+        const maxY = Math.floor(aabb.bottom / index.cellSize);
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                const bucket = index.grid[x + "," + y] || [];
+                bucket.forEach(function each(sensorIndex) {
+                    if (seen[sensorIndex]) return;
+                    seen[sensorIndex] = true;
+                    refs.push(sensorIndex);
                 });
             }
         }
@@ -614,7 +682,39 @@
         world.sensorState = world.sensorState || {};
         const ballKey = ball.id || ("ball" + ballIndex);
         const active = {};
-        sensors.forEach(function each(sensor, sensorIndex) {
+        const query = inflateAabb({
+            left: ball.x - ball.radius,
+            right: ball.x + ball.radius,
+            top: ball.y - ball.radius,
+            bottom: ball.y + ball.radius
+        }, 2);
+        const candidates = [];
+        const splitSensors = Array.isArray(world.staticSensors) || Array.isArray(world.dynamicSensors);
+        if (splitSensors) {
+            const staticRefs = querySensorBroadPhase(world.staticSensorBroadPhase, query);
+            if (staticRefs) {
+                staticRefs.forEach(function each(sensorIndex) {
+                    if (world.staticSensors && world.staticSensors[sensorIndex]) {
+                        candidates.push({ sensor: world.staticSensors[sensorIndex], index: sensorIndex });
+                    }
+                });
+            } else {
+                (world.staticSensors || []).forEach(function each(sensor, sensorIndex) {
+                    candidates.push({ sensor: sensor, index: sensorIndex });
+                });
+            }
+            const dynamicOffset = world.staticSensors ? world.staticSensors.length : 0;
+            (world.dynamicSensors || []).forEach(function each(sensor, sensorIndex) {
+                candidates.push({ sensor: sensor, index: dynamicOffset + sensorIndex });
+            });
+        } else {
+            sensors.forEach(function each(sensor, sensorIndex) {
+                candidates.push({ sensor: sensor, index: sensorIndex });
+            });
+        }
+        candidates.forEach(function each(candidate) {
+            const sensor = candidate.sensor;
+            const sensorIndex = candidate.index;
             const sensorId = sensor.id || ("sensor" + sensorIndex);
             const key = ballKey + "|" + sensorId;
             if (!sensorOverlapsBall(sensor, ball)) return;
@@ -792,6 +892,7 @@
         circleSegmentCollision: circleSegmentCollision,
         circleCircleCollision: circleCircleCollision,
         buildBroadPhase: buildBroadPhase,
+        buildSensorBroadPhase: buildSensorBroadPhase,
         queryBroadPhase: queryBroadPhase,
         getLauncherConfig: getLauncherConfig,
         releaseLauncher: releaseLauncher,

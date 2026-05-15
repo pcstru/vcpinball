@@ -41,25 +41,57 @@
         function resolveLogicTriggersFromSource(sourceId) {
             const raw = String(sourceId || "");
             if (!raw) return [];
-            const out = [];
-            const seen = {};
             const logicSwitches = world && world.logicRuntime && world.logicRuntime.doc && Array.isArray(world.logicRuntime.doc.switchRegistry)
                 ? world.logicRuntime.doc.switchRegistry
                 : [];
-            logicSwitches.forEach(function each(row) {
-                if (!row) return;
-                const logicalId = row.id != null ? String(row.id) : "";
-                const physicalId = row.sourceElementId != null ? String(row.sourceElementId) : "";
-                if (!logicalId) return;
-                if (logicalId === raw || physicalId === raw) {
-                    if (!seen[logicalId]) {
-                        seen[logicalId] = true;
-                        out.push(logicalId);
-                    }
-                }
+            if (!world._logicTriggerMap || world._logicTriggerMapSource !== logicSwitches) {
+                /*
+                 * What: Index physical and logical switch ids for this runtime.
+                 * Why: switch events happen in the physics loop, so dispatch should
+                 * not rescan the whole registry for every rollover or target hit.
+                 */
+                const map = {};
+                logicSwitches.forEach(function each(row) {
+                    if (!row) return;
+                    const logicalId = row.id != null ? String(row.id) : "";
+                    const physicalId = row.sourceElementId != null ? String(row.sourceElementId) : "";
+                    if (!logicalId) return;
+                    [logicalId, physicalId].forEach(function add(key) {
+                        if (!key) return;
+                        if (!map[key]) map[key] = [];
+                        if (map[key].indexOf(logicalId) < 0) map[key].push(logicalId);
+                    });
+                });
+                world._logicTriggerMap = map;
+                world._logicTriggerMapSource = logicSwitches;
+            }
+            const out = world._logicTriggerMap[raw];
+            if (out && out.length) return out;
+            return [raw];
+        }
+
+        function logicElementPropertiesSignature(runtime) {
+            const source = runtime && runtime.elementProperties ? runtime.elementProperties : {};
+            const parts = [];
+            Object.keys(source).sort().forEach(function eachElement(id) {
+                if (!source[id] || typeof source[id] !== "object") return;
+                Object.keys(source[id]).sort().forEach(function eachProp(key) {
+                    parts.push(id + "." + key + "=" + String(source[id][key]));
+                });
             });
-            if (!out.length) out.push(raw);
-            return out;
+            return parts.join("|");
+        }
+
+        function syncRuleElementPropertiesIfChanged(runtime) {
+            /*
+             * What: Copy element-property outputs only when the logic runtime changed.
+             * Why: lights and element draw code need a plain ruleState snapshot, but
+             * unchanged switch hits should not allocate a fresh nested object tree.
+             */
+            const signature = logicElementPropertiesSignature(runtime);
+            if (world._logicElementPropertiesSignature === signature) return;
+            world._logicElementPropertiesSignature = signature;
+            syncRuleElementProperties(runtime);
         }
 
         function syncLogicLamps(runtime) {
@@ -90,7 +122,7 @@
                 const firedTimers = Pin.logicSim.advanceTime(world.logicRuntime, dt);
                 if (firedTimers && firedTimers.length) {
                     syncLogicLamps(world.logicRuntime);
-                    syncRuleElementProperties(world.logicRuntime);
+                    syncRuleElementPropertiesIfChanged(world.logicRuntime);
                 }
             }
         }
@@ -114,7 +146,7 @@
                     const delta = after - previous;
                     if (delta) world.score = (world.score || 0) + delta;
                     syncLogicLamps(world.logicRuntime);
-                    syncRuleElementProperties(world.logicRuntime);
+                    syncRuleElementPropertiesIfChanged(world.logicRuntime);
                 }
             });
         }

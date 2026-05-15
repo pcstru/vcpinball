@@ -90,6 +90,8 @@
         let gridLayerKey = "";
         let runtimeCache = null;
         let runtimeByIdCache = null;
+        let visibleElementsCache = null;
+        let visibleElementsCacheRevision = -1;
         let dirtyRevision = 0;
         let autosavedRevision = -1;
         let lastDirtyAt = 0;
@@ -442,9 +444,17 @@
         function getVisibleEditorElements() {
             ensureLevels();
             ensureElementLevels();
-            return (state.table.elements || []).filter(function keep(el) {
+            if (visibleElementsCache && visibleElementsCacheRevision === dirtyRevision) return visibleElementsCache;
+            /*
+             * What: Cache the currently visible element list for this table revision.
+             * Why: editor hover hit testing and render setup ask for the same filtered
+             * list repeatedly while the table itself is unchanged.
+             */
+            visibleElementsCache = (state.table.elements || []).filter(function keep(el) {
                 return model.isElementVisibleInEditor(state.table, el);
             });
+            visibleElementsCacheRevision = dirtyRevision;
+            return visibleElementsCache;
         }
 
         function getEditorDisplayTable() {
@@ -1095,6 +1105,8 @@
             tableLayerDirty = true;
             runtimeCache = null;
             runtimeByIdCache = null;
+            visibleElementsCache = null;
+            visibleElementsCacheRevision = -1;
             dirtyRevision += 1;
             lastDirtyAt = Date.now();
         }
