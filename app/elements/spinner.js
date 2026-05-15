@@ -1,5 +1,5 @@
 (function registerSpinner(Pin) {
-    const MAX_SPINNER_ANGULAR_VELOCITY = 42;
+    const MAX_SPINNER_ANGULAR_VELOCITY = 24;
 
     function now() {
         if (typeof performance !== "undefined" && performance.now) return performance.now();
@@ -25,7 +25,7 @@
                 Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0, lastTime: now() }) :
                 { angle: 0, angularVelocity: 0, lastTime: now() };
             const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
-            const damping = typeof el.damping === "number" ? el.damping : 3.5;
+            const damping = typeof el.damping === "number" ? el.damping : 5.5;
             state.angle = (state.angle || 0) + (state.angularVelocity || 0) * dt;
             state.angularVelocity = (state.angularVelocity || 0) * Math.exp(-damping * dt);
             state.lastTime = now();
@@ -39,6 +39,8 @@
                     x2: el.x + dx,
                     y2: el.y + dy,
                     hitKey: "spinner:" + el.id + ":" + bladeIndex,
+                    passThrough: true,
+                    passThroughCooldown: 0.08,
                     skipDefaultResolve: true,
                     onHit: function onHit(ball, hit, world) {
                         const score = Pin.rules && Pin.rules.resolveElementScore ?
@@ -58,14 +60,14 @@
                             const tangentV = ball.vx * (-Math.sin(segmentAngle)) + ball.vy * Math.cos(segmentAngle);
                             const direction = arm * tangentV >= 0 ? 1 : -1;
                             hitState.angularVelocity = clamp(
-                                (hitState.angularVelocity || 0) + direction * Math.max(4, Math.min(28, speed * 1.2)),
+                                (hitState.angularVelocity || 0) + direction * Math.max(1.5, Math.min(14, speed * 0.45)),
                                 -MAX_SPINNER_ANGULAR_VELOCITY,
                                 MAX_SPINNER_ANGULAR_VELOCITY
                             );
                             hitState.lastHit = now();
                         }
-                        ball.vx *= 0.98;
-                        ball.vy *= 0.98;
+                        ball.vx *= 0.92;
+                        ball.vy *= 0.92;
                         if (Pin.audio) Pin.audio.spinner();
                     }
                 };

@@ -15,6 +15,7 @@
         reducedEffects: false,
         dirty: true
     };
+    const SPARK_LIMIT = 220;
     
     function createImageEntry(src) {
         const image = new Image();
@@ -67,6 +68,156 @@
         ctx.shadowBlur = Math.max(0, blur * (quality.glowScale || 1));
     }
 
+    /*
+     * What: Return the mutable particle list attached to a running world.
+     * Why: spark effects are runtime-only visuals and should not become part of
+     * the authored table schema or saved game state.
+     */
+    function sparkList(world) {
+        if (!world) return [];
+        if (!Array.isArray(world.sparkParticles)) world.sparkParticles = [];
+        return world.sparkParticles;
+    }
+
+    /*
+     * What: Add one spark particle while enforcing a fixed upper bound.
+     * Why: collision-heavy tables can create many particles in a single frame,
+     * so the renderer must cap visual work independently from physics.
+     */
+    function addSpark(world, x, y, vx, vy, life, size, color) {
+        const sparks = sparkList(world);
+        if (sparks.length >= SPARK_LIMIT) sparks.splice(0, sparks.length - SPARK_LIMIT + 1);
+        sparks.push({
+            x: x,
+            y: y,
+            vx: vx,
+            vy: vy,
+            life: life,
+            maxLife: life,
+            size: size,
+            color: color
+        });
+    }
+
+    /*
+     * What: Emit a short warm trail from a moving ball.
+     * Why: per-ball carry keeps emission stable at the fixed physics rate
+     * without relying on render-frame timing or random frame drops.
+     */
+    function emitBallTrail(world, ball, dt) {
+        if (!world || !ball || ball.inLaunchLane || quality.reducedEffects) return;
+        const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+        if (speed < 2) return;
+        ball._sparkTrailCarry = (ball._sparkTrailCarry || 0) + speed * dt * 1.2;
+        const count = Math.min(2, Math.floor(ball._sparkTrailCarry));
+        if (!count) return;
+        ball._sparkTrailCarry -= count;
+        const invSpeed = 1 / speed;
+        const dirX = ball.vx * invSpeed;
+        const dirY = ball.vy * invSpeed;
+        const lift = Math.max(0, ball.z || 0) * 0.18;
+        for (let i = 0; i < count; i++) {
+            const jitter = (Math.random() - 0.5) * ball.radius * 0.9;
+            const sideX = -dirY * jitter;
+            const sideY = dirX * jitter;
+            addSpark(
+                world,
+                ball.x - dirX * ball.radius * 0.8 + sideX,
+                ball.y - lift - dirY * ball.radius * 0.8 + sideY,
+                -dirX * (1.1 + Math.random() * 1.8) + sideX * 0.02,
+                -dirY * (1.1 + Math.random() * 1.8) + sideY * 0.02,
+                0.18 + Math.random() * 0.14,
+                1.1 + Math.random() * 1.4,
+                Math.random() < 0.35 ? "#fff2a8" : "#ff9d2e"
+            );
+        }
+    }
+
+    /*
+     * What: Emit a brighter spark burst at a ball collision contact.
+     * Why: the physics collision path is the one reliable place to distinguish
+     * true impacts from passive switch/sensor overlaps.
+     */
+    function emitCollisionSparks(world, ball, hit) {
+        if (!world || !ball || !hit || quality.reducedEffects) return;
+        const impact = Math.max(0, hit.impactSpeed || 0);
+        if (impact < 1.5) return;
+        const nx = typeof hit.nx === "number" ? hit.nx : 0;
+        const ny = typeof hit.ny === "number" ? hit.ny : -1;
+        const cx = typeof hit.cx === "number" ? hit.cx : ball.x - nx * ball.radius;
+        const cy = typeof hit.cy === "number" ? hit.cy : ball.y - ny * ball.radius;
+        const lift = Math.max(0, ball.z || 0) * 0.18;
+        const count = Math.max(4, Math.min(18, Math.floor(impact * 0.8) + 3));
+        const tangentX = -ny;
+        const tangentY = nx;
+        for (let i = 0; i < count; i++) {
+            const spread = (Math.random() - 0.5) * 2.2;
+            const push = 2.2 + Math.random() * Math.min(9, impact * 0.7);
+            addSpark(
+                world,
+                cx + (Math.random() - 0.5) * 3,
+                cy - lift + (Math.random() - 0.5) * 3,
+                nx * push + tangentX * spread,
+                ny * push + tangentY * spread,
+                0.16 + Math.random() * 0.22,
+                1.4 + Math.random() * 2.4,
+                Math.random() < 0.28 ? "#ffffff" : (Math.random() < 0.62 ? "#ffd35a" : "#ff6a1a")
+            );
+        }
+    }
+
+    /*
+     * What: Age and move spark particles for one fixed simulation step.
+     * Why: particle lifetime should stay deterministic with the game's physics
+     * clock rather than varying with display refresh rate.
+     */
+    function updateSparks(world, dt) {
+        const sparks = world && world.sparkParticles;
+        if (!Array.isArray(sparks) || !sparks.length) return;
+        const step = dt * 60;
+        for (let i = sparks.length - 1; i >= 0; i--) {
+            const spark = sparks[i];
+            spark.life -= dt;
+            if (spark.life <= 0) {
+                sparks.splice(i, 1);
+                continue;
+            }
+            spark.x += spark.vx * step;
+            spark.y += spark.vy * step;
+            spark.vx *= 0.94;
+            spark.vy = spark.vy * 0.94 + 0.025 * step;
+        }
+    }
+
+    /*
+     * What: Draw live spark particles beneath the balls.
+     * Why: sparks should read as trailing/impact energy without obscuring the
+     * ball highlight that players track during play.
+     */
+    function drawSparks(ctx, world) {
+        const sparks = world && world.sparkParticles;
+        if (!Array.isArray(sparks) || !sparks.length || quality.reducedEffects) return;
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.lineCap = "round";
+        sparks.forEach(function drawSpark(spark) {
+            const fade = Math.max(0, Math.min(1, spark.life / spark.maxLife));
+            ctx.globalAlpha = fade * fade;
+            ctx.strokeStyle = spark.color;
+            ctx.fillStyle = spark.color;
+            makeGlow(ctx, spark.color, 7);
+            ctx.lineWidth = Math.max(1, spark.size * fade);
+            ctx.beginPath();
+            ctx.moveTo(spark.x, spark.y);
+            ctx.lineTo(spark.x - spark.vx * 0.75, spark.y - spark.vy * 0.75);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(spark.x, spark.y, Math.max(0.6, spark.size * 0.45 * fade), 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.restore();
+    }
+
     function getImageLayer(src, onReady) {
         if (!src || typeof Image === "undefined") return null;
         let entry = imageCache[src];
@@ -93,17 +244,18 @@
     function resolveImageSrc(src, world) {
         const raw = typeof src === "string" ? src.trim() : "";
         if (!raw) return raw;
+        const normalized = raw.replace(/\\/g, "/");
         // Path semantics:
         // - scheme URLs and root paths are used as-is
         // - `tables/...` remains app-relative to preserve bundled table defaults
         // - any other relative path is resolved against the loaded table JSON directory
-        if (/^[a-z][a-z0-9+.-]*:/i.test(raw) || raw[0] === "/" || raw.indexOf("tables/") === 0) return raw;
+        if (/^[a-z][a-z0-9+.-]*:/i.test(normalized) || normalized[0] === "/" || normalized.indexOf("tables/") === 0) return normalized;
         const base = world && typeof world.tableAssetBaseHref === "string" ? world.tableAssetBaseHref : "";
-        if (!base) return raw;
+        if (!base) return normalized;
         try {
-            return new URL(raw, base).href;
+            return new URL(normalized, base).href;
         } catch (err) {
-            return raw;
+            return normalized;
         }
     }
 
@@ -400,6 +552,7 @@
             if (!canUseStaticCache || !dynamicTypeFn(entry.element.type)) return;
             if (entry.module.draw) entry.module.draw(ctx, entry.element, entry.runtime, world, options || {});
         });
+        drawSparks(ctx, world);
         drawBalls(ctx, world.balls);
         if (showHud) drawHud(ctx, world);
         if (showCabinet) drawCabinetFrame(ctx, pf.width, pf.height);
@@ -417,6 +570,9 @@
         renderWorld: renderWorld,
         roundRect: roundRect,
         makeGlow: makeGlow,
+        emitBallTrail: emitBallTrail,
+        emitCollisionSparks: emitCollisionSparks,
+        updateSparks: updateSparks,
         getImageLayer: getImageLayer,
         drawImageLayer: drawImageLayer,
         clearImageCache: clearImageCache,

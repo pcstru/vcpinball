@@ -125,7 +125,7 @@
   "images": [
     {
       "id": "image_czlv6r",
-      "src": "tables\\hi-tl.png",
+      "src": "tables/hi-tl.png",
       "mode": "both",
       "opacity": 1,
       "fit": "contain",

@@ -122,6 +122,35 @@
         return JSON.parse(JSON.stringify(table));
     }
 
+    function safeLauncherWidth(playfield) {
+        /*
+         * What: Resolve the minimum lane width that can hold and release a ball.
+         * Why: narrower launcher lanes overlap the ball against both side walls,
+         * which can trap launch balls and stall play.
+         */
+        const radius = playfield && typeof playfield.ballRadius === "number" && !Number.isNaN(playfield.ballRadius) ?
+            Math.max(1, playfield.ballRadius) :
+            DEFAULT_PLAYFIELD.ballRadius;
+        return radius * 2 + 6;
+    }
+
+    function clampLauncherWidth(launcher, playfield) {
+        if (!launcher || launcher.type !== "launcher") return launcher;
+        const minWidth = safeLauncherWidth(playfield);
+        const width = typeof launcher.width === "number" && !Number.isNaN(launcher.width) ? launcher.width : minWidth;
+        launcher.width = Math.max(minWidth, width);
+        return launcher;
+    }
+
+    function clampLauncherWidths(table) {
+        if (!table || !Array.isArray(table.elements)) return table;
+        const playfield = table.playfield || DEFAULT_PLAYFIELD;
+        table.elements.forEach(function each(el) {
+            clampLauncherWidth(el, playfield);
+        });
+        return table;
+    }
+
     function fallbackElementName(element) {
         /* What: Build a readable default element name.
          * Why: Logic authoring and selection are clearer with human labels.
@@ -158,6 +187,7 @@
             if (!el || typeof el !== "object") return;
             if (typeof el.name !== "string" || !el.name.trim()) el.name = fallbackElementName(el);
         });
+        clampLauncherWidths(table);
         return table;
     }
 
@@ -323,8 +353,13 @@
             const x = el.x || 0;
             const top = el.top || 0;
             const bottom = el.bottom || 0;
+            const width = typeof el.width === "number" && !Number.isNaN(el.width) ? el.width : 0;
+            const minWidth = safeLauncherWidth(playfield);
             if (x < 0 || x > playfield.width || top < 0 || bottom > playfield.height || bottom <= top) {
                 add("warning", "Launcher '" + el.id + "' is outside the playfield or has invalid top/bottom values.");
+            }
+            if (width < minWidth) {
+                add("warning", "Launcher '" + el.id + "' is narrower than the ball-safe minimum width of " + minWidth + ".");
             }
         });
         ramps.forEach(function checkRamp(el) {
@@ -350,6 +385,9 @@
         normalizeTable: normalizeTable,
         validateTable: validateTable,
         validatePlayability: validatePlayability,
+        safeLauncherWidth: safeLauncherWidth,
+        clampLauncherWidth: clampLauncherWidth,
+        clampLauncherWidths: clampLauncherWidths,
         DEFAULT_PLAYFIELD: DEFAULT_PLAYFIELD,
         DEFAULT_FLIPPER_TUNING: DEFAULT_FLIPPER_TUNING
     };

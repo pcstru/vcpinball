@@ -15,6 +15,23 @@
         }
     }
 
+    function clearAppLocal() {
+        /*
+         * What: Remove all browser-local state owned by this app.
+         * Why: stale autosaves and settings can affect table loading, so the UI
+         * needs a controlled reset that does not delete unrelated site storage.
+         */
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.indexOf("pin.") === 0) keys.push(key);
+        }
+        keys.forEach(function each(key) {
+            localStorage.removeItem(key);
+        });
+        return keys.length;
+    }
+
     function exportFile(table) {
         const blob = new Blob([JSON.stringify(table, null, 2)], { type: "application/json" });
         const a = document.createElement("a");
@@ -59,7 +76,7 @@
     }
 
     Pin.storage = {
-        local: { save: saveLocal, load: loadLocal },
+        local: { save: saveLocal, load: loadLocal, clearApp: clearAppLocal },
         file: { export: exportFile, import: importFile },
         url: { encode: encodeUrl, decode: decodeUrl }
     };

@@ -204,6 +204,7 @@
     }
 
     function syncLauncherConfig(table) {
+        if (Pin.table && Pin.table.clampLauncherWidths) Pin.table.clampLauncherWidths(table);
         return table;
     }
 

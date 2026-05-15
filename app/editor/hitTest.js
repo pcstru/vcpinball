@@ -71,10 +71,23 @@
     function gateSwingArc(el) {
         const restAngle = typeof el.angle === "number" ? el.angle : 0;
         const maxAngle = Math.abs(typeof el.maxAngle === "number" ? el.maxAngle : 1.05);
+        const endpoint = typeof el.swingEndAngle === "number" ? el.swingEndAngle : restAngle + maxAngle;
+        const delta = endpoint - restAngle;
+        const span = Math.abs(delta) > 0.001 ? Math.abs(delta) : maxAngle;
+        const direction = String(el.direction || "forward").toLowerCase();
+        if (direction === "twoway" || direction === "two-way" || direction === "two_way" || direction === "both") {
+            return {
+                start: restAngle - span,
+                end: restAngle + span,
+                rest: restAngle,
+                endpoint: endpoint
+            };
+        }
         return {
-            start: typeof el.swingStartAngle === "number" ? el.swingStartAngle : restAngle - maxAngle,
-            end: typeof el.swingEndAngle === "number" ? el.swingEndAngle : restAngle + maxAngle,
-            rest: restAngle
+            start: restAngle,
+            end: endpoint,
+            rest: restAngle,
+            endpoint: endpoint
         };
     }
 
@@ -95,7 +108,7 @@
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(center.x, center.y);
-        ctx.arc(center.x, center.y, radius, arc.start, arc.end);
+        ctx.arc(center.x, center.y, radius, arc.start, arc.end, arc.end < arc.start);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -118,6 +131,18 @@
 
     function isPivotGate(el) {
         return el && el.type === "gate" && typeof el.x === "number" && typeof el.y === "number";
+    }
+
+    function syncGateStartAngle(el) {
+        if (isPivotGate(el)) el.swingStartAngle = typeof el.angle === "number" ? el.angle : 0;
+    }
+
+    function setGateAngle(el, nextAngle) {
+        const previous = typeof el.angle === "number" ? el.angle : 0;
+        const delta = nextAngle - previous;
+        el.angle = nextAngle;
+        el.swingStartAngle = nextAngle;
+        if (typeof el.swingEndAngle === "number") el.swingEndAngle += delta;
     }
 
     function getElementCenter(el) {
@@ -267,6 +292,19 @@
     }
 
     function getElementBounds(el, runtime) {
+        if (isPivotGate(el)) {
+            const x = el.x || 0;
+            const y = el.y || 0;
+            const length = el.length || 64;
+            const arc = gateSwingArc(el);
+            return boundsFromPoints([
+                { x: x, y: y },
+                { x: x + Math.cos(arc.start) * length, y: y + Math.sin(arc.start) * length },
+                { x: x + Math.cos(arc.end) * length, y: y + Math.sin(arc.end) * length },
+                { x: x + Math.cos(arc.endpoint) * length, y: y + Math.sin(arc.endpoint) * length },
+                { x: x + Math.cos(arc.rest) * length, y: y + Math.sin(arc.rest) * length }
+            ]);
+        }
         if (runtime && runtime.segments && runtime.segments.length) {
             const points = [];
             runtime.segments.forEach(function each(seg) {
@@ -339,10 +377,13 @@
         if (isPivotGate(el)) {
             const angle = el.angle || 0;
             const length = el.length || 64;
+            const arc = gateSwingArc(el);
             const tip = rotatePoint(el.x || 0, el.y || 0, length, 0, angle);
             const rot = rotatePoint(el.x || 0, el.y || 0, length * 0.58, -24, angle);
+            const swingEnd = rotatePoint(el.x || 0, el.y || 0, length, 0, arc.endpoint);
             handles.push({ kind: "pivot", x: el.x || 0, y: el.y || 0 });
             handles.push({ kind: "length", x: tip.x, y: tip.y });
+            handles.push({ kind: "swingEnd", x: swingEnd.x, y: swingEnd.y });
             handles.push({ kind: "rotate", x: rot.x, y: rot.y });
         }
         if (el.type === "launcher") {
@@ -474,7 +515,8 @@
             return;
         }
         if (handle.kind === "launcherWidth") {
-            el.width = Math.max(16, Math.abs(world.x - (el.x || 439)) * 2);
+            const minWidth = Pin.table && Pin.table.safeLauncherWidth ? Pin.table.safeLauncherWidth(opts && opts.table && opts.table.playfield) : 16;
+            el.width = Math.max(minWidth, Math.abs(world.x - (el.x || 439)) * 2);
             return;
         }
         if (handle.kind === "pivot") {
@@ -486,6 +528,7 @@
             if (isPivotGate(el)) {
                 el.x = world.x;
                 el.y = world.y;
+                syncGateStartAngle(el);
             }
             return;
         }
@@ -516,7 +559,7 @@
         if (handle.kind === "length") {
             if (isPivotGate(el)) {
                 el.length = Math.max(12, Math.hypot(world.x - (el.x || 0), world.y - (el.y || 0)));
-                el.angle = Math.atan2(world.y - (el.y || 0), world.x - (el.x || 0));
+                setGateAngle(el, Math.atan2(world.y - (el.y || 0), world.x - (el.x || 0)));
                 return;
             }
             const nextSize = Math.max(8, Math.hypot(world.x - el.x, world.y - el.y) * 2);
@@ -532,11 +575,18 @@
                 return;
             }
             if (isPivotGate(el)) {
-                el.angle = Math.atan2(world.y - (el.y || 0), world.x - (el.x || 0));
+                setGateAngle(el, Math.atan2(world.y - (el.y || 0), world.x - (el.x || 0)));
                 return;
             }
             if (typeof el.x === "number" && typeof el.y === "number") {
                 el.angle = Math.atan2(world.y - el.y, world.x - el.x) + Math.PI * 0.5;
+            }
+            return;
+        }
+        if (handle.kind === "swingEnd") {
+            if (isPivotGate(el)) {
+                syncGateStartAngle(el);
+                el.swingEndAngle = Math.atan2(world.y - (el.y || 0), world.x - (el.x || 0));
             }
             return;
         }
@@ -755,9 +805,16 @@
             const y = el.y || 0;
             const tip = rotatePoint(x, y, el.length || 64, 0, el.angle || 0);
             const rot = rotatePoint(x, y, (el.length || 64) * 0.58, -24, el.angle || 0);
+            const arc = gateSwingArc(el);
+            const swingEnd = rotatePoint(x, y, el.length || 64, 0, arc.endpoint);
             if (isPivotGate(el)) drawGateSwingArc(ctx, el, view);
             drawCircle(x, y, 5, true);
             drawCircle(tip.x, tip.y, 5, false);
+            ctx.save();
+            ctx.strokeStyle = "rgba(80,190,255,0.98)";
+            ctx.fillStyle = "rgba(80,190,255,0.22)";
+            drawCircle(swingEnd.x, swingEnd.y, 7, true);
+            ctx.restore();
             drawGhostHandle(x, y, rot.x, rot.y);
             drawCircle(rot.x, rot.y, 5, false);
         } else if (el.type === "lane" || el.type === "dropTarget" || el.type === "drain") {

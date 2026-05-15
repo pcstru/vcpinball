@@ -191,7 +191,7 @@
         function getSnapWorld(evt, world, drag) {
             if (!snapEnabled || evt.ctrlKey || evt.metaKey) return world;
             if (!drag || !drag.handle) return snapPoint(world, true);
-            if (drag.handle.kind === "in" || drag.handle.kind === "out" || drag.handle.kind === "rotate") return world;
+            if (drag.handle.kind === "in" || drag.handle.kind === "out" || drag.handle.kind === "rotate" || drag.handle.kind === "swingEnd") return world;
             const startHandle = drag.startHandleWorld || drag.startWorld;
             const targetHandle = {
                 x: world.x - (drag.pointerOffset ? drag.pointerOffset.x : 0),
@@ -1621,6 +1621,11 @@
                         editorSession.applyTable(t);
                     }
                 },
+                onWipeBrowserMemory: function wipeBrowserMemory() {
+                    if (!window.confirm("Wipe all Pinball browser memory for this site, including autosaves and assistant settings?")) return;
+                    if (Pin.storage && Pin.storage.local && Pin.storage.local.clearApp) Pin.storage.local.clearApp();
+                    location.reload();
+                },
                 onTestPlay: function testPlay() {
                     flushPersistedDrafts();
                     model.syncLauncherConfig(state.table);
@@ -1836,7 +1841,7 @@
                 if (!el) return;
                 Object.assign(el, Pin.editorTools.clone(dragState.startSnapshot));
                 const moved = getSnapWorld(evt, world, dragState);
-                Pin.editorHitTest.applyHandleDrag(el, dragState.handle, moved, dragState.startWorld, evt);
+                Pin.editorHitTest.applyHandleDrag(el, dragState.handle, moved, dragState.startWorld, { table: state.table, altKey: evt.altKey });
                 if (el.type === "launcher") model.syncLauncherConfig(state.table);
                 markTableDirty();
                 refresh("canvas");

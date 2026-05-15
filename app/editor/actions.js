@@ -36,6 +36,41 @@
             });
         }
 
+        function syncGateSwingPatch(gate, patch) {
+            if (!gate || gate.type !== "gate" || !patch || typeof patch !== "object") return patch;
+            const next = Pin.editorTools.clone(patch);
+            const hasAngle = Object.prototype.hasOwnProperty.call(next, "angle");
+            if (!hasAngle) return next;
+            const currentAngle = typeof gate.angle === "number" ? gate.angle : 0;
+            const nextAngle = normalizeInput(next.angle);
+            const delta = nextAngle - currentAngle;
+            const currentEnd = typeof gate.swingEndAngle === "number" ? gate.swingEndAngle : null;
+            if (currentEnd != null && (!Object.prototype.hasOwnProperty.call(next, "swingEndAngle") || next.swingEndAngle === currentEnd)) {
+                next.swingEndAngle = currentEnd + delta;
+            }
+            next.swingStartAngle = nextAngle;
+            return next;
+        }
+
+        function syncGateSwingStart(gate) {
+            if (gate && gate.type === "gate") gate.swingStartAngle = typeof gate.angle === "number" ? gate.angle : 0;
+        }
+
+        function normalizeGateDirection(value) {
+            const raw = String(value || "").toLowerCase();
+            if (raw === "reverse") return "reverse";
+            if (raw === "twoway" || raw === "two-way" || raw === "two_way" || raw === "both") return "twoWay";
+            return "forward";
+        }
+
+        function mirrorGateArcForDirection(gate, previousDirection, nextDirection) {
+            if (!gate || gate.type !== "gate" || previousDirection === nextDirection || nextDirection === "twoWay") return;
+            if ((previousDirection !== "forward" && previousDirection !== "reverse") || (nextDirection !== "forward" && nextDirection !== "reverse")) return;
+            const angle = typeof gate.angle === "number" ? gate.angle : 0;
+            const end = typeof gate.swingEndAngle === "number" ? gate.swingEndAngle : angle + 1.05;
+            gate.swingEndAngle = angle - (end - angle);
+        }
+
         function patchTable(path, value) {
             pushUndo();
             const normalized = normalizeInput(value);
@@ -51,6 +86,7 @@
             } else {
                 Pin.editorTools.setByPath(state.table, path, normalized);
             }
+            if (path === "playfield.ballRadius") syncLauncherConfig(state.table);
             if (path === "playfield.width" || path === "playfield.height") syncCanvasToTable();
             markTableDirty();
             refresh("all");
@@ -59,6 +95,7 @@
         function patchTableFields(patch) {
             pushUndo();
             applyNormalizedPatch(state.table, patch || {});
+            syncLauncherConfig(state.table);
             if (patch && patch.playfield && (Object.prototype.hasOwnProperty.call(patch.playfield, "width") || Object.prototype.hasOwnProperty.call(patch.playfield, "height"))) {
                 syncCanvasToTable();
             }
@@ -228,8 +265,16 @@
             if (!selected) return;
             pushUndo();
             const leaf = (path || "").split(".").pop();
+            const previousDirection = selected.type === "gate" ? normalizeGateDirection(selected.direction) : "";
             const nextValue = isStringFieldName(leaf) ? (value == null ? "" : String(value)) : normalizeInput(value);
+            if (selected.type === "gate" && path === "angle") {
+                const previous = typeof selected.angle === "number" ? selected.angle : 0;
+                const delta = nextValue - previous;
+                if (typeof selected.swingEndAngle === "number") selected.swingEndAngle += delta;
+            }
             Pin.editorTools.setByPath(selected, path, nextValue);
+            if (selected.type === "gate" && path === "direction") mirrorGateArcForDirection(selected, previousDirection, normalizeGateDirection(nextValue));
+            syncGateSwingStart(selected);
             if (selected.type === "launcher") syncLauncherConfig(state.table);
             markTableDirty();
             refresh("all");
@@ -239,7 +284,12 @@
             const selected = getSelected();
             if (!selected) return;
             pushUndo();
-            applyNormalizedPatch(selected, patch || {});
+            const previousDirection = selected.type === "gate" ? normalizeGateDirection(selected.direction) : "";
+            applyNormalizedPatch(selected, syncGateSwingPatch(selected, patch || {}));
+            if (selected.type === "gate" && Object.prototype.hasOwnProperty.call(patch || {}, "direction")) {
+                mirrorGateArcForDirection(selected, previousDirection, normalizeGateDirection(selected.direction));
+            }
+            syncGateSwingStart(selected);
             if (selected.type === "launcher") syncLauncherConfig(state.table);
             markTableDirty();
             refresh("all");

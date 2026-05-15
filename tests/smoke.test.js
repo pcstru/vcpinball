@@ -101,6 +101,36 @@ function loadSpinnerModuleHarness() {
     return ctx.window.Pin;
 }
 
+function loadGateModuleHarness() {
+    // What: Load gate compile logic with minimal runtime dependencies.
+    // Why: gate direction modes must be regression-tested outside the browser.
+    const pin = {
+        elements: {
+            registry: {},
+            register: function register(type, mod) {
+                this.registry[type] = mod;
+            },
+            getStateKey: function getStateKey(el) {
+                return (el.type || "element") + ":" + (el.id || "anonymous");
+            },
+            getState: function getState(world, el, defaults) {
+                const key = this.getStateKey(el);
+                world.elementState = world.elementState || {};
+                if (!world.elementState[key]) world.elementState[key] = Object.assign({}, defaults || {});
+                return world.elementState[key];
+            },
+            peekState: function peekState() { return null; }
+        },
+        events: { emit: function emit() {} },
+        render: { makeGlow: function makeGlow() {} }
+    };
+    const ctx = { window: { Pin: pin } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/elements/gate.js"), ctx, { filename: "app/elements/gate.js" });
+    return ctx.window.Pin;
+}
+
 function loadElementRegistryHarness() {
     // What: Load the element registry with tiny fake modules.
     // Why: Runtime split behavior should be testable without a browser canvas.
@@ -162,14 +192,59 @@ function loadPerformanceModule() {
     return ctx.window.Pin.performance;
 }
 
+function loadRenderModuleHarness() {
+    // What: Load render helpers without constructing browser DOM objects.
+    // Why: runtime visual effects should be testable outside a canvas.
+    const ctx = { window: { Pin: {} } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/render.js"), ctx, { filename: "app/render.js" });
+    return ctx.window.Pin.render;
+}
+
+function loadPhysicsModuleHarness(pin) {
+    // What: Load physics against a supplied Pin object.
+    // Why: collision side effects can be checked with small fake render hooks.
+    const ctx = { window: { Pin: pin } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/physics.js"), ctx, { filename: "app/physics.js" });
+    return ctx.window.Pin.physics;
+}
+
+function loadStorageModuleHarness(storage) {
+    // What: Load storage helpers against a fake localStorage implementation.
+    // Why: browser-memory wipe behavior should be checked without a browser.
+    const ctx = {
+        window: { Pin: {}, localStorage: storage },
+        localStorage: storage,
+        Blob: function Blob() {},
+        URL: { createObjectURL: function createObjectURL() { return ""; }, revokeObjectURL: function revokeObjectURL() {} },
+        document: { createElement: function createElement() { return {}; } }
+    };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/storage.js"), ctx, { filename: "app/storage.js" });
+    return ctx.window.Pin.storage;
+}
+
 function memoryStorage() {
     const data = {};
     return {
+        get length() {
+            return Object.keys(data).length;
+        },
+        key: function key(index) {
+            return Object.keys(data)[index] || null;
+        },
         getItem: function getItem(key) {
             return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
         },
         setItem: function setItem(key, value) {
             data[key] = String(value);
+        },
+        removeItem: function removeItem(key) {
+            delete data[key];
         }
     };
 }
@@ -225,6 +300,38 @@ function testDrainWithoutTroughIsPlayable() {
     });
 
     assert.strictEqual(troughWarning, undefined, "a table with a drain should not warn that serving is limited only because it has no trough");
+}
+
+function testLauncherWidthClampsToBallSafeMinimum() {
+    const tableApi = loadTableModule();
+    const table = tableApi.normalizeTable({
+        version: 1,
+        name: "Narrow Launcher",
+        playfield: { width: 500, height: 880, ballRadius: 16, gravity: 0.35, friction: 0.999, restitution: 0.55, maxSpeed: 24 },
+        rules: { balls: 3 },
+        elements: [
+            { id: "launch", type: "launcher", x: 440, top: 200, bottom: 740, width: 16 }
+        ]
+    });
+    const launcher = table.elements[0];
+    assert.strictEqual(tableApi.safeLauncherWidth(table.playfield), 38, "safe launcher width should include ball diameter and clearance");
+    assert.strictEqual(launcher.width, 38, "normalizeTable should clamp narrow launcher widths");
+}
+
+function testNarrowLauncherPlayabilityWarnsBeforeNormalize() {
+    const tableApi = loadTableModule();
+    const issues = tableApi.validatePlayability({
+        version: 1,
+        name: "Raw Narrow Launcher",
+        playfield: { width: 500, height: 880, ballRadius: 14, gravity: 0.35, friction: 0.999, restitution: 0.55, maxSpeed: 24 },
+        rules: { balls: 3, highScoreKey: "pinball.generic.highscore" },
+        elements: [
+            { id: "launch", type: "launcher", x: 440, top: 200, bottom: 740, width: 12 }
+        ]
+    });
+    assert(issues.some(function some(issue) {
+        return /narrower than the ball-safe minimum/.test(issue.message || "");
+    }), "validatePlayability should warn about raw narrow launcher lanes");
 }
 
 function testFlipperAngleStaysWithinAuthoredBounds() {
@@ -313,6 +420,8 @@ function testSpinnerBladesDoNotBlockBall() {
 
     assert.strictEqual(runtime.segments.length, 2, "spinner should compile two blade hit surfaces");
     runtime.segments.forEach(function each(segment) {
+        assert.strictEqual(segment.passThrough, true, "spinner blades should be pass-through contact surfaces");
+        assert.strictEqual(segment.passThroughCooldown, 0.08, "spinner blades should debounce repeated pass-through substep hits");
         assert.strictEqual(segment.skipDefaultResolve, true, "spinner blades should not use wall-style collision resolution");
         assert(/^spinner:spin:/.test(segment.hitKey), "spinner blades should use stable spinner hit keys");
     });
@@ -322,9 +431,116 @@ function testSpinnerBladesDoNotBlockBall() {
         runtime.segments[0].onHit(ball, { t: 1 }, world);
     }
     const state = world.elementState["spinner:spin"];
-    assert(state.angularVelocity <= 42, "spinner angular velocity should be capped");
-    assert(state.angularVelocity >= -42, "spinner angular velocity should be capped in reverse");
+    assert(state.angularVelocity <= 24, "spinner angular velocity should be capped");
+    assert(state.angularVelocity >= -24, "spinner angular velocity should be capped in reverse");
     assert(ball.vx > 0 && ball.vy > 0, "spinner hit should damp but not reverse or trap the ball");
+}
+
+function testSpinnerSweepContactDoesNotBlockBallTravel() {
+    const pin = loadSpinnerModuleHarness();
+    let spinnerHits = 0;
+    let sparkHit = null;
+    pin.events = {
+        emit: function emit(world, event) {
+            if (event && event.type === "switchClosed" && event.sourceId === "spin") spinnerHits += 1;
+        }
+    };
+    pin.render = {
+        emitCollisionSparks: function emitCollisionSparks(world, ball, hit) { sparkHit = hit; },
+        emitBallTrail: function emitBallTrail() {},
+        updateSparks: function updateSparks() {}
+    };
+    const physics = loadPhysicsModuleHarness(pin);
+    const spinner = {
+        id: "spin",
+        type: "spinner",
+        x: 100,
+        y: 100,
+        radius: 30,
+        angle: 0,
+        damping: 0,
+        score: 100
+    };
+    const world = {
+        table: {
+            playfield: { gravity: 0, friction: 1, restitution: 0.5, maxSpeed: 200, width: 300, height: 240 },
+            elements: []
+        },
+        balls: [{ x: 70, y: 100, vx: 100, vy: 0, radius: 4, level: 0 }],
+        elementState: {},
+        staticSegments: [],
+        staticCircles: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        lastPhysicsDt: 1 / 120
+    };
+    world.dynamicSegments = pin.elements.registry.spinner.compile(spinner, world.table, world).segments;
+
+    physics.stepWorld(world, 1 / 120);
+
+    assert(spinnerHits > 0, "fast spinner crossings should still fire spinner switch hits");
+    assert(world.balls[0].x > 100, "pass-through spinner contact should not stop swept ball travel");
+    assert(world.balls[0].vx > 0 && world.balls[0].vx < 100, "spinner contact should damp without reversing ball velocity");
+    assert(sparkHit && typeof sparkHit.cx === "number" && typeof sparkHit.cy === "number", "spinner sparks should receive concrete contact coordinates");
+    assert(Math.abs(sparkHit.cx - 100) < 0.001 || Math.abs(sparkHit.cy - 100) < 0.001, "spinner spark coordinates should lie on a blade");
+}
+
+function testGateDirectionModesCanOpen() {
+    const pin = loadGateModuleHarness();
+    const compile = pin.elements.registry.gate.compile;
+    const table = { playfield: { width: 500, height: 880 } };
+
+    function run(direction, swingEndAngle, ballY) {
+        const gate = {
+            id: "gate_" + direction,
+            type: "gate",
+            x: 0,
+            y: 0,
+            length: 64,
+            angle: 0,
+            direction: direction,
+            open: false,
+            locked: false,
+            swingStartAngle: 0,
+            swingEndAngle: swingEndAngle,
+            returnStrength: 0,
+            returnDamping: 0
+        };
+        const world = {
+            table: table,
+            elementState: {},
+            lastPhysicsDt: 1 / 120,
+            physicsTick: 1
+        };
+        const runtime = compile(gate, table, world);
+        const ball = { x: 32, y: ballY, vx: 0, vy: 10 };
+        assert.strictEqual(runtime.segments[0].oneWay(ball, world), true, direction + " gate should allow its configured side");
+        const state = world.elementState["gate:" + gate.id];
+        assert(state && Math.abs(state.angle) > 0.001, direction + " gate should move when opened");
+        return state.angle;
+    }
+
+    assert(run("forward", 0.85, -8) > 0, "forward gate should swing toward the visual arc endpoint");
+    assert(run("reverse", -0.85, 8) < 0, "reverse gate should be the mirrored visual arc");
+    assert(run("twoWay", 0.85, -8) > 0, "two-way gate should swing forward from one side");
+    assert(run("twoWay", 0.85, 8) < 0, "two-way gate should swing reverse from the other side");
+
+    const forcedOpenGate = {
+        id: "gate_forced_reverse",
+        type: "gate",
+        x: 0,
+        y: 0,
+        length: 64,
+        angle: 0,
+        direction: "reverse",
+        open: true,
+        locked: false,
+        swingStartAngle: 0,
+        swingEndAngle: -0.85
+    };
+    const forcedWorld = { table: table, elementState: {}, lastPhysicsDt: 1 / 120 };
+    compile(forcedOpenGate, table, forcedWorld);
+    assert(forcedWorld.elementState["gate:gate_forced_reverse"].angle < 0, "forced-open reverse gate should use the mirrored visual arc endpoint");
 }
 
 function testRuntimeSplitKeepsOnlyPhysicsElementsDynamic() {
@@ -442,6 +658,59 @@ function testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad() {
     assert(result.transitions <= 2, "borderline load should not cause rapid quality oscillation");
 }
 
+function testSparkHelpersEmitAndExpireParticles() {
+    const render = loadRenderModuleHarness();
+    const world = { sparkParticles: [] };
+    const ball = { x: 50, y: 80, vx: 30, vy: 0, radius: 8, z: 0 };
+
+    for (let i = 0; i < 8; i++) render.emitBallTrail(world, ball, 1 / 120);
+    assert(world.sparkParticles.length > 0, "moving balls should emit trail sparks");
+
+    render.emitCollisionSparks(world, ball, { nx: -1, ny: 0, cx: 42, cy: 80, impactSpeed: 12 });
+    assert(world.sparkParticles.length > 4, "collisions should emit spark bursts");
+
+    render.updateSparks(world, 1);
+    assert.strictEqual(world.sparkParticles.length, 0, "expired sparks should be removed");
+}
+
+function testReducedEffectsSuppressSparkEmission() {
+    const render = loadRenderModuleHarness();
+    const world = { sparkParticles: [] };
+    const ball = { x: 50, y: 80, vx: 40, vy: 0, radius: 8, z: 0 };
+
+    render.setQuality({ reducedEffects: true });
+    render.emitBallTrail(world, ball, 1);
+    render.emitCollisionSparks(world, ball, { nx: -1, ny: 0, impactSpeed: 20 });
+    assert.strictEqual(world.sparkParticles.length, 0, "reduced effects should suppress new spark particles");
+}
+
+function testPhysicsCollisionsEmitSparkBurstsWithoutElementHitHandlers() {
+    let bursts = 0;
+    const pin = {
+        render: {
+            emitCollisionSparks: function emitCollisionSparks() { bursts += 1; },
+            emitBallTrail: function emitBallTrail() {},
+            updateSparks: function updateSparks() {}
+        }
+    };
+    const physics = loadPhysicsModuleHarness(pin);
+    const world = {
+        table: {
+            playfield: { gravity: 0, friction: 1, restitution: 1, maxSpeed: 100, width: 100, height: 100 },
+            elements: []
+        },
+        balls: [{ x: 0, y: 0, vx: 20, vy: 0, radius: 1, level: 0 }],
+        staticSegments: [{ x1: 1, y1: -10, x2: 1, y2: 10, thickness: 0, level: 0 }],
+        staticCircles: [],
+        dynamicSegments: [],
+        dynamicCircles: [],
+        runtimeSensors: []
+    };
+
+    physics.stepWorld(world, 1 / 120);
+    assert(bursts > 0, "physics collisions should emit visual spark bursts even when no element onHit exists");
+}
+
 function testFeatureSchemaNormalizesAndValidates() {
     const tableApi = loadTableModule();
     const table = tableApi.normalizeTable({ version: 1, name: "Feature Test", playfield: {}, rules: {}, elements: [] });
@@ -484,6 +753,21 @@ function testEditorCarriesTableAssetBaseIntoRendering() {
     assert(/tableAssetBaseHref:\s*tableAssetBaseHref/.test(editorSource), "editor render world should include tableAssetBaseHref");
 }
 
+function testPlayControlsCanBeHiddenFromKeyboard() {
+    const mainSource = read("app/main.js");
+    const cssSource = read("app/editor/editor.css");
+    assert(/KeyH/.test(mainSource), "play mode should handle H for hiding touch controls");
+    assert(/setControlsHidden/.test(mainSource), "play mode should refit after hiding touch controls");
+    assert(/mobile-play-controls\.is-hidden/.test(cssSource), "touch controls should have a hidden CSS state");
+}
+
+function testEditorLauncherWidthUsesSharedClamp() {
+    const hitTestSource = read("app/editor/hitTest.js");
+    const modelSource = read("app/editor/model.js");
+    assert(/safeLauncherWidth/.test(hitTestSource), "launcher width drag should use shared safe launcher width");
+    assert(/clampLauncherWidths/.test(modelSource), "editor launcher sync should clamp saved launcher widths");
+}
+
 function testHighScoresAreTableScopedSortedAndCapped() {
     const highScores = loadHighScoreModule(memoryStorage());
     const alpha = { name: "Alpha Table", rules: { highScoreKey: "pinball.generic.highscore" } };
@@ -518,6 +802,21 @@ function testHighScoresUseExplicitKeyAndThreeInitials() {
     assert.strictEqual(highScores.load(first).length, 0, "scores with fewer than three initials should not save");
     highScores.add(first, "xy9", 900);
     assert.strictEqual(highScores.load(second)[0].initials, "XY9", "shared explicit key should load saved initials");
+}
+
+function testStorageClearsOnlyPinLocalState() {
+    const storage = memoryStorage();
+    const pinStorage = loadStorageModuleHarness(storage);
+    storage.setItem("pin.tables.autosave", "{}");
+    storage.setItem("pin.assistant.settings", "{}");
+    storage.setItem("other.app", "keep");
+
+    const cleared = pinStorage.local.clearApp();
+
+    assert.strictEqual(cleared, 2, "clearApp should report removed pin.* keys");
+    assert.strictEqual(storage.getItem("pin.tables.autosave"), null, "clearApp should remove saved tables");
+    assert.strictEqual(storage.getItem("pin.assistant.settings"), null, "clearApp should remove assistant settings");
+    assert.strictEqual(storage.getItem("other.app"), "keep", "clearApp should leave unrelated keys alone");
 }
 
 function testAssistantProviderSettingsPersist() {
@@ -1005,24 +1304,60 @@ function testTimerSwitchValidationAndSimulation() {
     assert.strictEqual(runtime.values.ticks, 3, "timer should fire repeatedly for larger elapsed windows");
 }
 
+function testLogicSimulationScoreEffectsAccumulate() {
+    const pin = loadLogicModules();
+    const doc = {
+        logicVersion: 1,
+        switchRegistry: [
+            { id: "target_a", sourceElementId: "target_a", kind: "switch" },
+            { id: "collect", sourceElementId: "collect", kind: "switch" }
+        ],
+        stateTable: [
+            { id: "ready", type: "bool", initial: false, volatile: true }
+        ],
+        computedState: [],
+        lampBindings: [],
+        actionRules: [
+            { id: "A_TARGET", trigger: "target_a", condition: "", effects: [{ type: "score", value: 250 }, { type: "set", target: "ready", value: true }], enabled: true },
+            { id: "A_COLLECT", trigger: "collect", condition: "ready", effects: [{ type: "score", value: 1000 }], enabled: true }
+        ],
+        resetRules: []
+    };
+    const runtime = pin.logicSim.createRuntime(doc);
+    pin.logicSim.fireSwitch(runtime, "target_a");
+    assert.strictEqual(runtime.score, 250, "score effect should add target points");
+    pin.logicSim.fireSwitch(runtime, "collect");
+    assert.strictEqual(runtime.score, 1250, "later score effects should accumulate instead of replacing score");
+}
+
 Promise.resolve()
     .then(function run() { testIndexScriptsExistAndOrderCoreBeforeMain(); })
     .then(function run() { testTableCatalogRefsExistAndAreStaticJson(); })
     .then(function run() { testDefaultTableNormalizesAndValidates(); })
     .then(function run() { testDrainWithoutTroughIsPlayable(); })
+    .then(function run() { testLauncherWidthClampsToBallSafeMinimum(); })
+    .then(function run() { testNarrowLauncherPlayabilityWarnsBeforeNormalize(); })
     .then(function run() { testFlipperAngleStaysWithinAuthoredBounds(); })
     .then(function run() { testSpinnerBladesDoNotBlockBall(); })
+    .then(function run() { testSpinnerSweepContactDoesNotBlockBallTravel(); })
+    .then(function run() { testGateDirectionModesCanOpen(); })
     .then(function run() { testRuntimeSplitKeepsOnlyPhysicsElementsDynamic(); })
     .then(function run() { testAdaptiveQualityControllerIgnoresSingleSpike(); })
     .then(function run() { testAdaptiveQualityControllerDropsOnSustainedPressure(); })
     .then(function run() { testAdaptiveQualityControllerNeedsStableRecoveryWindow(); })
     .then(function run() { testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad(); })
+    .then(function run() { testSparkHelpersEmitAndExpireParticles(); })
+    .then(function run() { testReducedEffectsSuppressSparkEmission(); })
+    .then(function run() { testPhysicsCollisionsEmitSparkBurstsWithoutElementHitHandlers(); })
     .then(function run() { testFeatureSchemaNormalizesAndValidates(); })
     .then(function run() { testBundledTableImagePathsExist(); })
     .then(function run() { testExplicitTableRequestDoesNotSilentlyFallback(); })
     .then(function run() { testEditorCarriesTableAssetBaseIntoRendering(); })
+    .then(function run() { testPlayControlsCanBeHiddenFromKeyboard(); })
+    .then(function run() { testEditorLauncherWidthUsesSharedClamp(); })
     .then(function run() { testHighScoresAreTableScopedSortedAndCapped(); })
     .then(function run() { testHighScoresUseExplicitKeyAndThreeInitials(); })
+    .then(function run() { testStorageClearsOnlyPinLocalState(); })
     .then(function run() { testAssistantProviderSettingsPersist(); })
     .then(function run() { return testAssistantProviderConnectionAndModelFeedback(); })
     .then(function run() { return testAssistantConnectionRequiresBaseUrlAndApiKeyOnly(); })
@@ -1035,6 +1370,7 @@ Promise.resolve()
     .then(function run() { return testAssistantRepairsInvalidFeaturePatchShape(); })
     .then(function run() { testLogicDocRoundTripUsesCurrentSchema(); })
     .then(function run() { testTimerSwitchValidationAndSimulation(); })
+    .then(function run() { testLogicSimulationScoreEffectsAccumulate(); })
     .then(function done() {
         console.log("smoke tests ok");
     })

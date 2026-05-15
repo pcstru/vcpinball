@@ -249,7 +249,7 @@
         if (a <= 0.000001) return null;
         const b = 2 * (ox * dx + oy * dy);
         const c = ox * ox + oy * oy - radius * radius;
-        if (c <= 0) return { time: 0, nx: ox || -dx, ny: oy || -dy };
+        if (c <= 0) return { time: 0, nx: ox || -dx, ny: oy || -dy, cx: px, cy: py };
         const disc = b * b - 4 * a * c;
         if (disc < 0) return null;
         const sqrtDisc = Math.sqrt(disc);
@@ -260,7 +260,7 @@
         const nxRaw = hx - px;
         const nyRaw = hy - py;
         const len = Math.sqrt(nxRaw * nxRaw + nyRaw * nyRaw) || 1;
-        return { time: t, nx: nxRaw / len, ny: nyRaw / len };
+        return { time: t, nx: nxRaw / len, ny: nyRaw / len, cx: px, cy: py };
     }
 
     function sweptCircleCircle(cx, cy, r, dx, dy, circle) {
@@ -297,7 +297,14 @@
                 const along = ((hx - seg.x1) * sx + (hy - seg.y1) * sy) / (segLen * segLen);
                 if (along < 0 || along > 1) return;
                 const side = targetDist >= 0 ? 1 : -1;
-                consider({ time: t, nx: nx * side, ny: ny * side, tSeg: along });
+                consider({
+                    time: t,
+                    nx: nx * side,
+                    ny: ny * side,
+                    tSeg: along,
+                    cx: seg.x1 + sx * along,
+                    cy: seg.y1 + sy * along
+                });
             });
         }
 
@@ -328,6 +335,7 @@
 
         function consider(hit, collider, key) {
             if (!hit || !colliderMatchesBall(collider, ball)) return;
+            if (collider.passThrough) return;
             if (collider.oneWay && collider.oneWay(ball, world, hit)) return;
             if (!best || hit.time < best.hit.time) best = { hit: hit, collider: collider, key: key };
         }
@@ -359,13 +367,63 @@
         return best;
     }
 
+    /*
+     * Fire pass-through swept contacts without making them blocking collisions.
+     * Why: spinner blades should score and animate when crossed quickly, but
+     * should never consume ball travel or redirect the ball like a wall.
+     */
+    function processSweptPassThroughCollisions(ball, world, dx, dy) {
+        if (dx * dx + dy * dy <= 0.000001) return;
+        const staticRefs = getCandidateRefs(ball, world, dx, dy);
+        const dynamicSegmentOffset = world.staticSegments ? world.staticSegments.length : 0;
+        const dynamicCircleOffset = world.staticCircles ? world.staticCircles.length : 0;
+
+        function consider(hit, collider, key) {
+            if (!collider || !collider.passThrough || !hit || !colliderMatchesBall(collider, ball)) return;
+            if (collider.oneWay && collider.oneWay(ball, world, hit)) return;
+            hit.impactSpeed = Math.max(0, -(ball.vx * hit.nx + ball.vy * hit.ny)) * 0.35;
+            fireColliderHit(ball, collider, hit, world, key);
+        }
+
+        if (staticRefs) {
+            staticRefs.forEach(function each(ref) {
+                if (ref.kind === "s") {
+                    const seg = world.staticSegments[ref.index];
+                    consider(sweptCircleSegment(ball.x, ball.y, ball.radius, dx, dy, seg), seg, "s" + ref.index);
+                } else {
+                    const circle = world.staticCircles[ref.index];
+                    consider(sweptCircleCircle(ball.x, ball.y, ball.radius, dx, dy, circle), circle, "c" + ref.index);
+                }
+            });
+        } else {
+            (world.staticSegments || []).forEach(function each(seg, i) {
+                consider(sweptCircleSegment(ball.x, ball.y, ball.radius, dx, dy, seg), seg, "s" + i);
+            });
+            (world.staticCircles || []).forEach(function each(circle, i) {
+                consider(sweptCircleCircle(ball.x, ball.y, ball.radius, dx, dy, circle), circle, "c" + i);
+            });
+        }
+        (world.dynamicSegments || []).forEach(function each(seg, i) {
+            consider(sweptCircleSegment(ball.x, ball.y, ball.radius, dx, dy, seg), seg, "s" + (dynamicSegmentOffset + i));
+        });
+        (world.dynamicCircles || []).forEach(function each(circle, i) {
+            consider(sweptCircleCircle(ball.x, ball.y, ball.radius, dx, dy, circle), circle, "c" + (dynamicCircleOffset + i));
+        });
+    }
+
     function fireColliderHit(ball, collider, hit, world, key) {
-        if (!collider.onHit) return;
         const hitKey = collider.hitKey || key;
+        if (collider.passThroughCooldown) {
+            const now = world.physicsTime || 0;
+            ball._passThroughHitTime = ball._passThroughHitTime || {};
+            if (ball._passThroughHitTime[hitKey] != null && now - ball._passThroughHitTime[hitKey] < collider.passThroughCooldown) return;
+            ball._passThroughHitTime[hitKey] = now;
+        }
         ball._hitFrame = ball._hitFrame || {};
         if (ball._hitFrame[hitKey] === world.physicsTick) return;
         ball._hitFrame[hitKey] = world.physicsTick;
-        collider.onHit(ball, hit, world);
+        if (Pin.render && Pin.render.emitCollisionSparks) Pin.render.emitCollisionSparks(world, ball, hit);
+        if (collider.onHit) collider.onHit(ball, hit, world);
     }
 
     /*
@@ -489,6 +547,7 @@
                     const normal = getResolveNormal(seg, ball, hit);
                     hit.nx = normal.x;
                     hit.ny = normal.y;
+                    hit.impactSpeed = Math.max(0, -(ball.vx * normal.x + ball.vy * normal.y));
                     if (!seg.skipDefaultResolve) {
                         resolveCollision(ball, normal.x, normal.y, hit.overlap, getColliderRestitution(seg, restitution));
                     }
@@ -502,6 +561,9 @@
                 if (!colliderMatchesBall(circle, ball)) return;
                 const hit = circleCircleCollision(ball.x, ball.y, ball.radius, circle.x, circle.y, circle.radius, ball.vx, ball.vy);
                 if (hit.hit) {
+                    hit.cx = circle.x + hit.nx * circle.radius;
+                    hit.cy = circle.y + hit.ny * circle.radius;
+                    hit.impactSpeed = Math.max(0, -(ball.vx * hit.nx + ball.vy * hit.ny));
                     resolveCollision(ball, hit.nx, hit.ny, hit.overlap, getColliderRestitution(circle, restitution));
                     fireColliderHit(ball, circle, hit, world, key);
                     passHit = true;
@@ -540,6 +602,7 @@
             const dy = ball.vy * remainingTime * 60;
             const swept = findSweptCollision(ball, world, dx, dy);
             if (!swept || swept.hit.time >= 1) {
+                processSweptPassThroughCollisions(ball, world, dx, dy);
                 ball.x += dx;
                 ball.y += dy;
                 updateRampState(ball, world);
@@ -548,6 +611,7 @@
             }
 
             const travelT = Math.max(0, swept.hit.time - 0.0001);
+            processSweptPassThroughCollisions(ball, world, dx * travelT, dy * travelT);
             ball.x += dx * travelT;
             ball.y += dy * travelT;
             updateRampState(ball, world);
@@ -558,6 +622,9 @@
                 nx: normal.x,
                 ny: normal.y,
                 overlap: 0.02,
+                cx: typeof swept.hit.cx === "number" ? swept.hit.cx : undefined,
+                cy: typeof swept.hit.cy === "number" ? swept.hit.cy : undefined,
+                impactSpeed: Math.max(0, -(ball.vx * normal.x + ball.vy * normal.y)),
                 t: swept.hit.tSeg == null ? 0.5 : swept.hit.tSeg
             };
             if (!swept.collider.skipDefaultResolve) {
@@ -875,6 +942,7 @@
                 moveBallWithSweeps(ball, world, subDt, restitution);
                 applySupportedContacts(ball, world, subDt);
                 processSensors(ball, world, ballIndex);
+                if (Pin.render && Pin.render.emitBallTrail) Pin.render.emitBallTrail(world, ball, subDt);
 
                 const bSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
                 if (bSpeed > maxSpeed) {
@@ -885,6 +953,7 @@
                 if (tryStageReturnedLauncherBall(ball, world, launcher)) break;
             }
         });
+        if (Pin.render && Pin.render.updateSparks) Pin.render.updateSparks(world, dt);
     }
 
     Pin.physics = {

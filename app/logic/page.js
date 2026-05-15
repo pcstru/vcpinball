@@ -438,7 +438,6 @@
                     commitDocChange({ runtime: false, render: true });
                 }
             ));
-            main.appendChild(visualBuilderCard());
             var list = featureList();
             if (!list.length) {
                 main.appendChild(emptyCard("No features yet. Add one to define the table story above raw rules."));
@@ -538,6 +537,9 @@
 
             var selectedLabel = labelForElement(visualBuilder.selectedObjectId);
             card.appendChild(readOnlyLine("Selected Object", visualBuilder.selectedObjectId ? (selectedLabel + " (" + visualBuilder.selectedObjectId + ")") : "None"));
+            if (visualBuilder.selectedObjectId) {
+                card.appendChild(readOnlyLine("Capabilities", visualCapabilitiesForElement(visualBuilder.selectedObjectId).join(", ") || "None"));
+            }
 
             var roleButtons = document.createElement("div");
             roleButtons.className = "logic-switch-grid";
@@ -627,14 +629,15 @@
                 nodes.forEach(function eachNode(node) {
                     var isSelected = node.elementId === visualBuilder.selectedObjectId;
                     var isRole = node.switchId && (node.switchId === visualBuilder.triggerSwitchId || node.switchId === visualBuilder.collectSwitchId || node.switchId === visualBuilder.drainSwitchId || visualBuilder.targetSwitchIds.indexOf(node.switchId) >= 0);
-                    var isLamp = node.lampId && node.lampId === visualBuilder.lampId;
+                    var isLampCapable = !!node.lampId;
+                    var isSelectedLamp = isLampCapable && node.lampId === visualBuilder.lampId;
                     ctx.save();
                     ctx.beginPath();
                     ctx.arc(node.x, node.y, isSelected ? 10 : 7, 0, Math.PI * 2);
-                    ctx.fillStyle = isSelected ? "#9fc0ff" : (isLamp ? "#ffd86a" : (isRole ? "#8ef0be" : "rgba(180,195,236,0.75)"));
+                    ctx.fillStyle = isSelected ? "#9fc0ff" : (isSelectedLamp || isLampCapable ? "#ffd86a" : (isRole ? "#8ef0be" : "rgba(180,195,236,0.75)"));
                     ctx.fill();
                     ctx.lineWidth = 1.5;
-                    ctx.strokeStyle = "rgba(8,12,24,0.9)";
+                    ctx.strokeStyle = isSelectedLamp ? "#ffffff" : "rgba(8,12,24,0.9)";
                     ctx.stroke();
                     ctx.restore();
                 });
@@ -697,6 +700,16 @@
                 }
                 out.push({ elementId: id, switchId: "", lampId: asset.id, x: center.x, y: center.y });
             });
+            return out;
+        }
+
+        function visualCapabilitiesForElement(elementId) {
+            /* What: Report Visual Builder roles supported by one physical object.
+             * Why: Drop targets and lanes can be both switches and lit outputs, so the picker should not hide either role.
+             */
+            var out = [];
+            if (switchIdForElementIdNoUpsert(elementId)) out.push("Switch");
+            if (lampIdForElementId(elementId)) out.push("Light");
             return out;
         }
 
@@ -769,6 +782,16 @@
             if (!asset) return "";
             upsertSwitchFromAsset(asset);
             return asset.id;
+        }
+
+        function switchIdForElementIdNoUpsert(elementId) {
+            /* What: Resolve switch capability without mutating the logic document.
+             * Why: Passive capability labels should not create switch rows merely by rendering.
+             */
+            var asset = assets.switchCandidates.find(function find(row) {
+                return row && (row.sourceElementId === elementId || row.id === elementId);
+            });
+            return asset ? asset.id : "";
         }
 
         function lampIdForElementId(elementId) {
@@ -1300,7 +1323,7 @@
             switchCell.appendChild(metaLine("Type", row.type));
             appendActionButton(switchCell, "Fire", function fire(e) {
                 e.stopPropagation();
-                Pin.logicSim.fireSwitch(runtime, row.switchId);
+                fireSimulatorSwitch(row.switchId);
                 render();
             });
             tableEl.appendChild(switchCell);
@@ -2027,7 +2050,7 @@
                 b.type = "button";
                 b.textContent = scenario.label;
                 b.onclick = function onclick() {
-                    scenario.switches.forEach(function eachSwitch(id) { Pin.logicSim.fireSwitch(runtime, id); });
+                    scenario.switches.forEach(function eachSwitch(id) { fireSimulatorSwitch(id); });
                     render();
                 };
                 buttons.appendChild(b);
@@ -2058,7 +2081,7 @@
                     b.type = "button";
                     b.textContent = labelForSwitch(item.row.id);
                     b.onclick = function onclick() {
-                        Pin.logicSim.fireSwitch(runtime, item.row.id);
+                        fireSimulatorSwitch(item.row.id);
                         render();
                     };
                     buttons.appendChild(b);
@@ -2091,6 +2114,32 @@
                 return { label: labelForLamp(row.lampId), value: runtime.lamps[row.lampId] ? "ON" : "off", on: !!runtime.lamps[row.lampId] };
             })));
             return card;
+        }
+
+        function fireSimulatorSwitch(switchId) {
+            /* What: Fire one simulated switch including the physical object's own score.
+             * Why: Play mode awards element.score before switch rules, so logic tests should show the same accumulated score.
+             */
+            var baseScore = simulatorBaseScoreForSwitch(switchId);
+            Pin.logicSim.fireSwitch(runtime, switchId);
+            if (!baseScore) return;
+            runtime.score += baseScore;
+            if (runtime.log && runtime.log.length) runtime.log[0] += "\nTable Score +" + String(baseScore);
+        }
+
+        function simulatorBaseScoreForSwitch(switchId) {
+            /* What: Resolve the current table score for a simulated physical switch.
+             * Why: Lanes, drop targets, bumpers, and other switch objects can score even without explicit score effects.
+             */
+            var sw = doc.switchRegistry.find(function find(row) { return row && row.id === switchId; });
+            var sourceId = sw && sw.sourceElementId ? String(sw.sourceElementId) : String(switchId || "");
+            if (!sourceId) return 0;
+            var element = (table.elements || []).find(function find(el) { return el && el.id === sourceId; });
+            if (!element) return 0;
+            var overrides = runtime.elementProperties && runtime.elementProperties[sourceId] ? runtime.elementProperties[sourceId] : null;
+            var rawScore = overrides && Object.prototype.hasOwnProperty.call(overrides, "score") ? overrides.score : element.score;
+            var score = Number(rawScore || 0);
+            return Number.isFinite(score) ? score : 0;
         }
 
         function testLogPanel() {
@@ -2172,6 +2221,9 @@
                 renderSimulatorInspector();
                 return;
             }
+            if (activeSection === "features") {
+                inspector.appendChild(visualBuilderCard());
+            }
             var title = document.createElement("h3");
             title.textContent = "Inspector";
             inspector.appendChild(title);
@@ -2216,6 +2268,8 @@
                 table: compiledTable,
                 balls: [],
                 score: Number(runtime.score || 0),
+                currentBall: 1,
+                ballsRemaining: (compiledTable.rules && Number(compiledTable.rules.balls || 0)) || 0,
                 ruleState: { elementProperties: {} },
                 lampState: {},
                 controls: { left: false, right: false },
@@ -2246,6 +2300,10 @@
             var h = document.createElement("h4");
             h.textContent = "Live Table";
             card.appendChild(h);
+            var score = document.createElement("div");
+            score.className = "logic-score";
+            score.textContent = "Score " + String(world.score || 0);
+            card.appendChild(score);
             var shell = document.createElement("div");
             shell.className = "logic-sim-preview";
             var canvas = document.createElement("canvas");

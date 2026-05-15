@@ -204,6 +204,7 @@
         help.innerHTML =
             "<p><strong>Play</strong> &mdash; <kbd>Space</kbd>: hold to charge, release to launch. " +
             "<kbd>Left Arrow</kbd>/<kbd>A</kbd>: left flipper. <kbd>Right Arrow</kbd>/<kbd>L</kbd>: right flipper. " +
+            "<kbd>H</kbd>: hide/show touch buttons. " +
             "<kbd>R</kbd>: restart. <kbd>D</kbd>: open <strong>design (edit) mode</strong>. " +
             "Touch: use the buttons below the table, or hold/release the table while staged and hold left/right screen half for flippers.</p>" +
             "<p><strong>Design mode</strong> &mdash; open this app with <code>#design</code> in the address bar " +
@@ -226,6 +227,7 @@
         let running = true;
         const activePointers = {};
         let launchButtonPointerId = null;
+        let controlsHidden = false;
 
         // Fit the play surface to the viewport so the table is visible without browser zoom.
         function fitPlayCanvas() {
@@ -254,6 +256,20 @@
             tableStack.style.width = displayWidth + "px";
             controls.style.width = displayWidth + "px";
             wrap.style.minHeight = Math.max(displayHeight, Math.floor(wrapRect.height || 0)) + "px";
+        }
+
+        function setControlsHidden(hidden) {
+            /*
+             * What: Toggle the touch button row in play mode.
+             * Why: keyboard players on desktop can reclaim vertical space for
+             * the table while touch users can keep the on-screen controls.
+             */
+            controlsHidden = !!hidden;
+            controls.classList.toggle("is-hidden", controlsHidden);
+            resetLaunchControl();
+            world.controls.left = false;
+            world.controls.right = false;
+            fitPlayCanvas();
         }
 
         function launchBall() {
@@ -576,6 +592,10 @@
             }
             if (e.code === "KeyD") {
                 location.hash = "#design&t=" + Pin.storage.url.encode(world.table);
+            }
+            if (e.code === "KeyH") {
+                e.preventDefault();
+                setControlsHidden(!controlsHidden);
             }
             if (e.code === "KeyR") {
                 restartGame();

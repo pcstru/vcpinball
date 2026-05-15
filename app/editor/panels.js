@@ -337,8 +337,7 @@
                 { path: "direction", label: "direction", groupKey: "Setup" },
                 { path: "open", label: "open", groupKey: "Setup" },
                 { path: "locked", label: "locked", groupKey: "Setup" },
-                { path: "swingStartAngle", label: "swing start angle", groupKey: "Hinge" },
-                { path: "swingEndAngle", label: "swing end angle", groupKey: "Hinge" },
+                { path: "swingEndAngle", label: "swing arc end", groupKey: "Hinge" },
                 { path: "returnStrength", label: "return spring", groupKey: "Hinge" },
                 { path: "returnDamping", label: "return damping", groupKey: "Hinge" },
                 { path: "thickness", label: "thickness", groupKey: "Shape" },
@@ -422,6 +421,25 @@
 
     function patchDraftValue(model, key, path, value) {
         if (model.onPatchCardDraft) model.onPatchCardDraft(key, path, value);
+    }
+
+    function normalizeGateDirection(value) {
+        const raw = String(value || "").toLowerCase();
+        if (raw === "reverse") return "reverse";
+        if (raw === "twoway" || raw === "two-way" || raw === "two_way" || raw === "both") return "twoWay";
+        return "forward";
+    }
+
+    function patchGateDraftValue(model, key, draftValue, path, value) {
+        patchDraftValue(model, key, path, value);
+        if (path !== "direction") return;
+        const previous = normalizeGateDirection(draftValue && draftValue.direction);
+        const next = normalizeGateDirection(value);
+        if (previous === next || next === "twoWay") return;
+        if ((previous !== "forward" && previous !== "reverse") || (next !== "forward" && next !== "reverse")) return;
+        const angle = typeof draftValue.angle === "number" ? draftValue.angle : 0;
+        const end = typeof draftValue.swingEndAngle === "number" ? draftValue.swingEndAngle : angle + 1.05;
+        patchDraftValue(model, key, "swingEndAngle", angle - (end - angle));
     }
 
     function appendDraftActions(container, draftKey, dirty, onSave, onReset) {
@@ -717,7 +735,8 @@
             { label: "Open File", onClick: model.onOpenFile },
             { label: "Load Autosave", onClick: model.onLoadAutosave },
             { label: "Load Slot1", onClick: model.onLoadSlot1 },
-            { label: "Save Slot1", onClick: model.onSaveSlot1 }
+            { label: "Save Slot1", onClick: model.onSaveSlot1 },
+            { label: "Wipe Browser Memory", onClick: model.onWipeBrowserMemory, className: "danger" }
         ]);
 
         const imagesSection = appendSection(container, "Images");
@@ -1215,7 +1234,7 @@
                     return optionList([
                         { value: "forward", label: "Forward" },
                         { value: "reverse", label: "Reverse" },
-                        { value: "twoWay", label: "Two-way" }
+                        { value: "twoWay", label: "Both ways" }
                     ], false);
                 }
                 return null;
@@ -1244,7 +1263,8 @@
                 if (path === "name") return;
                 const configured = (config || []).find(function find(item) { return item.path === path; });
                 appendField(section, configured && configured.label ? configured.label : path, Pin.editorTools.getByPath(draftState.value, path), function patch(value) {
-                    patchDraftValue(model, draftKey, path, value);
+                    if (selected.type === "gate") patchGateDraftValue(model, draftKey, draftState.value, path, value);
+                    else patchDraftValue(model, draftKey, path, value);
                 }, optionsForPath(path));
             });
             appendDraftActions(section, draftKey, draftState.dirty, function saveSelected() {
