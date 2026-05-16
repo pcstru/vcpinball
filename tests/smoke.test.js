@@ -399,6 +399,181 @@ function testFlipperAngleStaysWithinAuthoredBounds() {
     });
 }
 
+function testFlipperRoundedEndsUseRadialCollisionNormals() {
+    // What: Exercise flipper cap contacts through the production physics path.
+    // Why: pivot and tip end caps are rounded collision surfaces; treating them
+    // as blade lift contacts lets balls pass through or ping away from elbows.
+    const pin = loadFlipperModuleHarness();
+    const physics = loadPhysicsModuleHarness(pin);
+    const table = {
+        playfield: { gravity: 0, friction: 1, restitution: 0.5, maxSpeed: 200, width: 320, height: 240 },
+        elements: []
+    };
+    const flipper = {
+        id: "lf",
+        type: "flipper",
+        side: "left",
+        control: "left",
+        pivot: { x: 100, y: 120 },
+        length: 90,
+        restAngle: 0,
+        activeAngle: 0,
+        thickness: 10,
+        surfaceRestitution: 0.5,
+        surfaceFriction: 0,
+        strikeBoost: 0
+    };
+
+    function runCapCase(ball) {
+        const world = {
+            table: table,
+            controls: { left: false, right: false },
+            balls: [Object.assign({ radius: 5, level: 0 }, ball)],
+            elementState: {},
+            staticSegments: [],
+            staticCircles: [],
+            dynamicCircles: [],
+            runtimeSensors: [],
+            lastPhysicsDt: 1 / 120
+        };
+        world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+        physics.stepWorld(world, 1 / 120);
+        return world.balls[0];
+    }
+
+    const tipBall = runCapCase({ x: 204, y: 120, vx: -2, vy: 0 });
+    assert(tipBall.vx > 0, "tip cap should reflect a ball approaching along the flipper length");
+    assert(Math.abs(tipBall.vy) < 0.1, "tip cap should not convert a lengthwise hit into a blade-lift ping");
+    assert.strictEqual(tipBall.supportContact, undefined, "tip cap should not start persistent flipper support");
+
+    const pivotBall = runCapCase({ x: 86, y: 120, vx: 2, vy: 0 });
+    assert(pivotBall.vx < 0, "pivot cap should reflect a ball approaching the flipper elbow");
+    assert(Math.abs(pivotBall.vy) < 0.1, "pivot cap should not convert an elbow hit into a blade-lift ping");
+
+    function runMovingCapCase(capName) {
+        const movingFlipper = Object.assign({}, flipper, {
+            restAngle: 0.18,
+            activeAngle: -0.18,
+            flipSpeed: 24,
+            flipAccel: 220,
+            strikeBoost: 0.5
+        });
+        const world = {
+            table: table,
+            controls: { left: true, right: false },
+            balls: [],
+            elementState: { "flipper:lf": { angle: 0, angularVelocity: -18 } },
+            staticSegments: [],
+            staticCircles: [],
+            dynamicCircles: [],
+            runtimeSensors: [],
+            lastPhysicsDt: 1 / 120
+        };
+        world.dynamicSegments = pin.elements.registry.flipper.compile(movingFlipper, table, world).segments;
+        const segment = world.dynamicSegments[world.dynamicSegments.length - 1];
+        const dx = segment.x2 - segment.x1;
+        const dy = segment.y2 - segment.y1;
+        const length = Math.sqrt(dx * dx + dy * dy) || 1;
+        const ux = dx / length;
+        const uy = dy / length;
+        const sign = capName === "tip" ? 1 : -1;
+        const nx = ux * sign;
+        const ny = uy * sign;
+        const capX = capName === "tip" ? segment.x2 : segment.x1;
+        const capY = capName === "tip" ? segment.y2 : segment.y1;
+        world.balls = [{ x: capX + nx * 14, y: capY + ny * 14, vx: -nx * 2, vy: -ny * 2, radius: 5, level: 0 }];
+        physics.stepWorld(world, 1 / 120);
+        return { ball: world.balls[0], nx: nx, ny: ny };
+    }
+
+    ["tip", "pivot"].forEach(function each(capName) {
+        const result = runMovingCapCase(capName);
+        const radialSpeed = result.ball.vx * result.nx + result.ball.vy * result.ny;
+        const capTangentSpeed = result.ball.vx * -result.ny + result.ball.vy * result.nx;
+        assert(radialSpeed > 0, "moving " + capName + " cap should rebound along the rounded-end normal");
+        assert(Math.abs(capTangentSpeed) < 0.25, "moving " + capName + " cap should not create a blade-lift ping");
+        if (capName === "tip") {
+            assert.strictEqual(result.ball.supportContact, undefined, "moving tip cap should not capture the ball as supported contact");
+        }
+    });
+}
+
+function testFlipperElbowReleaseDropsStaleSupportedContact() {
+    // What: Reproduce an active elbow cradle, then release the flipper.
+    // Why: supported contact must not reuse the old active surface velocity
+    // after release; that stale velocity is the visible elbow ping.
+    const pin = loadFlipperModuleHarness();
+    const physics = loadPhysicsModuleHarness(pin);
+    const table = {
+        playfield: { gravity: 0, friction: 1, restitution: 0.5, maxSpeed: 200, width: 320, height: 260 },
+        elements: []
+    };
+    const flipper = {
+        id: "lf",
+        type: "flipper",
+        side: "left",
+        control: "left",
+        pivot: { x: 100, y: 160 },
+        length: 95,
+        restAngle: 0.55,
+        activeAngle: -0.55,
+        flipSpeed: 44,
+        flipAccel: 220,
+        returnSpeed: 18,
+        returnAccel: 160,
+        strikeBoost: 0.52,
+        surfaceRestitution: 0.28,
+        surfaceFriction: 0.08,
+        thickness: 10
+    };
+    const contactT = 0.08;
+    const tx = Math.cos(flipper.activeAngle);
+    const ty = Math.sin(flipper.activeAngle);
+    const nx = Math.sin(flipper.activeAngle);
+    const ny = -Math.cos(flipper.activeAngle);
+    const ball = {
+        x: flipper.pivot.x + tx * flipper.length * contactT + nx * 15,
+        y: flipper.pivot.y + ty * flipper.length * contactT + ny * 15,
+        vx: 0,
+        vy: 0,
+        radius: 5,
+        level: 0,
+        supportContact: {
+            kind: "flipper",
+            hitKey: "flipper:lf",
+            controlActive: true,
+            tick: 0,
+            supportRadius: 23,
+            surfaceFriction: 0.08,
+            surfaceVx: 18,
+            surfaceVy: -22,
+            tx: tx,
+            ty: ty,
+            nx: nx,
+            ny: ny
+        }
+    };
+    const world = {
+        table: table,
+        controls: { left: false, right: false },
+        balls: [ball],
+        elementState: { "flipper:lf": { angle: flipper.activeAngle, angularVelocity: 0, active: true, targetAngle: flipper.activeAngle } },
+        staticSegments: [],
+        staticCircles: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        lastPhysicsDt: 1 / 120,
+        physicsTick: 1
+    };
+
+    world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+    physics.stepWorld(world, 1 / 120);
+
+    const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+    assert(speed < 2, "released elbow support should not reuse stale active flipper velocity");
+    assert(!ball.supportContact || ball.supportContact.controlActive === false, "released flipper should drop stale active elbow support");
+}
+
 function testSpinnerBladesDoNotBlockBall() {
     const pin = loadSpinnerModuleHarness();
     const spinner = {
@@ -656,6 +831,14 @@ function testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad() {
     }
     const result = runQualityControllerFrames(controller, frames);
     assert(result.transitions <= 2, "borderline load should not cause rapid quality oscillation");
+}
+
+function testPlayLoopSamplesQualityAfterPhysicsCatchup() {
+    const source = read("app/main.js");
+    const whileIndex = source.indexOf("while (accumulator >= fixedDt)");
+    const sampleIndex = source.indexOf("qualityController.sample");
+    assert(whileIndex >= 0, "play loop should retain fixed-step physics catch-up");
+    assert(sampleIndex > whileIndex, "quality sampling should use post-catch-up accumulator backlog");
 }
 
 function testSparkHelpersEmitAndExpireParticles() {
@@ -924,6 +1107,31 @@ function loadLogicModules() {
     vm.runInContext(read("app/logic/validate.js"), ctx, { filename: "app/logic/validate.js" });
     vm.runInContext(read("app/logic/simulate.js"), ctx, { filename: "app/logic/simulate.js" });
     vm.runInContext(read("app/logic/compile.js"), ctx, { filename: "app/logic/compile.js" });
+    return ctx.window.Pin;
+}
+
+function loadTroughLogicHarness() {
+    // What: Load trough, rules, events, and logic simulation together.
+    // Why: Cobra bonus troughs must behave like physical switches for multiplier rules.
+    const pin = {
+        elements: {
+            registry: {},
+            register: function register(type, mod) {
+                this.registry[type] = mod;
+            }
+        }
+    };
+    const ctx = { window: { Pin: pin }, console: console };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/table.js"), ctx, { filename: "app/table.js" });
+    vm.runInContext(read("app/rules.js"), ctx, { filename: "app/rules.js" });
+    vm.runInContext(read("app/logic/logicTypes.js"), ctx, { filename: "app/logic/logicTypes.js" });
+    vm.runInContext(read("app/logic/expressions.js"), ctx, { filename: "app/logic/expressions.js" });
+    vm.runInContext(read("app/logic/simulate.js"), ctx, { filename: "app/logic/simulate.js" });
+    vm.runInContext(read("app/logic/compile.js"), ctx, { filename: "app/logic/compile.js" });
+    vm.runInContext(read("app/events.js"), ctx, { filename: "app/events.js" });
+    vm.runInContext(read("app/elements/trough.js"), ctx, { filename: "app/elements/trough.js" });
     return ctx.window.Pin;
 }
 
@@ -1330,6 +1538,44 @@ function testLogicSimulationScoreEffectsAccumulate() {
     assert.strictEqual(runtime.score, 1250, "later score effects should accumulate instead of replacing score");
 }
 
+function testCobraBonusTroughAdvancesScoreMultiplier() {
+    // What: Simulate Cobra's Group A bonus trough capture through runtime events.
+    // Why: multiplier rules are keyed to trough ids, so trough capture must close
+    // the physical switch before any score overrides can apply to table objects.
+    const pin = loadTroughLogicHarness();
+    const table = pin.table.normalizeTable(JSON.parse(read("tables/Cobra.json")));
+    const trough = table.elements.find(function find(el) { return el.id === "trough_ftgkei"; });
+    const target = table.elements.find(function find(el) { return el.id === "dropTarget_5ydirb"; });
+    const doc = pin.logicCompile.extractFromTable(table);
+    const runtime = pin.logicSim.createRuntime(doc);
+    runtime.values.a_bonus_ready = true;
+    runtime.values.group_b_claim_lit = true;
+    pin.logicSim.refreshDerived(runtime);
+    const world = {
+        table: table,
+        events: [],
+        logicRuntime: runtime,
+        ruleState: { elementProperties: { trough_ftgkei: { active: true } } },
+        score: 0,
+        physicsTick: 1,
+        physicsTime: 0,
+        lastPhysicsDt: 1 / 120
+    };
+    const sensor = pin.elements.registry.trough.compile(trough).sensors[0];
+    const ball = { x: trough.x, y: trough.y, vx: 4, vy: -3, radius: 5, level: 0 };
+
+    sensor.onEnter(ball, world, sensor);
+
+    assert(world.events.some(function some(event) {
+        return event.type === "switchClosed" && event.sourceId === "trough_ftgkei";
+    }), "Cobra bonus trough capture should close the trough switch");
+
+    pin.events.processRules(world, 1 / 120);
+
+    assert.strictEqual(runtime.values.score_multiplier, 2, "Cobra trough collect should advance multiplier from 1x to 2x");
+    assert.strictEqual(pin.rules.resolveElementScore(world, target, target.score), 100, "Cobra target default score should resolve at 2x after multiplier collect");
+}
+
 Promise.resolve()
     .then(function run() { testIndexScriptsExistAndOrderCoreBeforeMain(); })
     .then(function run() { testTableCatalogRefsExistAndAreStaticJson(); })
@@ -1338,6 +1584,8 @@ Promise.resolve()
     .then(function run() { testLauncherWidthClampsToBallSafeMinimum(); })
     .then(function run() { testNarrowLauncherPlayabilityWarnsBeforeNormalize(); })
     .then(function run() { testFlipperAngleStaysWithinAuthoredBounds(); })
+    .then(function run() { testFlipperRoundedEndsUseRadialCollisionNormals(); })
+    .then(function run() { testFlipperElbowReleaseDropsStaleSupportedContact(); })
     .then(function run() { testSpinnerBladesDoNotBlockBall(); })
     .then(function run() { testSpinnerSweepContactDoesNotBlockBallTravel(); })
     .then(function run() { testGateDirectionModesCanOpen(); })
@@ -1346,6 +1594,7 @@ Promise.resolve()
     .then(function run() { testAdaptiveQualityControllerDropsOnSustainedPressure(); })
     .then(function run() { testAdaptiveQualityControllerNeedsStableRecoveryWindow(); })
     .then(function run() { testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad(); })
+    .then(function run() { testPlayLoopSamplesQualityAfterPhysicsCatchup(); })
     .then(function run() { testSparkHelpersEmitAndExpireParticles(); })
     .then(function run() { testReducedEffectsSuppressSparkEmission(); })
     .then(function run() { testPhysicsCollisionsEmitSparkBurstsWithoutElementHitHandlers(); })
@@ -1371,6 +1620,7 @@ Promise.resolve()
     .then(function run() { testLogicDocRoundTripUsesCurrentSchema(); })
     .then(function run() { testTimerSwitchValidationAndSimulation(); })
     .then(function run() { testLogicSimulationScoreEffectsAccumulate(); })
+    .then(function run() { testCobraBonusTroughAdvancesScoreMultiplier(); })
     .then(function done() {
         console.log("smoke tests ok");
     })

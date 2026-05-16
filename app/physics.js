@@ -1,3 +1,10 @@
+/*
+ * Pinball physics stepping, collision response, and sensor processing.
+ * What: Advance balls through broad-phase and swept collisions, process
+ * launcher/ramp/sensor state, and expose the runtime physics API.
+ * Why: centralizing simulation state transitions keeps gameplay behavior
+ * deterministic and auditable across table features and element modules.
+ */
 (function initPhysics(Pin) {
     function closestPointOnSegment(px, py, x1, y1, x2, y2) {
         const dx = x2 - x1;
@@ -127,6 +134,10 @@
     }
 
     function buildBroadPhase(segments, circles, playfield) {
+        /* What: Build a uniform-grid index for static colliders.
+         * Why: broad-phase culling keeps collision checks proportional to local
+         * neighborhood density instead of total table collider count.
+         */
         const cellSize = 80;
         const grid = {};
         function add(kind, index, aabb) {
@@ -327,6 +338,10 @@
     }
 
     function findSweptCollision(ball, world, dx, dy) {
+        /* What: Find earliest blocking collision along the current movement.
+         * Why: earliest-hit response prevents tunneling and preserves consistent
+         * bounce ordering when multiple colliders share the travel corridor.
+         */
         if (dx * dx + dy * dy <= 0.000001) return null;
         const staticRefs = getCandidateRefs(ball, world, dx, dy);
         const dynamicSegmentOffset = world.staticSegments ? world.staticSegments.length : 0;
@@ -446,6 +461,24 @@
     }
 
     /*
+     * Resolve the current surface velocity for a persistent supported contact.
+     * Why: flippers keep moving after the first hit, and release must not reuse
+     * an old active-flip velocity captured by the previous contact frame.
+     */
+    function getSupportedSurfaceVelocity(collider, support, contactT) {
+        if (collider && typeof collider.surfaceVelocityAt === "function") {
+            const velocity = collider.surfaceVelocityAt(contactT);
+            if (velocity && typeof velocity.x === "number" && typeof velocity.y === "number") {
+                return { x: velocity.x, y: velocity.y };
+            }
+        }
+        return {
+            x: support.surfaceVx || 0,
+            y: support.surfaceVy || 0
+        };
+    }
+
+    /*
      * Apply a small persistent supported-contact effect for flippers.
      * Why: without this, flipper surface friction only matters at impact time and
      * has little influence while the ball is actually riding the blade.
@@ -456,6 +489,11 @@
         if ((support.tick || 0) === (world.physicsTick || 0)) return;
         const collider = findColliderByHitKey(world, support.hitKey);
         if (!collider) {
+            ball.supportContact = null;
+            return;
+        }
+        const currentControlActive = typeof collider.controlActive === "boolean" ? collider.controlActive : !!support.controlActive;
+        if (support.controlActive && !currentControlActive) {
             ball.supportContact = null;
             return;
         }
@@ -476,14 +514,15 @@
         const ndx = ball.x - nextClosest.x;
         const ndy = ball.y - nextClosest.y;
         const nextDistance = Math.sqrt(ndx * ndx + ndy * ndy);
-        if (support.controlActive && speed < 0.5 && nextDistance < supportRadius + 20 && nextClosest.t < 0.3) {
+        if (currentControlActive && speed < 0.5 && nextDistance < supportRadius + 20 && nextClosest.t < 0.3) {
             const len = nextDistance || 1;
             const px = ndx / len;
             const py = ndy / len;
+            const surfaceVelocity = getSupportedSurfaceVelocity(collider, support, nextClosest.t);
             ball.x = nextClosest.x + px * Math.min(nextDistance, supportRadius);
             ball.y = nextClosest.y + py * Math.min(nextDistance, supportRadius);
-            ball.vx = support.surfaceVx || 0;
-            ball.vy = support.surfaceVy || 0;
+            ball.vx = surfaceVelocity.x;
+            ball.vy = surfaceVelocity.y;
             support.tick = world.physicsTick || 0;
             return;
         }
@@ -495,8 +534,9 @@
         const normal = getResolveNormal(collider, ball, hit);
         const tangentX = Math.cos(Math.atan2(collider.y2 - collider.y1, collider.x2 - collider.x1));
         const tangentY = Math.sin(Math.atan2(collider.y2 - collider.y1, collider.x2 - collider.x1));
-        const surfaceVx = support.surfaceVx || 0;
-        const surfaceVy = support.surfaceVy || 0;
+        const surfaceVelocity = getSupportedSurfaceVelocity(collider, support, nextClosest.t);
+        const surfaceVx = surfaceVelocity.x;
+        const surfaceVy = surfaceVelocity.y;
         const relNx = (ball.vx - surfaceVx) * normal.x + (ball.vy - surfaceVy) * normal.y;
         const relTx = (ball.vx - surfaceVx) * tangentX + (ball.vy - surfaceVy) * tangentY;
         if (relNx > 0.6) {
@@ -595,6 +635,10 @@
     }
 
     function moveBallWithSweeps(ball, world, dt, restitution) {
+        /* What: Integrate one ball with swept collision sub-advances.
+         * Why: fast pinball motion needs time-of-impact stepping so contact
+         * handling remains stable at higher velocities.
+         */
         let remainingTime = dt;
         const maxHits = 4;
         for (let i = 0; i < maxHits; i++) {
@@ -744,6 +788,10 @@
     }
 
     function processSensors(ball, world, ballIndex) {
+        /* What: Emit switch-open/close transitions for overlapping sensors.
+         * Why: rules logic needs edge-triggered sensor transitions per ball
+         * instead of stateless overlap checks every frame.
+         */
         const sensors = world.runtimeSensors || [];
         if (!sensors.length) return;
         world.sensorState = world.sensorState || {};
@@ -895,6 +943,10 @@
     }
 
     function stepWorld(world, dt) {
+        /* What: Advance the entire world simulation by one frame timestep.
+         * Why: this is the authoritative per-frame integration boundary shared
+         * by play loop timing, element state updates, and render side effects.
+         */
         const pf = world.table.playfield;
         const gravity = pf.gravity;
         const friction = pf.friction;

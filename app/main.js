@@ -1,3 +1,10 @@
+/*
+ * Pinball app bootstrap and mode router.
+ * What: Parse route state, load the requested table, and mount play/design/
+ * logic selectors with cleanup and runtime wiring.
+ * Why: this module owns startup orchestration so each mode can stay focused
+ * on its own runtime behavior while sharing one deterministic entrypoint.
+ */
 (function initMain(Pin) {
     const perfEnabled = !!(window.localStorage && localStorage.getItem("pin.perf") === "1");
     const perfState = {};
@@ -66,6 +73,10 @@
     }
 
     function parseHash() {
+        /* What: Decode the current route mode and key/value parameters.
+         * Why: play/design/logic/table selector mounts all depend on one
+         * normalized routing contract across hash and query params.
+         */
         const hash = (location.hash || "#play").replace(/^#/, "");
         const parts = hash.split("&");
         const mode = parts[0] || "play";
@@ -80,6 +91,10 @@
     }
 
     function createWorld(table, options) {
+        /* What: Create mutable runtime state for one mounted play session.
+         * Why: physics, rules, rendering, and input all share this object as
+         * the authoritative owner of per-session gameplay state.
+         */
         options = options || {};
         const world = {
             table: table,
@@ -114,6 +129,10 @@
     }
 
     function buildStaticRuntime(world) {
+        /* What: Compile static colliders/drawables and broad-phase indices.
+         * Why: static geometry should be built once per table load to keep
+         * per-frame runtime refreshes bounded to dynamic elements.
+         */
         const staticRuntime = Pin.elements.compileElements(world.table, world, { dynamic: false });
         world.staticRuntime = staticRuntime;
         world.staticSegments = staticRuntime.segments;
@@ -161,6 +180,10 @@
     }
 
     function mountPlay(root, table, options) {
+        /* What: Mount the interactive play mode DOM/runtime loop.
+         * Why: play mode owns canvas/input lifecycle and must dispose cleanly
+         * when route changes swap to design, logic, or table selector views.
+         */
         options = options || {};
         if (typeof root._pinballCleanup === "function") root._pinballCleanup();
         root.innerHTML = "";
@@ -619,16 +642,6 @@
             const frameDt = Math.min(0.08, (now - last) / 1000);
             last = now;
             accumulator = Math.min(0.12, accumulator + frameDt);
-            if (Pin.render && Pin.render.setQuality) {
-                const quality = qualityController ?
-                    qualityController.sample({
-                        now: now,
-                        frameDt: frameDt,
-                        backlogSteps: accumulator / fixedDt
-                    }) :
-                    { glowScale: 1, reducedEffects: false };
-                Pin.render.setQuality(quality);
-            }
             while (accumulator >= fixedDt) {
                 world.lastPhysicsDt = fixedDt;
                 refreshRuntime(world);
@@ -637,6 +650,22 @@
                 perfEnd("stepWorld", physicsStartedAt);
                 if (Pin.events) Pin.events.processRules(world, fixedDt);
                 accumulator -= fixedDt;
+            }
+            if (Pin.render && Pin.render.setQuality) {
+                /*
+                 * What: Sample quality after fixed-step catch-up has consumed work.
+                 * Why: a normal 60 Hz frame naturally queues two 120 Hz physics
+                 * steps before the loop, so pre-loop backlog falsely reads as
+                 * sustained pressure even on fast machines.
+                 */
+                const quality = qualityController ?
+                    qualityController.sample({
+                        now: now,
+                        frameDt: frameDt,
+                        backlogSteps: accumulator / fixedDt
+                    }) :
+                    { glowScale: 1, reducedEffects: false };
+                Pin.render.setQuality(quality);
             }
             const lifecycle = Pin.ballLifecycle.update(world);
             if (lifecycle.drained && Pin.audio) Pin.audio.drain();
@@ -1045,6 +1074,10 @@
     }
 
     function loadInitialTable(parsed) {
+        /* What: Resolve the startup table from URL, local save, or default.
+         * Why: explicit requests must fail loudly, while implicit startup can
+         * still fall back to local autosave or bundled defaults.
+         */
         const tableRef = tableRefFromParsed(parsed);
         const hasExplicitEmbeddedTable = !!parsed.kv.t;
         const hasExplicitTableRef = !!tableRef;
@@ -1127,6 +1160,10 @@
     }
 
     function boot() {
+        /* What: Route and mount the current app mode for the active URL.
+         * Why: hash changes should fully remount with a boot token guard so
+         * stale async table loads cannot overwrite newer navigation intent.
+         */
         const root = document.getElementById("app");
         const token = ++bootToken;
         if (typeof root._pinballCleanup === "function") root._pinballCleanup();

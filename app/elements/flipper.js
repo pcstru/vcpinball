@@ -70,6 +70,20 @@
     }
 
     /*
+     * Compute the flipper surface velocity at a contact position.
+     * Why: persistent contacts must use the current flipper motion, not a stale
+     * velocity captured when the ball first touched the blade.
+     */
+    function getSurfaceVelocityAtAngle(el, angle, angularVelocity, contactT) {
+        const t = Math.max(0, Math.min(1, typeof contactT === "number" ? contactT : 0.5));
+        const surfaceSpeed = (angularVelocity || 0) * el.length * t / 120;
+        return {
+            x: -Math.sin(angle) * surfaceSpeed,
+            y: Math.cos(angle) * surfaceSpeed
+        };
+    }
+
+    /*
      * Resolve the playable-side normal used for flipper lift.
      * Why: left and right flippers need mirrored normals, always biased upward.
      */
@@ -89,6 +103,64 @@
             ny = -ny;
         }
         return { x: nx, y: ny };
+    }
+
+    /*
+     * Normalize a 2D vector when it is safe to use as a contact direction.
+     * Why: swept endpoint hits can carry unnormalized normals, while response
+     * code needs a unit frame to keep rebound and friction predictable.
+     */
+    function normalizeVector(x, y) {
+        const len = Math.sqrt(x * x + y * y);
+        if (len <= 0.000001) return null;
+        return { x: x / len, y: y / len };
+    }
+
+    /*
+     * Read the contact's progress along the flipper centerline.
+     * Why: overlap collisions report t, while swept collisions report tSeg
+     * before physics builds the final hit object.
+     */
+    function getContactT(hit) {
+        if (hit && typeof hit.t === "number") return hit.t;
+        if (hit && typeof hit.tSeg === "number") return hit.tSeg;
+        return 0.5;
+    }
+
+    /*
+     * Return the radial normal for a rounded flipper end-cap contact.
+     * Why: the pivot and tip are circular ends, not flat blade surfaces, so
+     * their collision normals must come from the actual cap hit.
+     */
+    function getRoundedEndNormal(hit) {
+        const contactT = getContactT(hit);
+        if (contactT > 0.000001 && contactT < 0.999999) return null;
+        if (typeof hit.nx !== "number" || typeof hit.ny !== "number") return null;
+        return normalizeVector(hit.nx, hit.ny);
+    }
+
+    /*
+     * Build the contact frame used by the flipper collision response.
+     * Why: blade contacts need the authored lift normal, while rounded end caps
+     * need radial normals and tangents so elbow and tip hits deflect correctly.
+     */
+    function getContactFrame(el, angle, hit, tip, table) {
+        const bladeTx = Math.cos(angle);
+        const bladeTy = Math.sin(angle);
+        const contactT = getContactT(hit);
+        const capNormal = getRoundedEndNormal(hit);
+        if (!capNormal) {
+            const lift = getLiftNormal(el, tip, table);
+            return { nx: lift.x, ny: lift.y, tx: bladeTx, ty: bladeTy, roundedEnd: "" };
+        }
+
+        let capTx = -capNormal.y;
+        let capTy = capNormal.x;
+        if (capTx * bladeTx + capTy * bladeTy < 0) {
+            capTx = -capTx;
+            capTy = -capTy;
+        }
+        return { nx: capNormal.x, ny: capNormal.y, tx: capTx, ty: capTy, roundedEnd: contactT <= 0.000001 ? "pivot" : "tip" };
     }
 
     /*
@@ -204,7 +276,7 @@
      * Why: moving flippers expose intermediate swept segments to prevent
      * tunneling and swallowed-ball behavior during fast motion.
      */
-    function makeFlipperSegment(el, table, angle, sweepT, currentTip, angularVelocity, sweepOnly) {
+    function makeFlipperSegment(el, table, angle, sweepT, currentTip, angularVelocity, controlActive, sweepOnly) {
         const tip = {
             x: el.pivot.x + Math.cos(angle) * el.length,
             y: el.pivot.y + Math.sin(angle) * el.length,
@@ -220,25 +292,30 @@
             restitution: 0,
             skipDefaultResolve: true,
             sweepOnly: !!sweepOnly,
+            controlActive: !!controlActive,
             thickness: typeof el.thickness === "number" ? el.thickness : 10,
+            surfaceVelocityAt: function surfaceVelocityAt(contactT) {
+                return getSurfaceVelocityAtAngle(el, angle, angularVelocity, contactT);
+            },
             resolveNormal: function resolveNormal(ball, hit) {
-                return getLiftNormal(el, currentTip || tip, table);
+                const frame = getContactFrame(el, angle, hit, currentTip || tip, table);
+                return { x: frame.nx, y: frame.ny };
             },
             onHit: function onHit(ball, hit, world) {
-                const lift = getLiftNormal(el, currentTip || tip, table);
-                const contactT = Math.max(0, Math.min(1, hit && typeof hit.t === "number" ? hit.t : 0.5));
-                const nx = hit && typeof hit.nx === "number" ? hit.nx : lift.x;
-                const ny = hit && typeof hit.ny === "number" ? hit.ny : lift.y;
+                const contactT = Math.max(0, Math.min(1, getContactT(hit)));
+                const frame = getContactFrame(el, angle, hit, currentTip || tip, table);
+                const nx = frame.nx;
+                const ny = frame.ny;
                 const overlap = Math.max(0, hit && typeof hit.overlap === "number" ? hit.overlap : 0);
                 if (overlap > 0) {
                     ball.x += nx * overlap;
                     ball.y += ny * overlap;
                 }
-                const tx = Math.cos(angle);
-                const ty = Math.sin(angle);
-                const surfaceSpeed = (angularVelocity || 0) * el.length * contactT / 120;
-                const surfaceVx = -Math.sin(angle) * surfaceSpeed;
-                const surfaceVy = Math.cos(angle) * surfaceSpeed;
+                const tx = frame.tx;
+                const ty = frame.ty;
+                const surfaceVelocity = getSurfaceVelocityAtAngle(el, angle, angularVelocity, contactT);
+                const surfaceVx = surfaceVelocity.x;
+                const surfaceVy = surfaceVelocity.y;
                 const relNormalVelocity = (ball.vx - surfaceVx) * nx + (ball.vy - surfaceVy) * ny;
                 const relTangentialVelocity = (ball.vx - surfaceVx) * tx + (ball.vy - surfaceVy) * ty;
                 const upstrokeSign = getUpstrokeSign(el);
@@ -282,7 +359,9 @@
                 }
                 ball.vx = surfaceVx + tx * nextRelTangential + nx * nextRelNormal;
                 ball.vy = surfaceVy + ty * nextRelTangential + ny * nextRelNormal;
-                if (world) {
+                // The tip cap is a deflector, not a cradle surface; persistent
+                // support there can trap a ball at the end of the flipper.
+                if (world && frame.roundedEnd !== "tip") {
                     ball.supportContact = {
                         kind: "flipper",
                         hitKey: "flipper:" + el.id,
@@ -348,7 +427,7 @@
             for (let i = 0; i <= sweepSteps; i++) {
                 const t = sweepSteps === 0 ? 1 : i / sweepSteps;
                 const angle = prevAngle + appliedDelta * t;
-                segments.push(makeFlipperSegment(el, table, angle, t, tip, angularVelocity, i < sweepSteps));
+                segments.push(makeFlipperSegment(el, table, angle, t, tip, angularVelocity, controlActive, i < sweepSteps));
             }
             if (world) {
                 state.angle = currentAngle;

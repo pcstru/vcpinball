@@ -63,6 +63,8 @@
                         ball.vx = 0;
                         ball.vy = 0;
                         emit(world, { type: "troughCaptured", sourceId: sensor.id, elementType: "trough" });
+                        // Bonus saucers are authored as switch rules, so capture is the scoring contact.
+                        emit(world, { type: "switchClosed", sourceId: sensor.id, elementType: "trough" });
                     },
                     onStay: function onStay(ball, world, sensor) {
                         if (ball.capturedBy !== sensor.id) return;
