@@ -62,6 +62,10 @@ The logic editor includes validation and pure logic simulation so a designer can
 
 The intent is deliberately narrow: this is not trying to decide whether a table is fun, beautiful, or commercially good. It is trying to answer whether a table is structurally and physically valid enough to be worth playing and iterating on.
 
+![Physics Lab AI Eval](Doc-Lab-Eval.png)
+
+The Physics Lab screenshot shows the current evaluation workflow: table controls on the left, the live table sandbox in the center, and metrics/export/detail panes on the right. Evaluation checks produce PASS / WARN / FAIL rows; selecting a row draws the related diagnostic overlay on the table. In the shown reachability case, colored probe paths represent simulated ball trajectories from the real physics path, with warnings recorded when probes appear stuck, fail to drain, or do not reach a configured flipper/target condition within the selected limits.
+
 The lab currently supports:
 
 - loading bundled table JSON from the table catalog
@@ -70,6 +74,7 @@ The lab currently supports:
 - showing JSON-style report data that an agent or later tool can consume
 - clicking evaluation rows to draw diagnostics on the table canvas
 - tracing launcher rollout/stuck diagnostics through the same core physics path used by play mode
+- configuring probe counts, bounce/contact limits, and tick limits for repeatable AI Eval runs
 - `AI-Lab` visibility-first patch/eval workflow:
   - stepwise attempts with explicit operator approval
   - optional auto/batch toggles with guardrails
