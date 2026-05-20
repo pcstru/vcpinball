@@ -5,7 +5,8 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const tests = [
-    "tests/smoke.test.js"
+    "tests/smoke.test.js",
+    "tests/eval-agent.test.js"
 ];
 
 tests.forEach(function run(testFile) {

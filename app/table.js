@@ -186,6 +186,16 @@
         table.elements.forEach(function ensureElementName(el) {
             if (!el || typeof el !== "object") return;
             if (typeof el.name !== "string" || !el.name.trim()) el.name = fallbackElementName(el);
+            if (el.type === "gate") {
+                const restAngle = typeof el.swingStartAngle === "number" ? el.swingStartAngle : (typeof el.angle === "number" ? el.angle : 0);
+                if (typeof el.angle !== "number") el.angle = restAngle;
+                if (typeof el.swingStartAngle !== "number") el.swingStartAngle = restAngle;
+                if (typeof el.swingAngle !== "number") {
+                    if (typeof el.swingEndAngle === "number") el.swingAngle = el.swingEndAngle - restAngle;
+                    else el.swingAngle = Math.abs(typeof el.maxAngle === "number" ? el.maxAngle : 1.05);
+                }
+                if (typeof el.swingEndAngle !== "number") el.swingEndAngle = restAngle + el.swingAngle;
+            }
         });
         clampLauncherWidths(table);
         return table;
@@ -202,6 +212,10 @@
         if (!table || typeof table !== "object") issue("error", "Table must be an object.");
         if (!table || table.version !== 1) issue("error", "Table version must be 1.");
         if (!table || typeof table.name !== "string") issue("error", "Table name must be a string.");
+        if (table && table.date != null && typeof table.date !== "string") issue("warning", "date should be a string when present.");
+        if (table && table.tableVersion != null && typeof table.tableVersion !== "string" && typeof table.tableVersion !== "number") {
+            issue("warning", "tableVersion should be a string or number when present.");
+        }
         if (!table || !table.playfield) issue("error", "Missing playfield.");
         if (!table || !table.rules || typeof table.rules !== "object") issue("error", "Missing rules.");
         if (table && !Array.isArray(table.elements)) issue("error", "elements must be an array.");

@@ -1,6 +1,18 @@
 (function initStorage(Pin) {
+    function stampTableForPersistence(table) {
+        /*
+         * What: Add human-facing table metadata to a persisted copy.
+         * Why: the selector can show when a browser-memory or exported table was
+         * last saved without overloading the required schema version field.
+         */
+        const copy = JSON.parse(JSON.stringify(table || {}));
+        copy.date = new Date().toISOString();
+        if (copy.tableVersion == null) copy.tableVersion = String(copy.version || 1);
+        return copy;
+    }
+
     function saveLocal(slot, table) {
-        localStorage.setItem("pin.tables." + slot, JSON.stringify(table));
+        localStorage.setItem("pin.tables." + slot, JSON.stringify(stampTableForPersistence(table)));
         localStorage.setItem("pin.lastSlot", String(slot));
     }
 
@@ -33,10 +45,11 @@
     }
 
     function exportFile(table) {
-        const blob = new Blob([JSON.stringify(table, null, 2)], { type: "application/json" });
+        const persisted = stampTableForPersistence(table);
+        const blob = new Blob([JSON.stringify(persisted, null, 2)], { type: "application/json" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = (table.name || "table") + ".pin.json";
+        a.download = (persisted.name || "table") + ".pin.json";
         a.click();
         URL.revokeObjectURL(a.href);
     }

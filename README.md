@@ -56,6 +56,34 @@ The current logic model is feature-first:
 
 The logic editor includes validation and pure logic simulation so a designer can test state transitions before launching the physics game. This is deliberately separated from table geometry editing because complex state-machine interfaces quickly become unusable when everything is shown at once.
 
+## Physics Lab And Table Evaluation
+
+`physics-lab.html` is the physics and table-evaluation workbench. It started as a tuning surface for small flipper scenarios and has grown into the beginning of a table validity harness.
+
+The intent is deliberately narrow: this is not trying to decide whether a table is fun, beautiful, or commercially good. It is trying to answer whether a table is structurally and physically valid enough to be worth playing and iterating on.
+
+The lab currently supports:
+
+- loading bundled table JSON from the table catalog
+- loading that table into the sandbox for visual inspection and manual play
+- running table evaluation checks with PASS / WARN / FAIL output
+- showing JSON-style report data that an agent or later tool can consume
+- clicking evaluation rows to draw diagnostics on the table canvas
+- tracing launcher rollout/stuck diagnostics through the same core physics path used by play mode
+- `AI-Lab` visibility-first patch/eval workflow:
+  - stepwise attempts with explicit operator approval
+  - optional auto/batch toggles with guardrails
+  - provider status panel (configured/missing/reachable/unreachable) with manual `Check Provider` probe
+  - attempt timeline, structured failure detail, and checkpoint/rollback controls
+  - desktop tabbed workflow (`Tune`, `Sandbox`, `Eval`, `AI-Lab`) to keep control depth shallow
+  - right-side inspector for heavy JSON/detail panes so control tabs stay compact
+  - throttled metrics UI refresh and hidden-tab frame short-circuiting to reduce background UI cost
+  - optional top-bar perf readout (`Perf On`) and paused-state dirty-render gating to reduce idle redraw overhead
+
+The important design rule is that evaluation and fine-tuning data should come from the real model wherever possible. The lab must not grow a separate "almost physics" model just because it is easier to inspect. If an evaluation involves launcher behavior, gates, flippers, drains, or collisions, it should use the same compiled elements and `Pin.physics.stepWorld` path as the game runtime. Approximate overlays are acceptable for explanation, but not as the source of truth for pass/fail behavior.
+
+This matters because table validation is meant to guide edits. If a diagnostic disagrees with play mode, the diagnostic is the thing to fix. As with the rest of the project, it is what it is: an experimental harness, useful only insofar as it stays tied to the real runtime behavior.
+
 ## AI Integration
 
 The project has two AI-related layers:
@@ -77,6 +105,17 @@ The assistant contract is intentionally constrained. It should produce JSON patc
 The app validates and previews patches before applying them. The design goal is to make AI useful inside the product without letting it freely mutate arbitrary application state.
 
 In this static build, provider settings and assistant UI are local/browser-side. External AI execution depends on configured provider endpoints.
+
+In Physics Lab `AI-Lab`, provider status is shown directly in the panel:
+
+- `missing ...`: one or more required fields are absent in `pin.assistant.settings` (`baseUrl`, `apiKey`, `model`)
+- `configured ...`: required fields exist locally
+- `reachable ...`: a live probe to the provider `/models` endpoint succeeded
+- `configured but unreachable ...`: settings exist but endpoint probe failed (HTTP/CORS/network/auth/etc.)
+
+The `Check Provider` button triggers the live probe. Opening the `AI-Lab` tab also performs a lightweight refresh and periodic probe.
+
+The project also includes a Node `eval-agent` loop for automation and dataset building. It shares the same patch/eval contract used by browser AI-Lab so interactive and batch workflows stay aligned.
 
 ## Current Table Schema
 
@@ -122,6 +161,10 @@ Important modules:
 - `app/physics.js`: ball integration, collisions, broad phase, sensors, launcher behavior
 - `app/render.js`: canvas rendering, static render cache, quality scaling
 - `app/elements/*`: element compile/draw/runtime behavior
+- `app/physicsHarness.js`: deterministic physics scenarios and sandbox simulation used by the lab
+- `app/aiLabContract.js`: shared AI patch contract, patch apply/validate flow, and evaluator entry
+- `app/tableEval.js`: table evaluation checks, diagnostics, and report generation
+- `app/tuning/lab.js`: browser UI for physics tuning, sandbox play, and table evaluation
 - `app/editor/*`: design mode, palettes, selection, hit testing, panels, assistant integration
 - `app/logic/*`: logic schema, validation, simulation, assets, and logic UI
 - `app/table.js`: table defaults, normalization, validation, playability checks
@@ -164,7 +207,48 @@ Run the smoke suite:
 npm test
 ```
 
-The tests check script ordering, table validation, bundled image paths, assistant patch behavior, logic simulation, high scores, and key runtime split behavior.
+The tests check script ordering, table validation, bundled image paths, assistant patch behavior, logic simulation, high scores, runtime split behavior, and eval-agent contract/evaluation smoke behavior.
+
+## Eval-Agent CLI
+
+The repo includes an automation CLI for patch validation and dataset generation:
+
+```bash
+npm run eval-agent -- validate-patch --table tables/Cobra.json --patch my-patch.json --out result.json --dataset data/eval-runs/records.jsonl
+```
+
+```bash
+npm run eval-agent -- provider-loop --table tables/Cobra.json --prompt "Improve table validity while preserving behavior." --max-steps 4 --dataset data/eval-runs/records.jsonl
+```
+
+Primary provider environment (OpenAI-compatible endpoint):
+
+- `PIN_AI_BASE_URL`
+- `PIN_AI_API_KEY`
+- `PIN_AI_MODEL`
+
+Optional review/scoring provider:
+
+- `PIN_AI_REVIEW_BASE_URL`
+- `PIN_AI_REVIEW_API_KEY`
+- `PIN_AI_REVIEW_MODEL`
+
+The CLI emits machine-readable JSON output. Dataset rows include contract issues, validation issues, eval summary/check failures, acceptance flag, and runtime metadata so generated examples can be filtered for fine-tuning workflows.
+
+### Environment setup and secret hygiene
+
+- Copy `.env.example` to `.env` and fill in real provider values for local use.
+- `.env` and `.env.*` are git-ignored; `.env.example` stays committed as the template.
+- Do not place real keys in table JSON, patch JSON, or committed docs.
+
+PowerShell session example (no file loader required):
+
+```powershell
+$env:PIN_AI_BASE_URL="https://api.openai.com/v1"
+$env:PIN_AI_API_KEY="sk-..."
+$env:PIN_AI_MODEL="gpt-4.1"
+npm run eval-agent -- provider-loop --table tables/Cobra.json --prompt "Improve table validity while preserving behavior." --max-steps 4 --dataset data/eval-runs/records.jsonl
+```
 
 ## Performance Notes
 

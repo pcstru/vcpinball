@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "PyramidBuild",
   "playfield": {
     "width": 500,
@@ -951,7 +953,8 @@
       "restitution": 0.55,
       "color": "#b18f16",
       "pinColor": "#c2660f",
-      "name": "gate_zk1o38"
+      "name": "gate_zk1o38",
+      "swingAngle": 2.0943951023931953
     }
   ],
   "logicDocument": {

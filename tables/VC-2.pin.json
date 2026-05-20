@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "VC-2",
   "playfield": {
     "width": 500,
@@ -677,7 +679,8 @@
       "thickness": 3,
       "restitution": 0.55,
       "color": "#99ffcc",
-      "pinColor": "#f7fbff"
+      "pinColor": "#f7fbff",
+      "swingAngle": 0.9773843811168246
     },
     {
       "id": "bumper_7h1qb5",
@@ -793,7 +796,8 @@
       "thickness": 3,
       "restitution": 0.55,
       "color": "#99ffcc",
-      "pinColor": "#f7fbff"
+      "pinColor": "#f7fbff",
+      "swingAngle": 2.0420352248333655
     },
     {
       "id": "light_8sch5e",

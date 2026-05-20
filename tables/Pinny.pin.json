@@ -1,0 +1,1331 @@
+{
+  "version": 1,
+  "name": "Pinny",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 8,
+    "gravity": 0.2,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [],
+    "stateTable": [],
+    "computedState": [],
+    "lampBindings": [],
+    "actionRules": [],
+    "resetRules": []
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "features": [],
+  "images": [],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 150,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 82,
+          "y": 72,
+          "inHandle": {
+            "x": -34,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 48,
+            "y": -22
+          }
+        },
+        {
+          "x": 250,
+          "y": 28,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 418,
+          "y": 72,
+          "inHandle": {
+            "x": -48,
+            "y": -22
+          },
+          "outHandle": {
+            "x": 34,
+            "y": 0
+          }
+        },
+        {
+          "x": 490,
+          "y": 150,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 490,
+          "y": 220
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 220
+        }
+      ],
+      "name": "outerWall"
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 472.1041352098799,
+      "top": 682.5240730043595,
+      "bottom": 862.5240730043595,
+      "width": 25.21241981507319,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 140,
+        "y": 750
+      },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 370,
+        "y": 750
+      },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466",
+      "name": "rf"
+    },
+    {
+      "id": "gate_6kfug5",
+      "type": "gate",
+      "level": 0,
+      "x": 446.8239726354409,
+      "y": 650.4724126608409,
+      "length": 41.23105625617661,
+      "angle": -0.24497866312686414,
+      "direction": "reverse",
+      "open": false,
+      "locked": false,
+      "swingStartAngle": -0.24497866312686414,
+      "swingEndAngle": -1.294978663126864,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff",
+      "name": "gate_6kfug5"
+    },
+    {
+      "id": "path_d0clcz",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 442.0940281824354,
+          "y": 655.2006913102249
+        },
+        {
+          "x": 380,
+          "y": 730
+        },
+        {
+          "x": 390,
+          "y": 740
+        },
+        {
+          "x": 390,
+          "y": 760
+        },
+        {
+          "x": 442.0940281824354,
+          "y": 662.030427137113
+        },
+        {
+          "x": 453.65611462311546,
+          "y": 676.2152630852653
+        },
+        {
+          "x": 453.65611462311546,
+          "y": 867.9732305325083
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_d0clcz"
+    },
+    {
+      "id": "drain_sahxsx",
+      "type": "drain",
+      "level": 0,
+      "x": 257.79961019865914,
+      "y": 853.6660247709646,
+      "w": 150,
+      "h": 24,
+      "name": "drain_sahxsx"
+    },
+    {
+      "id": "path_7loubs",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 137.83763511333743,
+          "y": 727.0296020621834
+        },
+        {
+          "x": 123.16836977106497,
+          "y": 734.3616516041124
+        },
+        {
+          "x": 120.9679799697241,
+          "y": 754.8913903215135
+        },
+        {
+          "x": 67.42516147042966,
+          "y": 755.6245952757064
+        },
+        {
+          "x": 65.95823493620242,
+          "y": 699.1678138028533
+        },
+        {
+          "x": 137.83763511333743,
+          "y": 727.0296020621834
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_7loubs"
+    },
+    {
+      "id": "kicker_zv9h2c",
+      "type": "kicker",
+      "level": 0,
+      "radius": 6,
+      "bandThickness": 3,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 250,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 21.73852217532887,
+          "y": 642.4662742436743
+        },
+        {
+          "x": 54.32258396269992,
+          "y": 700.7817109194112
+        },
+        {
+          "x": 43.28604690568716,
+          "y": 667.6837603737226
+        }
+      ],
+      "name": "kicker_zv9h2c"
+    },
+    {
+      "id": "bumper_raf28h",
+      "type": "bumper",
+      "x": 156.64509791174316,
+      "y": 550.763920553613,
+      "radius": 24,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_raf28h"
+    },
+    {
+      "id": "dropTarget_vrbvev",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 150,
+      "y": 210,
+      "w": 7,
+      "h": 7,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_uftb52",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 180,
+      "y": 240,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_i7pye6",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 120,
+      "y": 240,
+      "w": 7,
+      "h": 7,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_93tl2e",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 180,
+      "y": 300,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_3xmk8u",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 150,
+      "y": 270,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_iia7qs",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 120,
+      "y": 300,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_0cz7ue",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 210,
+      "y": 270,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_yxzw59",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 90,
+      "y": 270,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_6zyg1o",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 150,
+      "y": 330,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_134x62",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 210,
+      "y": 330,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_g3ljhb",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 90,
+      "y": 330,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_p669iu",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 180,
+      "y": 360,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_6yozfn",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 120,
+      "y": 360,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_gzf9qs",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 60,
+      "y": 360,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_p5hgpi",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 240,
+      "y": 360,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_2hje42",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 240,
+      "y": 300,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_g0i2hz",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 270,
+      "y": 330,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_8iukj9",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 300,
+      "y": 360,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_jepqoi",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 60,
+      "y": 300,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "dropTarget_b2g20s",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 30,
+      "y": 330,
+      "w": 6,
+      "h": 6,
+      "angle": 0.7853981633974483,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "TG1"
+    },
+    {
+      "id": "path_exxshz",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 2,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 27.80122064772443,
+          "y": 318.6884813756741
+        },
+        {
+          "x": 10,
+          "y": 300
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_exxshz"
+    },
+    {
+      "id": "path_ys8pk4",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 2,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 10.428838028830157,
+          "y": 335.1517117337541
+        },
+        {
+          "x": 27.319880916731233,
+          "y": 318.59762846396956
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_ys8pk4"
+    },
+    {
+      "id": "path_v45ur6",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 270,
+          "y": 395
+        },
+        {
+          "x": 270,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_v45ur6"
+    },
+    {
+      "id": "path_pbhuo4",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 270,
+          "y": 390
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_pbhuo4"
+    },
+    {
+      "id": "lane_usqhop",
+      "type": "lane",
+      "level": 0,
+      "x": 285,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "path_gyrhya",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 300,
+          "y": 395
+        },
+        {
+          "x": 300,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_gyrhya"
+    },
+    {
+      "id": "lane_7iouqs",
+      "type": "lane",
+      "level": 0,
+      "x": 255,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "path_g10s72",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 240,
+          "y": 395
+        },
+        {
+          "x": 240,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_g10s72"
+    },
+    {
+      "id": "path_0sv00q",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 180,
+          "y": 395
+        },
+        {
+          "x": 180,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_0sv00q"
+    },
+    {
+      "id": "path_l8rdvs",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 120,
+          "y": 395
+        },
+        {
+          "x": 120,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_l8rdvs"
+    },
+    {
+      "id": "path_ix9yfs",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 60,
+          "y": 395
+        },
+        {
+          "x": 60,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_ix9yfs"
+    },
+    {
+      "id": "path_nmh7ta",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 210,
+          "y": 395
+        },
+        {
+          "x": 210,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_nmh7ta"
+    },
+    {
+      "id": "path_2pt45l",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 150,
+          "y": 395
+        },
+        {
+          "x": 150,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_2pt45l"
+    },
+    {
+      "id": "path_6174q9",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 90,
+          "y": 395
+        },
+        {
+          "x": 90,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_6174q9"
+    },
+    {
+      "id": "path_45u8sz",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 3,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 30,
+          "y": 395
+        },
+        {
+          "x": 30,
+          "y": 425
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_45u8sz"
+    },
+    {
+      "id": "lane_hfh3ou",
+      "type": "lane",
+      "level": 0,
+      "x": 225,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "lane_c0mnzk",
+      "type": "lane",
+      "level": 0,
+      "x": 195,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "lane_2rmb5t",
+      "type": "lane",
+      "level": 0,
+      "x": 165,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "lane_6u0kar",
+      "type": "lane",
+      "level": 0,
+      "x": 135,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "lane_vrqr71",
+      "type": "lane",
+      "level": 0,
+      "x": 105,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "lane_d2m82o",
+      "type": "lane",
+      "level": 0,
+      "x": 75,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "lane_auyh1x",
+      "type": "lane",
+      "level": 0,
+      "x": 45,
+      "y": 410,
+      "w": 20,
+      "h": 10,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "LaneG"
+    },
+    {
+      "id": "bumper_mxgm4p",
+      "type": "bumper",
+      "x": 20.4998179213124,
+      "y": 392.7480304180541,
+      "radius": 5.438021088527699,
+      "power": 4,
+      "restitution": 0.8,
+      "score": 5,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_mxgm4p"
+    },
+    {
+      "id": "path_js20kp",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 299.1216313619924,
+          "y": 425.4934203243078
+        },
+        {
+          "x": 292.30704438337386,
+          "y": 436.6848703963918
+        },
+        {
+          "x": 275.7573331495858,
+          "y": 454.6885074688748
+        },
+        {
+          "x": 172.7192380929953,
+          "y": 473.48313335462035
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_js20kp"
+    },
+    {
+      "id": "path_kfdedv",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 132.65100659859513,
+          "y": 473.66531411284336
+        },
+        {
+          "x": 11.935465834494142,
+          "y": 447.38973568273303
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_kfdedv"
+    },
+    {
+      "id": "path_ff5b3d",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 330,
+          "y": 420
+        },
+        {
+          "x": 330,
+          "y": 330
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_ff5b3d"
+    },
+    {
+      "id": "path_b5c5w3",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 12.864429002136504,
+          "y": 140.8008434781392
+        },
+        {
+          "x": 130,
+          "y": 180
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_b5c5w3"
+    },
+    {
+      "id": "path_5lce98",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 330,
+          "y": 330
+        },
+        {
+          "x": 170,
+          "y": 180
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_5lce98"
+    },
+    {
+      "id": "path_rmvf1b",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 9.395205023083275,
+          "y": 303.8207587430305
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_rmvf1b"
+    },
+    {
+      "id": "flipper_batf0d",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 470,
+        "y": 200
+      },
+      "length": 95,
+      "restAngle": 1.4889979717366335,
+      "activeAngle": 2.0889979717366334,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "name": "flipper_batf0d"
+    },
+    {
+      "id": "path_63gqxa",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 440,
+          "y": 330
+        },
+        {
+          "x": 490,
+          "y": 510,
+          "outHandle": {
+            "x": 1.1871148271246739,
+            "y": 131.092572814616
+          },
+          "inHandle": {
+            "x": -1.1871148271246739,
+            "y": -131.092572814616
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_63gqxa"
+    },
+    {
+      "id": "path_k5hymm",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 440,
+          "y": 330
+        },
+        {
+          "x": 490,
+          "y": 300
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_k5hymm"
+    },
+    {
+      "id": "path_fu74i0",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 460,
+          "y": 190
+        },
+        {
+          "x": 470,
+          "y": 180
+        },
+        {
+          "x": 490,
+          "y": 190
+        },
+        {
+          "x": 490,
+          "y": 150
+        },
+        {
+          "x": 460,
+          "y": 160
+        },
+        {
+          "x": 460,
+          "y": 190
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_fu74i0"
+    },
+    {
+      "id": "path_k984fg",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 420,
+          "y": 152
+        },
+        {
+          "x": 390,
+          "y": 112,
+          "outHandle": {
+            "x": -10,
+            "y": -30
+          },
+          "inHandle": {
+            "x": 10,
+            "y": 30
+          }
+        },
+        {
+          "x": 330,
+          "y": 102,
+          "outHandle": {
+            "x": -10,
+            "y": 20
+          },
+          "inHandle": {
+            "x": 10,
+            "y": -20
+          }
+        },
+        {
+          "x": 340,
+          "y": 132
+        },
+        {
+          "x": 420,
+          "y": 152
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_k984fg"
+    }
+  ]
+}

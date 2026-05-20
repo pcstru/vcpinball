@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "Empty Table",
   "playfield": {
     "width": 500,

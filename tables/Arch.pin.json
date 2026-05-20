@@ -1,0 +1,292 @@
+{
+  "version": 1,
+  "name": "Arch",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 16,
+    "gravity": 0.2,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [],
+    "stateTable": [],
+    "computedState": [],
+    "lampBindings": [],
+    "actionRules": [],
+    "resetRules": []
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "features": [],
+  "images": [],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 360,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 60,
+          "y": 70,
+          "inHandle": {
+            "x": -69.18705295265883,
+            "y": 67.50879497964816
+          },
+          "outHandle": {
+            "x": 69.18705295265883,
+            "y": -67.50879497964816
+          }
+        },
+        {
+          "x": 240,
+          "y": 10,
+          "inHandle": {
+            "x": -16.481510763629046,
+            "y": 0.35375894280406683
+          },
+          "outHandle": {
+            "x": 16.481510763629046,
+            "y": -0.35375894280406683
+          }
+        },
+        {
+          "x": 400,
+          "y": 50,
+          "inHandle": {
+            "x": -60.220519170500495,
+            "y": -46.84185208977851
+          },
+          "outHandle": {
+            "x": 60.220519170500495,
+            "y": 46.84185208977851
+          }
+        },
+        {
+          "x": 490,
+          "y": 360,
+          "inHandle": {
+            "x": -1.6023106566934189,
+            "y": -217.0896677451031
+          },
+          "outHandle": {
+            "x": 1.6023106566934189,
+            "y": 217.0896677451031
+          }
+        },
+        {
+          "x": 490,
+          "y": 570
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 570
+        }
+      ],
+      "name": "outerWall"
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 470,
+      "top": 680,
+      "bottom": 860,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 70,
+        "y": 740
+      },
+      "length": 105,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 330,
+        "y": 740
+      },
+      "length": 105,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466",
+      "name": "rf"
+    },
+    {
+      "id": "path_6bvtp5",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 440,
+          "y": 560
+        },
+        {
+          "x": 440,
+          "y": 300,
+          "outHandle": {
+            "x": -1.3168222782895782,
+            "y": -107.2873087696164
+          },
+          "inHandle": {
+            "x": 1.3168222782895782,
+            "y": 107.2873087696164
+          }
+        },
+        {
+          "x": 270,
+          "y": 60,
+          "outHandle": {
+            "x": -129.34044752620053,
+            "y": 3.1264142871017526
+          },
+          "inHandle": {
+            "x": 129.34044752620053,
+            "y": -3.1264142871017526
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_6bvtp5"
+    },
+    {
+      "id": "drain_2l3x1t",
+      "type": "drain",
+      "level": 0,
+      "x": 200,
+      "y": 850,
+      "w": 180,
+      "h": 40,
+      "name": "drain_2l3x1t"
+    },
+    {
+      "id": "path_j9s0zj",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 60,
+          "y": 720
+        },
+        {
+          "x": 10,
+          "y": 700
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_j9s0zj"
+    },
+    {
+      "id": "path_b09xo0",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 343.3333333333333,
+          "y": 726.6666666666666
+        },
+        {
+          "x": 443.3333333333333,
+          "y": 686.6666666666666
+        },
+        {
+          "x": 443.3333333333333,
+          "y": 866.6666666666666
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_b09xo0"
+    }
+  ]
+}

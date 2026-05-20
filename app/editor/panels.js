@@ -1,7 +1,7 @@
 (function initEditorPanels(Pin) {
     function isAngleField(labelText) {
-        return /(^|\.)(restAngle|activeAngle|angle|maxAngle|swingStartAngle|swingEndAngle)$/i.test(labelText) ||
-            /^(swing start angle|swing end angle|swing limit)$/i.test(labelText);
+        return /(^|\.)(restAngle|activeAngle|angle|maxAngle|swingStartAngle|swingEndAngle|swingAngle)$/i.test(labelText) ||
+            /^(swing start angle|swing end angle|swing limit|opening angle)$/i.test(labelText);
     }
 
     function isColorField(labelText) {
@@ -337,7 +337,7 @@
                 { path: "direction", label: "direction", groupKey: "Setup" },
                 { path: "open", label: "open", groupKey: "Setup" },
                 { path: "locked", label: "locked", groupKey: "Setup" },
-                { path: "swingEndAngle", label: "swing arc end", groupKey: "Hinge" },
+                { path: "swingAngle", label: "opening angle", groupKey: "Hinge" },
                 { path: "returnStrength", label: "return spring", groupKey: "Hinge" },
                 { path: "returnDamping", label: "return damping", groupKey: "Hinge" },
                 { path: "thickness", label: "thickness", groupKey: "Shape" },
@@ -432,14 +432,21 @@
 
     function patchGateDraftValue(model, key, draftValue, path, value) {
         patchDraftValue(model, key, path, value);
+        if (path === "swingAngle") {
+            const angle = typeof draftValue.swingStartAngle === "number" ? draftValue.swingStartAngle : (typeof draftValue.angle === "number" ? draftValue.angle : 0);
+            patchDraftValue(model, key, "swingEndAngle", angle + value);
+            return;
+        }
         if (path !== "direction") return;
         const previous = normalizeGateDirection(draftValue && draftValue.direction);
         const next = normalizeGateDirection(value);
         if (previous === next || next === "twoWay") return;
         if ((previous !== "forward" && previous !== "reverse") || (next !== "forward" && next !== "reverse")) return;
-        const angle = typeof draftValue.angle === "number" ? draftValue.angle : 0;
-        const end = typeof draftValue.swingEndAngle === "number" ? draftValue.swingEndAngle : angle + 1.05;
-        patchDraftValue(model, key, "swingEndAngle", angle - (end - angle));
+        const angle = typeof draftValue.swingStartAngle === "number" ? draftValue.swingStartAngle : (typeof draftValue.angle === "number" ? draftValue.angle : 0);
+        const span = typeof draftValue.swingAngle === "number" ? draftValue.swingAngle :
+            (typeof draftValue.swingEndAngle === "number" ? draftValue.swingEndAngle - angle : 1.05);
+        patchDraftValue(model, key, "swingAngle", -span);
+        patchDraftValue(model, key, "swingEndAngle", angle - span);
     }
 
     function appendDraftActions(container, draftKey, dirty, onSave, onReset) {
@@ -707,6 +714,8 @@
         const tableSection = appendSection(container, "Table");
         const tablePaths = [
             "name",
+            "tableVersion",
+            "date",
             "playfield.width",
             "playfield.height",
             "playfield.ballRadius",

@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "Doodle",
   "playfield": {
     "width": 500,
@@ -525,7 +527,8 @@
       "restitution": 0.55,
       "color": "#99ffcc",
       "pinColor": "#f7fbff",
-      "name": "gate_mgzgd3"
+      "name": "gate_mgzgd3",
+      "swingAngle": 2.181661564992912
     },
     {
       "id": "kicker_rfxfl2",

@@ -1,0 +1,344 @@
+{
+  "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-20T09:32:39.622Z",
+  "name": "AI-TestBase",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 14,
+    "gravity": 0.2,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.empty.high"
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 150,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 82,
+          "y": 72,
+          "inHandle": {
+            "x": -34,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 48,
+            "y": -22
+          }
+        },
+        {
+          "x": 250,
+          "y": 28,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 418,
+          "y": 72,
+          "inHandle": {
+            "x": -48,
+            "y": -22
+          },
+          "outHandle": {
+            "x": 34,
+            "y": 0
+          }
+        },
+        {
+          "x": 490,
+          "y": 150,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 490,
+          "y": 220
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 220
+        }
+      ],
+      "name": "outerWall"
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 465.1118471031243,
+      "top": 683.4078038865954,
+      "bottom": 863.4078038865954,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 80,
+        "y": 730
+      },
+      "length": 105,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 360,
+        "y": 730
+      },
+      "length": 105,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466",
+      "name": "rf"
+    },
+    {
+      "id": "path_xdwcbw",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 440,
+          "y": 870
+        },
+        {
+          "x": 440,
+          "y": 680
+        },
+        {
+          "x": 360,
+          "y": 710
+        },
+        {
+          "x": 366.01781741431614,
+          "y": 712.8954570651176
+        },
+        {
+          "x": 369.993698494524,
+          "y": 726.5266726114999
+        },
+        {
+          "x": 370,
+          "y": 740,
+          "inHandle": {
+            "x": -6.506699904096251,
+            "y": 7.8621244277273945
+          },
+          "outHandle": {
+            "x": 6.506699904096251,
+            "y": -7.8621244277273945
+          }
+        },
+        {
+          "x": 351.78304955605296,
+          "y": 806.3161106423117,
+          "outHandle": {
+            "x": -10,
+            "y": 20
+          },
+          "inHandle": {
+            "x": 10,
+            "y": -20
+          }
+        },
+        {
+          "x": 323.4190915549465,
+          "y": 864.5427300186207
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_xdwcbw"
+    },
+    {
+      "id": "path_saqq9k",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 130,
+          "y": 870
+        },
+        {
+          "x": 70,
+          "y": 750
+        },
+        {
+          "x": 70,
+          "y": 720
+        },
+        {
+          "x": 80,
+          "y": 710
+        },
+        {
+          "x": 62.02744289148224,
+          "y": 687.4808705308789
+        },
+        {
+          "x": 10,
+          "y": 660
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_saqq9k"
+    },
+    {
+      "id": "drain_qqmp2y",
+      "type": "drain",
+      "level": 0,
+      "x": 220,
+      "y": 850,
+      "w": 150,
+      "h": 24,
+      "name": "drain_qqmp2y"
+    },
+    {
+      "id": "gate_2toesu",
+      "type": "gate",
+      "level": 0,
+      "x": 490,
+      "y": 650,
+      "length": 52.14428510923442,
+      "angle": 2.590747444780358,
+      "direction": "forward",
+      "open": false,
+      "locked": false,
+      "swingStartAngle": 2.590747444780358,
+      "swingAngle": 2.121641535604332,
+      "swingEndAngle": 4.71238898038469,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff",
+      "name": "gate_2toesu"
+    },
+    {
+      "id": "path_z9s0a1",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 220,
+          "y": 800
+        },
+        {
+          "x": 220,
+          "y": 800
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_z9s0a1"
+    }
+  ],
+  "features": [],
+  "images": [],
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [],
+    "stateTable": [],
+    "computedState": [],
+    "lampBindings": [],
+    "actionRules": [],
+    "resetRules": []
+  }
+}

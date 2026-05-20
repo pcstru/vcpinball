@@ -74,7 +74,7 @@
         if (type === "dropTarget") return { id: makeId(type), type: "dropTarget", level: 0, x: 200, y: 500, w: 14, h: 40, angle: 0, restitution: 0.55, score: 250, transparency: 1 };
         if (type === "spinner") return { id: makeId(type), type: "spinner", level: 0, x: 250, y: 220, radius: 30, angle: 0, score: 100 };
         if (type === "launcher") return { id: makeId(type), type: "launcher", level: 0, x: 439, y: 710, top: 195, bottom: 735, width: 38, maxPower: 42, maxRetract: 65, pullSpeed: 95, returnSpeed: 220, springStrength: 1 };
-        if (type === "gate") return { id: makeId(type), type: "gate", level: 0, x: 230, y: 360, length: 64, angle: -0.2, direction: "forward", open: false, locked: false, swingStartAngle: -0.2, swingEndAngle: 0.85, maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, restitution: 0.55, color: "#99ffcc", pinColor: "#f7fbff" };
+        if (type === "gate") return { id: makeId(type), type: "gate", level: 0, x: 230, y: 360, length: 64, angle: -0.2, direction: "forward", open: false, locked: false, swingStartAngle: -0.2, swingAngle: 1.05, swingEndAngle: 0.85, maxAngle: 1.05, returnStrength: 24, returnDamping: 8, thickness: 3, restitution: 0.55, color: "#99ffcc", pinColor: "#f7fbff" };
         if (type === "drain") return { id: makeId(type), type: "drain", level: 0, x: 250, y: 835, w: 150, h: 24 };
         if (type === "trough") return { id: makeId(type), type: "trough", level: 0, x: 250, y: 820, radius: 18, holdSeconds: 0.75, reactivateDelay: 2, ejectPower: 10, ejectAngle: -Math.PI * 0.5, color: "#88aaff", pitColor: "#08101f", opacity: 1 };
         if (type === "kicker") return {

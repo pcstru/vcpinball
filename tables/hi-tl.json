@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "Human In The Loop",
   "playfield": {
     "width": 500,
@@ -1081,7 +1083,8 @@
       "restitution": 0.55,
       "color": "#6b777b",
       "pinColor": "#36c9c0",
-      "name": "gate_4usyda"
+      "name": "gate_4usyda",
+      "swingAngle": 2.356194490192345
     },
     {
       "id": "path_vi1s45",

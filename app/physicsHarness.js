@@ -221,15 +221,29 @@
         });
     }
 
-    function buildSandboxBall(spawn) {
+    function sandboxLauncherElement(table) {
+        const elements = (table && table.elements) || [];
+        for (let i = 0; i < elements.length; i++) {
+            if (elements[i] && elements[i].type === "launcher") return elements[i];
+        }
+        return null;
+    }
+
+    function buildSandboxBall(spawn, table) {
         const source = spawn || {};
+        const launcher = sandboxLauncherElement(table);
+        const useLauncherSpawn = !!(launcher && source && source.useLauncher === true);
+        const spawnX = useLauncherSpawn && typeof launcher.x === "number" ? launcher.x : source.x;
+        const spawnY = useLauncherSpawn && typeof launcher.y === "number" ? launcher.y :
+            (useLauncherSpawn && typeof launcher.bottom === "number" ? launcher.bottom - 25 : source.y);
         return {
-            x: source.x != null ? source.x : 250,
-            y: source.y != null ? source.y : 140,
+            x: spawnX != null ? spawnX : 250,
+            y: spawnY != null ? spawnY : 140,
             radius: source.radius != null ? source.radius : 8,
             vx: source.vx != null ? source.vx : 0,
             vy: source.vy != null ? source.vy : 0,
-            level: 0
+            level: 0,
+            inLaunchLane: useLauncherSpawn
         };
     }
 
@@ -241,7 +255,7 @@
         });
         if (!hadBalls) return;
         if (world.balls.length) return;
-        if (spawn) world.balls.push(buildSandboxBall(spawn));
+        if (spawn) world.balls.push(buildSandboxBall(spawn, world.table));
     }
 
     // Keep the harness world aligned with the same runtime structure the game loop uses.
@@ -553,7 +567,7 @@
         const sandbox = options && options.sandbox ? options.sandbox : {};
         const table = buildSandboxTable(sandbox);
         const world = createWorld(table, { left: false, right: false });
-        world.balls = sandbox.spawn ? [buildSandboxBall(sandbox.spawn)] : [];
+        world.balls = sandbox.spawn ? [buildSandboxBall(sandbox.spawn, table)] : [];
         const metrics = {
             segmentCount: (sandbox.elements || []).length,
             ballCount: world.balls.length,

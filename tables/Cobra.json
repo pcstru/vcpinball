@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "Cobra",
   "playfield": {
     "width": 500,
@@ -3068,7 +3070,8 @@
       "restitution": 0.75,
       "color": "#848b87",
       "pinColor": "#0f530e",
-      "name": "gate_cs8tod"
+      "name": "gate_cs8tod",
+      "swingAngle": 2.181661564992912
     },
     {
       "id": "bumper_qt73gc",

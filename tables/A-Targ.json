@@ -1,0 +1,766 @@
+{
+  "version": 1,
+  "name": "A-Targ",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 12,
+    "gravity": 0.2,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [],
+    "stateTable": [],
+    "computedState": [],
+    "lampBindings": [],
+    "actionRules": [],
+    "resetRules": []
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "features": [],
+  "images": [],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 8.888888888888914,
+          "y": 145.55555555555554,
+          "outHandle": {
+            "x": 1.917582702725353,
+            "y": -72.03035222754527
+          },
+          "inHandle": {
+            "x": -1.917582702725353,
+            "y": 72.03035222754527
+          }
+        },
+        {
+          "x": 96.4532775641673,
+          "y": 24.16554359573126,
+          "inHandle": {
+            "x": -31.250511709552185,
+            "y": 11.396937028213657
+          },
+          "outHandle": {
+            "x": 31.250511709552185,
+            "y": -11.396937028213657
+          }
+        },
+        {
+          "x": 248.8888888888889,
+          "y": 5.555555555555543,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 408.8888888888889,
+          "y": 35.55555555555554,
+          "inHandle": {
+            "x": -27.56023660457771,
+            "y": -13.765420626150444
+          },
+          "outHandle": {
+            "x": 27.56023660457771,
+            "y": 13.765420626150444
+          }
+        },
+        {
+          "x": 488.8888888888889,
+          "y": 145.55555555555554,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 488.8888888888889,
+          "y": 215.55555555555554
+        },
+        {
+          "x": 488.8888888888889,
+          "y": 865.5555555555555
+        },
+        {
+          "x": 8.888888888888914,
+          "y": 865.5555555555555
+        },
+        {
+          "x": 8.888888888888914,
+          "y": 215.55555555555554
+        }
+      ],
+      "name": "outerWall"
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 465.6162710684885,
+      "top": 684.9942293409879,
+      "bottom": 864.9942293409879,
+      "width": 38,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 140,
+        "y": 760
+      },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 30,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 360,
+        "y": 760
+      },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 30,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466",
+      "name": "rf"
+    },
+    {
+      "id": "drain_9uxn54",
+      "type": "drain",
+      "level": 0,
+      "x": 251.6731995916346,
+      "y": 854.1846650522044,
+      "w": 150,
+      "h": 24,
+      "name": "drain_9uxn54"
+    },
+    {
+      "id": "path_ca5c7q",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 440.25001054100983,
+          "y": 866.7289622913482
+        },
+        {
+          "x": 439.00195030356787,
+          "y": 636.3701339382818
+        },
+        {
+          "x": 422.15313709810226,
+          "y": 641.9886419468933
+        },
+        {
+          "x": 364.74236617577503,
+          "y": 737.5032780932867
+        },
+        {
+          "x": 377.8469986689149,
+          "y": 749.3645727781328
+        },
+        {
+          "x": 378.4710287876359,
+          "y": 765.5958181363435
+        },
+        {
+          "x": 370.3586372442636,
+          "y": 793.6883581794003
+        },
+        {
+          "x": 327.30055905251817,
+          "y": 839.2607009159149
+        },
+        {
+          "x": 327.9245891712391,
+          "y": 867.9775196265953
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_ca5c7q"
+    },
+    {
+      "id": "path_asap4l",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 173.16511972844393,
+          "y": 866.7289622913482
+        },
+        {
+          "x": 171.917059491002,
+          "y": 841.1335369187854
+        },
+        {
+          "x": 13.413409335881157,
+          "y": 809.2953248699876
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_asap4l"
+    },
+    {
+      "id": "path_itcrf3",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 121.99464999332616,
+          "y": 768.7172114744609
+        },
+        {
+          "x": 121.99464999332616,
+          "y": 748.7402941105094
+        },
+        {
+          "x": 139.46749331751272,
+          "y": 740.6246714314041
+        },
+        {
+          "x": 12.789379217160212,
+          "y": 697.5494433653835
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_itcrf3"
+    },
+    {
+      "id": "gate_frxyxp",
+      "type": "gate",
+      "level": 0,
+      "x": 485.27217340238803,
+      "y": 606.7731434782006,
+      "length": 51.72171702066397,
+      "angle": 2.683342055368046,
+      "direction": "forward",
+      "open": false,
+      "locked": false,
+      "swingStartAngle": 2.670353755551324,
+      "swingEndAngle": 4.71238898038469,
+      "maxAngle": 1.05,
+      "returnStrength": 34,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff",
+      "name": "gate_frxyxp"
+    },
+    {
+      "id": "bumper_wh6ufw",
+      "type": "bumper",
+      "x": 160,
+      "y": 130,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_wh6ufw"
+    },
+    {
+      "id": "lane_8qetqo",
+      "type": "lane",
+      "level": 0,
+      "x": 30,
+      "y": 220,
+      "w": 30,
+      "h": 15,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "GrpA"
+    },
+    {
+      "id": "lane_1j7fge",
+      "type": "lane",
+      "level": 0,
+      "x": 70,
+      "y": 220,
+      "w": 30,
+      "h": 15,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "GrpA"
+    },
+    {
+      "id": "lane_m1jupw",
+      "type": "lane",
+      "level": 0,
+      "x": 110,
+      "y": 220,
+      "w": 30,
+      "h": 15,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "GrpA"
+    },
+    {
+      "id": "path_atw29h",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 50,
+          "y": 240
+        },
+        {
+          "x": 50,
+          "y": 200
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_atw29h"
+    },
+    {
+      "id": "path_clujqw",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 90,
+          "y": 240
+        },
+        {
+          "x": 90,
+          "y": 200
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_clujqw"
+    },
+    {
+      "id": "path_b1zflc",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 130,
+          "y": 240
+        },
+        {
+          "x": 130,
+          "y": 200
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_b1zflc"
+    },
+    {
+      "id": "path_5y3dsb",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 50,
+          "y": 160,
+          "outHandle": {
+            "x": -1.1947063402817761,
+            "y": -83.96380753075877
+          },
+          "inHandle": {
+            "x": 1.1947063402817761,
+            "y": 83.96380753075877
+          }
+        },
+        {
+          "x": 140,
+          "y": 50,
+          "inHandle": {
+            "x": -20,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 20,
+            "y": 0
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_5y3dsb"
+    },
+    {
+      "id": "lane_67pzj3",
+      "type": "lane",
+      "level": 0,
+      "x": 63.83728931511463,
+      "y": 68.72702604440822,
+      "w": 30,
+      "h": 15,
+      "angle": 2.3469459345739274,
+      "score": 100,
+      "opacity": 1,
+      "name": "GrpA"
+    },
+    {
+      "id": "kicker_jpqowb",
+      "type": "kicker",
+      "level": 0,
+      "radius": 14,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 5,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 50.81815931515747,
+          "y": 641.3032000040157
+        },
+        {
+          "x": 32.62524713385574,
+          "y": 458.16410659353744
+        },
+        {
+          "x": 32.62524713385574,
+          "y": 677.7035167067194
+        }
+      ],
+      "name": "kicker_jpqowb"
+    },
+    {
+      "id": "kicker_x0e10h",
+      "type": "kicker",
+      "level": 0,
+      "radius": 12,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 5,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 450,
+          "y": 390
+        },
+        {
+          "x": 470,
+          "y": 240
+        },
+        {
+          "x": 470,
+          "y": 430
+        }
+      ],
+      "name": "kicker_x0e10h"
+    },
+    {
+      "id": "path_wn977n",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 140,
+          "y": 50,
+          "outHandle": {
+            "x": 10,
+            "y": 0
+          },
+          "inHandle": {
+            "x": -10,
+            "y": 0
+          }
+        },
+        {
+          "x": 230,
+          "y": 180,
+          "inHandle": {
+            "x": -3.8267069813061596,
+            "y": -145.9860703185759
+          },
+          "outHandle": {
+            "x": 3.8267069813061596,
+            "y": 145.9860703185759
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_wn977n"
+    },
+    {
+      "id": "path_kyl3w7",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 240,
+          "y": 50,
+          "outHandle": {
+            "x": 14.827744424712563,
+            "y": 16.89536233962565
+          },
+          "inHandle": {
+            "x": -14.827744424712563,
+            "y": -16.89536233962565
+          }
+        },
+        {
+          "x": 270,
+          "y": 180,
+          "inHandle": {
+            "x": -5.901697767457904,
+            "y": -85.28188694958843
+          },
+          "outHandle": {
+            "x": 5.901697767457904,
+            "y": 85.28188694958843
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_kyl3w7"
+    },
+    {
+      "id": "dropTarget_sgkz8l",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 180,
+      "y": 360,
+      "w": 14,
+      "h": 40,
+      "angle": 1.6580627893946132,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GRPB"
+    },
+    {
+      "id": "dropTarget_oqxqca",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 300,
+      "y": 300,
+      "w": 14,
+      "h": 40,
+      "angle": 1.6580627893946132,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GRPB"
+    },
+    {
+      "id": "dropTarget_91r68s",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 300,
+      "y": 240,
+      "w": 14,
+      "h": 40,
+      "angle": 1.6580627893946132,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GRPB"
+    },
+    {
+      "id": "bumper_5r5pyc",
+      "type": "bumper",
+      "x": 300,
+      "y": 270,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_wh6ufw"
+    },
+    {
+      "id": "bumper_c0qx5b",
+      "type": "bumper",
+      "x": 180,
+      "y": 330,
+      "radius": 20,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_wh6ufw"
+    },
+    {
+      "id": "dropTarget_kepofp",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 180,
+      "y": 300,
+      "w": 14,
+      "h": 40,
+      "angle": 1.6580627893946132,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GRPB"
+    },
+    {
+      "id": "bumper_u0upud",
+      "type": "bumper",
+      "x": 360,
+      "y": 150,
+      "radius": 31.622776601683793,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "transparency": 1,
+      "name": "bumper_u0upud"
+    },
+    {
+      "id": "path_lw38n4",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 476.6589918353685,
+          "y": 448.62244912615495,
+          "outHandle": {
+            "x": -24.150288831000466,
+            "y": 0
+          },
+          "inHandle": {
+            "x": 24.150288831000466,
+            "y": 0
+          }
+        },
+        {
+          "x": 480,
+          "y": 470,
+          "outHandle": {
+            "x": 9.76914862934018,
+            "y": 22.80056625031051
+          },
+          "inHandle": {
+            "x": -9.76914862934018,
+            "y": -22.80056625031051
+          }
+        },
+        {
+          "x": 489.07914037702585,
+          "y": 522.4827386931025
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_lw38n4"
+    }
+  ]
+}

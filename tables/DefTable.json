@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "vctable",
   "playfield": {
     "width": 500,
@@ -466,7 +468,8 @@
       "restitution": 0.55,
       "color": "#99ffcc",
       "pinColor": "#f7fbff",
-      "name": "gate_qtabzo"
+      "name": "gate_qtabzo",
+      "swingAngle": 2.0420352248333664
     },
     {
       "id": "path_zob63h",
@@ -874,7 +877,8 @@
       "restitution": 0.55,
       "color": "#99ffcc",
       "pinColor": "#f7fbff",
-      "name": "gate_54o07q"
+      "name": "gate_54o07q",
+      "swingAngle": 1.05
     }
   ],
   "features": [],

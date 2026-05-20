@@ -774,6 +774,46 @@
         return table && Array.isArray(table.elements) ? table.elements.length : 0;
     }
 
+    function tableSourceLabel(entry) {
+        /* What: Resolve the storage location shown on selector cards.
+         * Why: edited browser-memory copies can share names with bundled files,
+         * so the selector must make ownership visible before users click them.
+         */
+        if (entry && entry.source === "memory") return "Memory save: " + (entry.label || "Browser save");
+        if (entry && entry.ref && /^tables\//.test(entry.ref)) return "File in tables folder: " + entry.ref;
+        if (entry && entry.ref) return "File: " + entry.ref;
+        return "Source: unknown";
+    }
+
+    function formatTableDate(value) {
+        if (typeof value !== "string" || !value.trim()) return "";
+        const parsed = Date.parse(value);
+        if (Number.isNaN(parsed)) return value.trim();
+        return new Date(parsed).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "2-digit"
+        });
+    }
+
+    function tableVersionLabel(table) {
+        if (!table) return "";
+        if (table.tableVersion != null && String(table.tableVersion).trim()) {
+            return "Table v" + String(table.tableVersion).trim();
+        }
+        if (table.version != null) return "Schema v" + String(table.version);
+        return "";
+    }
+
+    function tableMetadataLabel(table) {
+        const parts = [];
+        const version = tableVersionLabel(table);
+        const date = formatTableDate(table && table.date);
+        if (version) parts.push(version);
+        if (date) parts.push("Updated " + date);
+        return parts.join(" · ");
+    }
+
     function drawSelectorPreview(canvas, table, tableAssetBaseHref) {
         /* What: Render a static table thumbnail into a small canvas.
          * Why: geometry previews should be generated in-browser instead of saved
@@ -867,6 +907,16 @@
         meta.className = "table-card-meta";
         meta.textContent = String(tableElementCount(safeTable)) + " elements · " +
             String(safeTable.playfield.width) + " x " + String(safeTable.playfield.height);
+        const source = document.createElement("span");
+        source.className = entry && entry.source === "memory" ? "table-card-chip memory" : "table-card-chip file";
+        source.textContent = tableSourceLabel(entry);
+        const tableInfo = document.createElement("span");
+        tableInfo.className = "table-card-chip";
+        tableInfo.textContent = tableMetadataLabel(displayTable) || "No table date/version";
+        const sourceRow = document.createElement("div");
+        sourceRow.className = "table-card-source-row";
+        sourceRow.appendChild(source);
+        sourceRow.appendChild(tableInfo);
         const status = document.createElement("div");
         status.className = validation.ok ? "table-card-status" : "table-card-status error";
         status.textContent = validation.ok ? "Ready" : "Invalid table";
@@ -875,6 +925,7 @@
         if (validation.ok) appendSelectorActions(actions, Object.assign({}, entry, { table: safeTable }));
 
         body.appendChild(title);
+        body.appendChild(sourceRow);
         body.appendChild(meta);
         body.appendChild(status);
         body.appendChild(actions);
@@ -924,7 +975,7 @@
         const validation = Pin.table.validateTable(table);
         const card = document.createElement("article");
         card.className = "table-card table-card-local";
-        renderLoadedSelectorCard(card, { label: label, table: table }, table, validation, "", addPreviewDisposer);
+        renderLoadedSelectorCard(card, { label: label, table: table, source: "memory" }, table, validation, "", addPreviewDisposer);
         grid.insertBefore(card, grid.firstChild);
     }
 
@@ -948,8 +999,12 @@
         title.textContent = "Tables";
         const sub = document.createElement("p");
         sub.textContent = "Choose a table to play, edit, or wire in Logic Studio.";
+        const version = document.createElement("p");
+        version.className = "table-selector-version";
+        version.textContent = "Loaded app version: " + (Pin.version || "unknown");
         header.appendChild(title);
         header.appendChild(sub);
+        header.appendChild(version);
         wrap.appendChild(header);
 
         if (location.protocol === "file:") {
@@ -1062,7 +1117,7 @@
         }
         const url = toSameOriginJsonUrl(rawRef);
         if (!url) return Promise.reject(new Error("Invalid table reference: " + rawRef));
-        return fetch(url.href).then(function parseResponse(response) {
+        return fetch(url.href, { cache: "no-store" }).then(function parseResponse(response) {
             if (!response.ok) throw new Error("Failed to load table: " + url.href);
             return response.json();
         }).then(function buildResult(table) {
@@ -1106,7 +1161,7 @@
                 if (location.protocol === "file:") {
                     return { table: Pin.table.cloneTable(Pin.presets.cyberpin || Pin.table.createEmptyTable()), tableAssetBaseHref: "" };
                 }
-                return fetch("tables/DefTable.json")
+                return fetch("tables/DefTable.json", { cache: "no-store" })
                     .then(function parseResponse(response) {
                         if (!response.ok) throw new Error("Failed to load tables/DefTable.json");
                         return response.json();
@@ -1127,7 +1182,7 @@
         if (location.protocol === "file:") {
             return Promise.resolve({ table: Pin.table.cloneTable(Pin.presets.cyberpin || Pin.table.createEmptyTable()), tableAssetBaseHref: "" });
         }
-        return fetch("tables/DefTable.json")
+        return fetch("tables/DefTable.json", { cache: "no-store" })
             .then(function parseResponse(response) {
                 if (!response.ok) throw new Error("Failed to load tables/DefTable.json");
                 return response.json();

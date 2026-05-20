@@ -1,0 +1,10 @@
+# Pinball repo ignore rules
+# What: keep local secrets and machine-specific env files out of git history.
+# Why: provider keys and endpoint settings must never be committed.
+
+# Local environment files (all variants)
+.env
+.env.*
+
+# Keep shareable template committed
+!.env.example

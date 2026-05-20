@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "ABC",
   "playfield": {
     "width": 500,
@@ -311,7 +313,8 @@
       "restitution": 0.55,
       "color": "#99ffcc",
       "pinColor": "#f7fbff",
-      "name": "gate_p6yn0x"
+      "name": "gate_p6yn0x",
+      "swingAngle": 1.9547687622336491
     },
     {
       "id": "dropTarget_31qm07",
@@ -610,7 +613,8 @@
       "restitution": 0.25,
       "color": "#745215",
       "pinColor": "#f7fbff",
-      "name": "gate_x28skf"
+      "name": "gate_x28skf",
+      "swingAngle": 2.8623399732707004
     },
     {
       "id": "light_6rp45x",

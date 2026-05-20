@@ -21,6 +21,15 @@ function scriptSources(html) {
     return sources;
 }
 
+function localAssetUrls(html) {
+    const urls = [];
+    html.replace(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"/g, function collect(_, url) {
+        if (/^(app|lib)\//.test(url)) urls.push(url);
+        return "";
+    });
+    return urls;
+}
+
 function loadTableModule() {
     const ctx = { window: { Pin: {} } };
     ctx.Pin = ctx.window.Pin;
@@ -129,6 +138,21 @@ function loadGateModuleHarness() {
     vm.createContext(ctx);
     vm.runInContext(read("app/elements/gate.js"), ctx, { filename: "app/elements/gate.js" });
     return ctx.window.Pin;
+}
+
+function loadEditorHitTestHarness() {
+    // What: Load editor hit-test helpers with only the tool methods they need.
+    // Why: Gate handle math should be regression-tested without a browser canvas.
+    const pin = {
+        editorTools: {
+            worldToScreen: function worldToScreen(point) { return point; }
+        }
+    };
+    const ctx = { window: { Pin: pin } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/editor/hitTest.js"), ctx, { filename: "app/editor/hitTest.js" });
+    return ctx.window.Pin.editorHitTest;
 }
 
 function loadElementRegistryHarness() {
@@ -268,6 +292,28 @@ function testIndexScriptsExistAndOrderCoreBeforeMain() {
     assert(sources.indexOf("app/main.js") === sources.length - 1, "app/main.js should remain the final bootstrap script");
 }
 
+function testIndexLocalAssetsAreVersioned() {
+    const html = read("index.html");
+    const urls = localAssetUrls(html);
+
+    assert(urls.length > 10, "index.html should expose versioned local assets");
+    urls.forEach(function each(url) {
+        assert(/\?v=/.test(url), "local browser asset should include cache-busting version: " + url);
+    });
+}
+
+function testPhysicsLabLoadsEvalHarnessScripts() {
+    // What: Verify the standalone physics lab entrypoint includes table eval dependencies.
+    // Why: table validation in the lab needs catalog loading, full element registry, and the evaluator module.
+    const html = read("physics-lab.html");
+    const sources = scriptSources(html);
+    assert(sources.indexOf("app/tableCatalog.js") >= 0, "physics-lab should load app/tableCatalog.js");
+    assert(sources.indexOf("app/elements/launcher.js") >= 0, "physics-lab should load launcher element module");
+    assert(sources.indexOf("app/elements/trough.js") >= 0, "physics-lab should load trough element module");
+    assert(sources.indexOf("app/tableEval.js") >= 0, "physics-lab should load app/tableEval.js");
+    assert(sources.indexOf("app/tableEval.js") < sources.indexOf("app/tuning/lab.js"), "table eval module should load before lab UI bootstrap");
+}
+
 function testTableCatalogRefsExistAndAreStaticJson() {
     const catalog = loadTableCatalog();
     assert(catalog && Array.isArray(catalog.tables), "table catalog should expose a tables array");
@@ -289,6 +335,9 @@ function testDefaultTableNormalizesAndValidates() {
     assert.strictEqual(validation.ok, true, "tables/DefTable.json should normalize into a structurally valid table");
     assert.strictEqual(typeof table.rules.balls, "number", "default table should have a runtime ball count");
     assert.strictEqual(typeof table.logicDocument, "object", "default table should expose a current logic document");
+    assert(table.elements.filter(function filter(el) { return el.type === "gate"; }).every(function every(gate) {
+        return typeof gate.swingAngle === "number";
+    }), "gate normalization should expose a relative opening angle");
 }
 
 function testDrainWithoutTroughIsPlayable() {
@@ -574,6 +623,226 @@ function testFlipperElbowReleaseDropsStaleSupportedContact() {
     assert(!ball.supportContact || ball.supportContact.controlActive === false, "released flipper should drop stale active elbow support");
 }
 
+function testFlipperSupportedContactUsesCurrentBlade() {
+    // What: Keep persistent flipper support tied to the current physical blade.
+    // Why: sweep-only samples prevent tunneling, but using them for rolling
+    // support creates stale contact frames that can drag balls near the tip.
+    const pin = loadFlipperModuleHarness();
+    const physics = loadPhysicsModuleHarness(pin);
+    const table = {
+        playfield: { gravity: 0, friction: 1, restitution: 0.5, maxSpeed: 200, width: 320, height: 260 },
+        elements: []
+    };
+    const flipper = {
+        id: "lf",
+        type: "flipper",
+        side: "left",
+        control: "left",
+        pivot: { x: 100, y: 130 },
+        length: 100,
+        restAngle: 0.55,
+        activeAngle: -0.55,
+        flipSpeed: 24,
+        flipAccel: 220,
+        returnSpeed: 18,
+        returnAccel: 160,
+        strikeBoost: 0.52,
+        surfaceRestitution: 0.28,
+        surfaceFriction: 0.08,
+        thickness: 10
+    };
+    const world = {
+        table: table,
+        controls: { left: true, right: false },
+        balls: [],
+        elementState: { "flipper:lf": { angle: 0, angularVelocity: -10 } },
+        staticSegments: [],
+        staticCircles: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        lastPhysicsDt: 1 / 120,
+        physicsTick: 10
+    };
+
+    world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+    const currentBlade = world.dynamicSegments[world.dynamicSegments.length - 1];
+    const angle = Math.atan2(currentBlade.y2 - currentBlade.y1, currentBlade.x2 - currentBlade.x1);
+    const tx = Math.cos(angle);
+    const ty = Math.sin(angle);
+    const nx = Math.sin(angle);
+    const ny = -Math.cos(angle);
+    const contactT = 0.95;
+    const contactRadius = 18;
+    const contactSlop = 8;
+    const ball = {
+        x: currentBlade.x1 + (currentBlade.x2 - currentBlade.x1) * contactT + nx * (contactRadius + 1),
+        y: currentBlade.y1 + (currentBlade.y2 - currentBlade.y1) * contactT + ny * (contactRadius + 1),
+        vx: 0,
+        vy: 0,
+        radius: 8,
+        level: 0,
+        supportContact: {
+            kind: "flipper",
+            hitKey: "flipper:lf",
+            controlActive: true,
+            tick: 0,
+            supportRadius: contactRadius + contactSlop,
+            contactRadius: contactRadius,
+            contactSlop: contactSlop,
+            surfaceFriction: 0.08,
+            surfaceVx: 0,
+            surfaceVy: 0,
+            tx: tx,
+            ty: ty,
+            nx: nx,
+            ny: ny
+        }
+    };
+    world.balls = [ball];
+
+    physics.stepWorld(world, 1 / 120);
+
+    assert(ball.supportContact, "nearby supported contact should remain active inside contact slop");
+    assert(Math.abs(ball.supportContact.tx - tx) < 0.001, "support tangent should match the current blade x direction");
+    assert(Math.abs(ball.supportContact.ty - ty) < 0.001, "support tangent should match the current blade y direction");
+}
+
+function testFlipperSupportedContactPreservesOutwardSeparation() {
+    // What: Let a ball peel away from a supported flipper contact.
+    // Why: support friction may oppose sliding, but it must not erase outward
+    // normal velocity or the contact becomes an adhesive grab near the tip.
+    const pin = loadFlipperModuleHarness();
+    const physics = loadPhysicsModuleHarness(pin);
+    const table = {
+        playfield: { gravity: 0, friction: 1, restitution: 0.5, maxSpeed: 200, width: 320, height: 260 },
+        elements: []
+    };
+    const flipper = {
+        id: "lf",
+        type: "flipper",
+        side: "left",
+        control: "left",
+        pivot: { x: 100, y: 130 },
+        length: 100,
+        restAngle: 0.55,
+        activeAngle: -0.55,
+        flipSpeed: 24,
+        flipAccel: 220,
+        returnSpeed: 18,
+        returnAccel: 160,
+        strikeBoost: 0.52,
+        surfaceRestitution: 0.28,
+        surfaceFriction: 0.08,
+        thickness: 10
+    };
+    const world = {
+        table: table,
+        controls: { left: true, right: false },
+        balls: [],
+        elementState: { "flipper:lf": { angle: flipper.activeAngle, angularVelocity: 0 } },
+        staticSegments: [],
+        staticCircles: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        lastPhysicsDt: 1 / 120,
+        physicsTick: 0
+    };
+
+    world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+    const currentBlade = world.dynamicSegments[world.dynamicSegments.length - 1];
+    const angle = Math.atan2(currentBlade.y2 - currentBlade.y1, currentBlade.x2 - currentBlade.x1);
+    const tx = Math.cos(angle);
+    const ty = Math.sin(angle);
+    const nx = Math.sin(angle);
+    const ny = -Math.cos(angle);
+    const contactT = 0.92;
+    const contactRadius = 18;
+    const contactSlop = 8;
+    const outwardSpeed = 0.3;
+    const ball = {
+        x: currentBlade.x1 + (currentBlade.x2 - currentBlade.x1) * contactT + nx * (contactRadius + 1),
+        y: currentBlade.y1 + (currentBlade.y2 - currentBlade.y1) * contactT + ny * (contactRadius + 1),
+        vx: nx * outwardSpeed,
+        vy: ny * outwardSpeed,
+        radius: 8,
+        level: 0,
+        supportContact: {
+            kind: "flipper",
+            hitKey: "flipper:lf",
+            controlActive: true,
+            tick: 0,
+            supportRadius: contactRadius + contactSlop,
+            contactRadius: contactRadius,
+            contactSlop: contactSlop,
+            surfaceFriction: 0.08,
+            surfaceVx: 0,
+            surfaceVy: 0,
+            tx: tx,
+            ty: ty,
+            nx: nx,
+            ny: ny
+        }
+    };
+    world.balls = [ball];
+
+    physics.stepWorld(world, 1 / 120);
+
+    const outwardNormalSpeed = ball.vx * nx + ball.vy * ny;
+    assert(outwardNormalSpeed > 0.2, "supported contact should preserve outward normal velocity");
+}
+
+function testFlipperRepeatedSameFrameContactStillResolves() {
+    // What: Resolve a flipper hit even when the same hit key was already seen.
+    // Why: flippers use onHit as their custom collision solver, so event
+    // de-duping must not suppress a second same-frame physics response.
+    const pin = loadFlipperModuleHarness();
+    const physics = loadPhysicsModuleHarness(pin);
+    const table = {
+        playfield: { gravity: 0, friction: 1, restitution: 0.5, maxSpeed: 200, width: 320, height: 240 },
+        elements: []
+    };
+    const flipper = {
+        id: "lf",
+        type: "flipper",
+        side: "left",
+        control: "left",
+        pivot: { x: 100, y: 120 },
+        length: 90,
+        restAngle: 0,
+        activeAngle: 0,
+        thickness: 10,
+        surfaceRestitution: 0.5,
+        surfaceFriction: 0,
+        strikeBoost: 0
+    };
+    const ball = {
+        x: 204,
+        y: 120,
+        vx: -2,
+        vy: 0,
+        radius: 5,
+        level: 0,
+        _hitFrame: { "flipper:lf": 1 }
+    };
+    const world = {
+        table: table,
+        controls: { left: false, right: false },
+        balls: [ball],
+        elementState: {},
+        staticSegments: [],
+        staticCircles: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        lastPhysicsDt: 1 / 120,
+        physicsTick: 0
+    };
+
+    world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+    physics.stepWorld(world, 1 / 120);
+
+    assert(ball.vx > 0, "custom flipper response should still rebound repeated same-frame contact");
+}
+
 function testSpinnerBladesDoNotBlockBall() {
     const pin = loadSpinnerModuleHarness();
     const spinner = {
@@ -716,6 +985,54 @@ function testGateDirectionModesCanOpen() {
     const forcedWorld = { table: table, elementState: {}, lastPhysicsDt: 1 / 120 };
     compile(forcedOpenGate, table, forcedWorld);
     assert(forcedWorld.elementState["gate:gate_forced_reverse"].angle < 0, "forced-open reverse gate should use the mirrored visual arc endpoint");
+
+    const authoredStartGate = {
+        id: "gate_authored_start",
+        type: "gate",
+        x: 0,
+        y: 0,
+        length: 64,
+        angle: 1.2,
+        direction: "forward",
+        open: true,
+        locked: false,
+        swingStartAngle: -0.2,
+        swingAngle: 0.8,
+        swingEndAngle: 2.8
+    };
+    const authoredWorld = { table: table, elementState: {}, lastPhysicsDt: 1 / 120 };
+    const authoredRuntime = compile(authoredStartGate, table, authoredWorld);
+    const authoredSegment = authoredRuntime.segments[0];
+    const authoredAngle = Math.atan2(authoredSegment.y2 - authoredSegment.y1, authoredSegment.x2 - authoredSegment.x1);
+    assert(Math.abs(authoredAngle - 0.6) < 0.001, "gate runtime should use swingStartAngle plus relative swingAngle, not stale angle/swingEndAngle");
+}
+
+function testGateSwingHandleUsesSmallSignedOpeningAngle() {
+    // What: Drag the gate opening handle across the atan2 +/-pi seam.
+    // Why: without normalizing the relative angle, a tiny edit turns the visual
+    // arc from a wedge into an almost full-circle pacman.
+    const hitTest = loadEditorHitTestHarness();
+    const gate = {
+        id: "gate_branch_cut",
+        type: "gate",
+        x: 0,
+        y: 0,
+        length: 64,
+        angle: 3.05,
+        swingStartAngle: 3.05,
+        swingAngle: 0.12,
+        swingEndAngle: 3.17,
+        direction: "forward"
+    };
+    const endpointAngle = -3.05;
+
+    hitTest.applyHandleDrag(gate, { kind: "swingEnd" }, {
+        x: Math.cos(endpointAngle) * gate.length,
+        y: Math.sin(endpointAngle) * gate.length
+    }, { x: 0, y: 0 }, {});
+
+    assert(Math.abs(gate.swingAngle - 0.1831853071795866) < 0.001, "gate swing handle should store the small seam-crossing opening angle");
+    assert(Math.abs((gate.swingEndAngle - gate.swingStartAngle) - gate.swingAngle) < 0.001, "legacy swingEndAngle should stay derived from the relative opening angle");
 }
 
 function testRuntimeSplitKeepsOnlyPhysicsElementsDynamic() {
@@ -1000,6 +1317,19 @@ function testStorageClearsOnlyPinLocalState() {
     assert.strictEqual(storage.getItem("pin.tables.autosave"), null, "clearApp should remove saved tables");
     assert.strictEqual(storage.getItem("pin.assistant.settings"), null, "clearApp should remove assistant settings");
     assert.strictEqual(storage.getItem("other.app"), "keep", "clearApp should leave unrelated keys alone");
+}
+
+function testLocalTableSaveAddsBrowseMetadata() {
+    const storage = memoryStorage();
+    const pinStorage = loadStorageModuleHarness(storage);
+    const table = { version: 1, name: "Saved Copy", playfield: {}, rules: {}, elements: [] };
+
+    pinStorage.local.save("slot1", table);
+    const saved = pinStorage.local.load("slot1");
+
+    assert.strictEqual(table.date, undefined, "local save should not mutate the live table object");
+    assert.strictEqual(saved.tableVersion, "1", "local save should add display tableVersion metadata");
+    assert(!Number.isNaN(Date.parse(saved.date)), "local save should add an ISO date for table browsing");
 }
 
 function testAssistantProviderSettingsPersist() {
@@ -1578,6 +1908,8 @@ function testCobraBonusTroughAdvancesScoreMultiplier() {
 
 Promise.resolve()
     .then(function run() { testIndexScriptsExistAndOrderCoreBeforeMain(); })
+    .then(function run() { testIndexLocalAssetsAreVersioned(); })
+    .then(function run() { testPhysicsLabLoadsEvalHarnessScripts(); })
     .then(function run() { testTableCatalogRefsExistAndAreStaticJson(); })
     .then(function run() { testDefaultTableNormalizesAndValidates(); })
     .then(function run() { testDrainWithoutTroughIsPlayable(); })
@@ -1586,9 +1918,13 @@ Promise.resolve()
     .then(function run() { testFlipperAngleStaysWithinAuthoredBounds(); })
     .then(function run() { testFlipperRoundedEndsUseRadialCollisionNormals(); })
     .then(function run() { testFlipperElbowReleaseDropsStaleSupportedContact(); })
+    .then(function run() { testFlipperSupportedContactUsesCurrentBlade(); })
+    .then(function run() { testFlipperSupportedContactPreservesOutwardSeparation(); })
+    .then(function run() { testFlipperRepeatedSameFrameContactStillResolves(); })
     .then(function run() { testSpinnerBladesDoNotBlockBall(); })
     .then(function run() { testSpinnerSweepContactDoesNotBlockBallTravel(); })
     .then(function run() { testGateDirectionModesCanOpen(); })
+    .then(function run() { testGateSwingHandleUsesSmallSignedOpeningAngle(); })
     .then(function run() { testRuntimeSplitKeepsOnlyPhysicsElementsDynamic(); })
     .then(function run() { testAdaptiveQualityControllerIgnoresSingleSpike(); })
     .then(function run() { testAdaptiveQualityControllerDropsOnSustainedPressure(); })
@@ -1607,6 +1943,7 @@ Promise.resolve()
     .then(function run() { testHighScoresAreTableScopedSortedAndCapped(); })
     .then(function run() { testHighScoresUseExplicitKeyAndThreeInitials(); })
     .then(function run() { testStorageClearsOnlyPinLocalState(); })
+    .then(function run() { testLocalTableSaveAddsBrowseMetadata(); })
     .then(function run() { testAssistantProviderSettingsPersist(); })
     .then(function run() { return testAssistantProviderConnectionAndModelFeedback(); })
     .then(function run() { return testAssistantConnectionRequiresBaseUrlAndApiKeyOnly(); })

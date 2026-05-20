@@ -227,6 +227,16 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
     color: #aeb8d8;
     font-size: 14px;
 }
+.table-selector-version {
+    display: inline-block;
+    margin-top: 10px !important;
+    padding: 4px 8px;
+    border: 1px solid rgba(112, 211, 158, 0.32);
+    border-radius: 999px;
+    color: #c9f5df !important;
+    background: rgba(45, 151, 104, 0.14);
+    font-size: 12px !important;
+}
 .table-selector-warning,
 .table-selector-empty {
     max-width: 1080px;
@@ -295,6 +305,34 @@ body { margin: 0; background: radial-gradient(circle at top, #171f3d 0, #0b1020 
 .table-card-loading {
     color: #9eaacc;
     font-size: 12px;
+}
+.table-card-source-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+.table-card-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding: 3px 7px;
+    border: 1px solid rgba(143, 160, 199, 0.32);
+    border-radius: 999px;
+    color: #d2d9ef;
+    background: rgba(143, 160, 199, 0.11);
+    font-size: 11px;
+    line-height: 1.2;
+}
+.table-card-chip.file {
+    border-color: rgba(117, 178, 255, 0.44);
+    color: #cfe4ff;
+    background: rgba(42, 116, 203, 0.18);
+}
+.table-card-chip.memory {
+    border-color: rgba(73, 190, 143, 0.48);
+    color: #c9f5df;
+    background: rgba(45, 151, 104, 0.18);
 }
 .table-card-loading {
     padding: 18px;

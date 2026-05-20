@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "PB-V2",
   "playfield": {
     "width": 500,
@@ -2998,11 +3000,11 @@
           "y": 460.8385947646838,
           "inHandle": {
             "x": 10.378413510638396,
-            "y": 5.684341886080802e-14
+            "y": 5.684341886080802E-14
           },
           "outHandle": {
             "x": -10.378413510638396,
-            "y": -5.684341886080802e-14
+            "y": -5.684341886080802E-14
           }
         },
         {
@@ -3098,7 +3100,8 @@
       "restitution": 0.75,
       "color": "#99ffcc",
       "pinColor": "#f7fbff",
-      "name": "gate_cs8tod"
+      "name": "gate_cs8tod",
+      "swingAngle": 2.181661564992912
     },
     {
       "id": "bumper_qt73gc",

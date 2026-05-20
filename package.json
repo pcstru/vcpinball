@@ -4,6 +4,7 @@
   "private": true,
   "description": "Static browser pinball game and table editor.",
   "scripts": {
-    "test": "node tests/run-all.js"
+    "test": "node tests/run-all.js",
+    "eval-agent": "node tools/eval-agent.js"
   }
 }

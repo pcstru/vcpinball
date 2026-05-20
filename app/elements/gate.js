@@ -24,11 +24,31 @@
         return normalizeDirection(configured);
     }
 
-    function gateSwingLimits(el, restAngle, direction) {
+    /*
+     * Resolve the authored closed angle for the gate blade.
+     * Why: older tables used both `angle` and `swingStartAngle`; using a single
+     * source here keeps editor preview, forced-open state, and collision aligned.
+     */
+    function gateRestAngle(el) {
+        if (typeof el.swingStartAngle === "number") return el.swingStartAngle;
+        if (typeof el.angle === "number") return el.angle;
+        return 0;
+    }
+
+    /*
+     * Resolve the signed opening span from rest to fully open.
+     * Why: users tune a relative opening angle, not an absolute world-space end
+     * bearing. `swingEndAngle` remains a legacy endpoint fallback.
+     */
+    function gateSwingSpan(el, restAngle) {
+        if (typeof el.swingAngle === "number" && Math.abs(el.swingAngle) > 0.001) return el.swingAngle;
+        if (typeof el.swingEndAngle === "number" && Math.abs(el.swingEndAngle - restAngle) > 0.001) return el.swingEndAngle - restAngle;
         const maxAngle = Math.abs(typeof el.maxAngle === "number" ? el.maxAngle : 1.05);
-        const end = typeof el.swingEndAngle === "number" ? el.swingEndAngle : restAngle + maxAngle;
-        const endpointDelta = end - restAngle;
-        const signedSpan = Math.abs(endpointDelta) > 0.001 ? endpointDelta : maxAngle;
+        return maxAngle;
+    }
+
+    function gateSwingLimits(el, restAngle, direction) {
+        const signedSpan = gateSwingSpan(el, restAngle);
         const span = Math.max(0.001, Math.abs(signedSpan));
         if (direction === "twoWay") {
             return {
@@ -61,7 +81,7 @@
     }
 
     function directionAllows(el, world, pushDirection) {
-        const restAngle = typeof el.angle === "number" ? el.angle : 0;
+        const restAngle = gateRestAngle(el);
         const direction = configuredDirection(el, world);
         const limits = gateSwingLimits(el, restAngle, direction);
         if (direction === "twoWay") return true;
@@ -91,7 +111,7 @@
         const pivotX = typeof el.x === "number" ? el.x : 0;
         const pivotY = typeof el.y === "number" ? el.y : 0;
         const length = Math.max(8, typeof el.length === "number" ? el.length : 64);
-        const restAngle = typeof el.angle === "number" ? el.angle : 0;
+        const restAngle = gateRestAngle(el);
         const localAngle = state && typeof state.angle === "number" ? state.angle : 0;
         const absolute = restAngle + localAngle;
         return {
@@ -117,7 +137,7 @@
         if (isLocked(el, world)) return;
         const state = Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0 });
         if ((world.physicsTick || 0) > 0 && state.lastKickTick === world.physicsTick) return;
-        const restAngle = typeof el.angle === "number" ? el.angle : 0;
+        const restAngle = gateRestAngle(el);
         const direction = configuredDirection(el, world);
         const limits = gateSwingLimits(el, restAngle, direction);
         const swingDirection = swingDirectionForPush(direction, pushDirection, limits);
@@ -134,7 +154,7 @@
                 Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0 }) :
                 { angle: 0, angularVelocity: 0 };
             const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
-            const restAngle = typeof el.angle === "number" ? el.angle : 0;
+            const restAngle = gateRestAngle(el);
             const direction = configuredDirection(el, world);
             const limits = gateSwingLimits(el, restAngle, direction);
             const returnStrength = typeof el.returnStrength === "number" ? el.returnStrength : 24;

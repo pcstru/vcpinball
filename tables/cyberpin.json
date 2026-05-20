@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "tableVersion": "1.0",
+  "date": "2026-05-17",
   "name": "Neon Cyberpin",
   "playfield": {
     "width": 500,
@@ -339,7 +341,8 @@
       "x": 390,
       "y": 170,
       "length": 46.09772228646444,
-      "angle": 0.8621700546672264
+      "angle": 0.8621700546672264,
+      "swingAngle": 0.85
     },
     {
       "id": "kicker1",

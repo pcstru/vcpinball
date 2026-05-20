@@ -40,7 +40,14 @@
             if (!gate || gate.type !== "gate" || !patch || typeof patch !== "object") return patch;
             const next = Pin.editorTools.clone(patch);
             const hasAngle = Object.prototype.hasOwnProperty.call(next, "angle");
-            if (!hasAngle) return next;
+            const hasSwingAngle = Object.prototype.hasOwnProperty.call(next, "swingAngle");
+            if (!hasAngle) {
+                if (hasSwingAngle) {
+                    const rest = typeof gate.swingStartAngle === "number" ? gate.swingStartAngle : (typeof gate.angle === "number" ? gate.angle : 0);
+                    next.swingEndAngle = rest + normalizeInput(next.swingAngle);
+                }
+                return next;
+            }
             const currentAngle = typeof gate.angle === "number" ? gate.angle : 0;
             const nextAngle = normalizeInput(next.angle);
             const delta = nextAngle - currentAngle;
@@ -49,6 +56,7 @@
                 next.swingEndAngle = currentEnd + delta;
             }
             next.swingStartAngle = nextAngle;
+            if (hasSwingAngle) next.swingEndAngle = nextAngle + normalizeInput(next.swingAngle);
             return next;
         }
 
@@ -66,9 +74,11 @@
         function mirrorGateArcForDirection(gate, previousDirection, nextDirection) {
             if (!gate || gate.type !== "gate" || previousDirection === nextDirection || nextDirection === "twoWay") return;
             if ((previousDirection !== "forward" && previousDirection !== "reverse") || (nextDirection !== "forward" && nextDirection !== "reverse")) return;
-            const angle = typeof gate.angle === "number" ? gate.angle : 0;
-            const end = typeof gate.swingEndAngle === "number" ? gate.swingEndAngle : angle + 1.05;
-            gate.swingEndAngle = angle - (end - angle);
+            const rest = typeof gate.swingStartAngle === "number" ? gate.swingStartAngle : (typeof gate.angle === "number" ? gate.angle : 0);
+            const span = typeof gate.swingAngle === "number" ? gate.swingAngle :
+                (typeof gate.swingEndAngle === "number" ? gate.swingEndAngle - rest : 1.05);
+            gate.swingAngle = -span;
+            gate.swingEndAngle = rest - span;
         }
 
         function patchTable(path, value) {
@@ -272,6 +282,10 @@
                 const delta = nextValue - previous;
                 if (typeof selected.swingEndAngle === "number") selected.swingEndAngle += delta;
             }
+            if (selected.type === "gate" && path === "swingAngle") {
+                const rest = typeof selected.swingStartAngle === "number" ? selected.swingStartAngle : (typeof selected.angle === "number" ? selected.angle : 0);
+                selected.swingEndAngle = rest + nextValue;
+            }
             Pin.editorTools.setByPath(selected, path, nextValue);
             if (selected.type === "gate" && path === "direction") mirrorGateArcForDirection(selected, previousDirection, normalizeGateDirection(nextValue));
             syncGateSwingStart(selected);
@@ -286,7 +300,12 @@
             pushUndo();
             const previousDirection = selected.type === "gate" ? normalizeGateDirection(selected.direction) : "";
             applyNormalizedPatch(selected, syncGateSwingPatch(selected, patch || {}));
-            if (selected.type === "gate" && Object.prototype.hasOwnProperty.call(patch || {}, "direction")) {
+            if (
+                selected.type === "gate" &&
+                Object.prototype.hasOwnProperty.call(patch || {}, "direction") &&
+                !Object.prototype.hasOwnProperty.call(patch || {}, "swingAngle") &&
+                !Object.prototype.hasOwnProperty.call(patch || {}, "swingEndAngle")
+            ) {
                 mirrorGateArcForDirection(selected, previousDirection, normalizeGateDirection(selected.direction));
             }
             syncGateSwingStart(selected);

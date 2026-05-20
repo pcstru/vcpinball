@@ -1,0 +1,371 @@
+{
+  "version": 1,
+  "name": "3Targ",
+  "playfield": {
+    "width": 500,
+    "height": 880,
+    "ballRadius": 14,
+    "gravity": 0.2,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 24
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [],
+    "stateTable": [],
+    "computedState": [],
+    "lampBindings": [],
+    "actionRules": [],
+    "resetRules": []
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "features": [],
+  "images": [],
+  "elements": [
+    {
+      "id": "outerWall",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 150,
+          "outHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 82,
+          "y": 72,
+          "inHandle": {
+            "x": -34,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 48,
+            "y": -22
+          }
+        },
+        {
+          "x": 250,
+          "y": 28,
+          "inHandle": {
+            "x": -62,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 62,
+            "y": 0
+          }
+        },
+        {
+          "x": 418,
+          "y": 72,
+          "inHandle": {
+            "x": -48,
+            "y": -22
+          },
+          "outHandle": {
+            "x": 34,
+            "y": 0
+          }
+        },
+        {
+          "x": 490,
+          "y": 150,
+          "inHandle": {
+            "x": 0,
+            "y": -58
+          }
+        },
+        {
+          "x": 490,
+          "y": 220
+        },
+        {
+          "x": 490,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 870
+        },
+        {
+          "x": 10,
+          "y": 220
+        }
+      ],
+      "name": "outerWall"
+    },
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 467.1503044403392,
+      "top": 684.7692453688011,
+      "bottom": 864.7692453688011,
+      "width": 34,
+      "maxPower": 42,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 130,
+        "y": 760
+      },
+      "length": 95,
+      "restAngle": 0.55,
+      "activeAngle": -0.55,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 360,
+        "y": 760
+      },
+      "length": 95,
+      "restAngle": 2.5915926535,
+      "activeAngle": 3.6915926535,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466",
+      "name": "rf"
+    },
+    {
+      "id": "gate_22b3aw",
+      "type": "gate",
+      "level": 0,
+      "x": 485.8010570223073,
+      "y": 530.7824812242105,
+      "length": 49.46872484669578,
+      "angle": 2.5052122894066158,
+      "direction": "reverse",
+      "open": false,
+      "locked": false,
+      "swingStartAngle": 2.5052122894066158,
+      "swingAngle": 2.1816615649929116,
+      "swingEndAngle": 4.686873854399527,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff",
+      "name": "gate_22b3aw"
+    },
+    {
+      "id": "drain_nkykr6",
+      "type": "drain",
+      "level": 0,
+      "x": 250,
+      "y": 860,
+      "w": 150,
+      "h": 24,
+      "name": "drain_nkykr6"
+    },
+    {
+      "id": "path_2i8k9g",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 444.2867271554448,
+          "y": 869.8712051125632
+        },
+        {
+          "x": 444.30792412774014,
+          "y": 565.3071330297821
+        },
+        {
+          "x": 410,
+          "y": 580
+        },
+        {
+          "x": 410,
+          "y": 720
+        },
+        {
+          "x": 360,
+          "y": 740
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_2i8k9g"
+    },
+    {
+      "id": "path_c2doqa",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 129.21134049677357,
+          "y": 740.0918841207149
+        },
+        {
+          "x": 49.21134049677359,
+          "y": 680.0918841207149,
+          "outHandle": {
+            "x": 0,
+            "y": -30
+          },
+          "inHandle": {
+            "x": 0,
+            "y": 30
+          }
+        },
+        {
+          "x": 49.21134049677359,
+          "y": 780.0918841207149
+        },
+        {
+          "x": 99.21134049677359,
+          "y": 780.0918841207149
+        },
+        {
+          "x": 99.21134049677359,
+          "y": 750.0918841207149
+        },
+        {
+          "x": 129.21134049677357,
+          "y": 740.0918841207149,
+          "inHandle": {
+            "x": 0,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_c2doqa"
+    },
+    {
+      "id": "path_tg3e66",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 810
+        },
+        {
+          "x": 170,
+          "y": 870
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_tg3e66"
+    },
+    {
+      "id": "path_jsusif",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 10,
+          "y": 590,
+          "outHandle": {
+            "x": 0.3321579852079015,
+            "y": 13.411989485453319
+          },
+          "inHandle": {
+            "x": -0.3321579852079015,
+            "y": -13.411989485453319
+          }
+        },
+        {
+          "x": 21.14702176316235,
+          "y": 618.0511563325086,
+          "outHandle": {
+            "x": 9.542526862900967,
+            "y": 8.274311696161817
+          },
+          "inHandle": {
+            "x": -9.542526862900967,
+            "y": -8.274311696161817
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_jsusif"
+    }
+  ],
+  "date": "2026-05-17T09:16:57.920Z",
+  "tableVersion": 1
+}

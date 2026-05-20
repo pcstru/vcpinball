@@ -435,9 +435,30 @@
             ball._passThroughHitTime[hitKey] = now;
         }
         ball._hitFrame = ball._hitFrame || {};
-        if (ball._hitFrame[hitKey] === world.physicsTick) return;
-        ball._hitFrame[hitKey] = world.physicsTick;
-        if (Pin.render && Pin.render.emitCollisionSparks) Pin.render.emitCollisionSparks(world, ball, hit);
+        const alreadyHitThisTick = ball._hitFrame[hitKey] === world.physicsTick;
+        // Custom collision solvers must still run on repeated same-tick contact;
+        // the de-dupe only suppresses duplicate visual/gameplay side effects.
+        if (!alreadyHitThisTick) {
+            ball._hitFrame[hitKey] = world.physicsTick;
+            if (Pin.render && Pin.render.emitCollisionSparks) Pin.render.emitCollisionSparks(world, ball, hit);
+        } else if (!collider.skipDefaultResolve) {
+            return;
+        }
+        /* What: Count accepted contacts on the world when callers need
+         * observability.
+         * Why: eval probes must abandon long-running stuck cases from the same
+         * collision path as gameplay, not from a separate geometry estimate.
+         */
+        if (world) {
+            world.physicsCollisionCount = (world.physicsCollisionCount || 0) + 1;
+            world.lastPhysicsCollision = {
+                hitKey: hitKey,
+                sourceId: collider.sourceId || collider.elementId || collider.id || "",
+                elementType: collider.elementType || "",
+                x: hit && typeof hit.cx === "number" ? hit.cx : ball.x,
+                y: hit && typeof hit.cy === "number" ? hit.cy : ball.y
+            };
+        }
         if (collider.onHit) collider.onHit(ball, hit, world);
     }
 
@@ -448,16 +469,19 @@
      */
     function findColliderByHitKey(world, hitKey) {
         const dynamicSegments = world.dynamicSegments || [];
-        for (let i = 0; i < dynamicSegments.length; i++) {
+        let sweepFallback = null;
+        for (let i = dynamicSegments.length - 1; i >= 0; i--) {
             const seg = dynamicSegments[i];
-            if (seg && seg.hitKey === hitKey) return seg;
+            if (!seg || seg.hitKey !== hitKey) continue;
+            if (!seg.sweepOnly) return seg;
+            if (!sweepFallback) sweepFallback = seg;
         }
         const staticSegments = world.staticSegments || [];
         for (let i = 0; i < staticSegments.length; i++) {
             const seg = staticSegments[i];
             if (seg && seg.hitKey === hitKey) return seg;
         }
-        return null;
+        return sweepFallback;
     }
 
     /*
@@ -501,40 +525,40 @@
         const dx = ball.x - closest.x;
         const dy = ball.y - closest.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const supportRadius = support.supportRadius || (ball.radius + (collider.thickness || 0));
-        const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-        if (distance > supportRadius && speed < 0.2 && distance < supportRadius + 12) {
-            const len = distance || 1;
-            const px = dx / len;
-            const py = dy / len;
-            ball.x = closest.x + px * supportRadius;
-            ball.y = closest.y + py * supportRadius;
-        }
-        const nextClosest = closestPointOnSegment(ball.x, ball.y, collider.x1, collider.y1, collider.x2, collider.y2);
-        const ndx = ball.x - nextClosest.x;
-        const ndy = ball.y - nextClosest.y;
-        const nextDistance = Math.sqrt(ndx * ndx + ndy * ndy);
-        if (currentControlActive && speed < 0.5 && nextDistance < supportRadius + 20 && nextClosest.t < 0.3) {
-            const len = nextDistance || 1;
-            const px = ndx / len;
-            const py = ndy / len;
-            const surfaceVelocity = getSupportedSurfaceVelocity(collider, support, nextClosest.t);
-            ball.x = nextClosest.x + px * Math.min(nextDistance, supportRadius);
-            ball.y = nextClosest.y + py * Math.min(nextDistance, supportRadius);
-            ball.vx = surfaceVelocity.x;
-            ball.vy = surfaceVelocity.y;
-            support.tick = world.physicsTick || 0;
-            return;
-        }
-        if (nextDistance > supportRadius) {
+        // Support is a narrow contact tolerance, not a magnetic capture band.
+        const contactRadius = support.contactRadius || support.supportRadius || (ball.radius + (collider.thickness || 0));
+        const contactSlop = typeof support.contactSlop === "number" ? support.contactSlop : 2;
+        if (distance > contactRadius + contactSlop) {
             ball.supportContact = null;
             return;
         }
         const hit = circleSegmentCollision(ball.x, ball.y, ball.radius, collider.x1, collider.y1, collider.x2, collider.y2, collider.thickness, ball.vx, ball.vy);
-        const normal = getResolveNormal(collider, ball, hit);
-        const tangentX = Math.cos(Math.atan2(collider.y2 - collider.y1, collider.x2 - collider.x1));
-        const tangentY = Math.sin(Math.atan2(collider.y2 - collider.y1, collider.x2 - collider.x1));
-        const surfaceVelocity = getSupportedSurfaceVelocity(collider, support, nextClosest.t);
+        const radialLen = distance || 1;
+        const fallbackHit = {
+            hit: hit.hit,
+            nx: hit.hit && typeof hit.nx === "number" ? hit.nx : dx / radialLen,
+            ny: hit.hit && typeof hit.ny === "number" ? hit.ny : dy / radialLen,
+            overlap: hit.hit && typeof hit.overlap === "number" ? hit.overlap : Math.max(0, contactRadius - distance),
+            t: hit.hit && typeof hit.t === "number" ? hit.t : closest.t
+        };
+        const normal = getResolveNormal(collider, ball, fallbackHit);
+        const segDx = collider.x2 - collider.x1;
+        const segDy = collider.y2 - collider.y1;
+        const segLen = Math.sqrt(segDx * segDx + segDy * segDy) || 1;
+        const bladeTangentX = segDx / segLen;
+        const bladeTangentY = segDy / segLen;
+        let tangentX = -normal.y;
+        let tangentY = normal.x;
+        if (tangentX * bladeTangentX + tangentY * bladeTangentY < 0) {
+            tangentX = -tangentX;
+            tangentY = -tangentY;
+        }
+        const penetration = Math.max(0, contactRadius - distance);
+        if (penetration > 0) {
+            ball.x += normal.x * (penetration + 0.01);
+            ball.y += normal.y * (penetration + 0.01);
+        }
+        const surfaceVelocity = getSupportedSurfaceVelocity(collider, support, closest.t);
         const surfaceVx = surfaceVelocity.x;
         const surfaceVy = surfaceVelocity.y;
         const relNx = (ball.vx - surfaceVx) * normal.x + (ball.vy - surfaceVy) * normal.y;
@@ -543,15 +567,15 @@
             ball.supportContact = null;
             return;
         }
-        const supportLoad = Math.max(0, (support.supportRadius || ball.radius) - Math.max(0, hit.overlap || 0));
         const friction = Math.max(0, support.surfaceFriction || 0);
         const gravity = (world.table && world.table.playfield && world.table.playfield.gravity) || 0;
         const inwardGravity = Math.max(0, -(gravity * normal.y));
         const inwardContact = Math.max(0, -relNx);
-        const normalLoad = inwardGravity + inwardContact + Math.max(0, supportLoad * 0.02);
+        const normalLoad = inwardGravity + inwardContact + penetration * 0.12;
         const frictionImpulse = Math.min(Math.abs(relTx), normalLoad * friction * subDt * 60);
         const nextRelTx = relTx - Math.sign(relTx || 1) * frictionImpulse;
-        const supportedNormal = relNx > 1.2 ? relNx : 0;
+        // Preserve outward normal motion so support behaves like contact, not glue.
+        const supportedNormal = Math.max(0, relNx);
         ball.vx = surfaceVx + tangentX * nextRelTx + normal.x * supportedNormal;
         ball.vy = surfaceVy + tangentY * nextRelTx + normal.y * supportedNormal;
         support.tick = world.physicsTick || 0;
