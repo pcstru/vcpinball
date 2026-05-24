@@ -12,3 +12,9 @@
 # Local GEPA launcher: real operator settings live in `.env`, not in a script
 # that someone will eventually stage while tired.
 tools/RunGepa.ps1
+
+# GEPA generates local run state, viz snapshots, and optimized prompt outputs.
+# These are operator artifacts, not source. Versioning them would just turn the
+# repo into a scrapbook of whichever experiment shouted last.
+tools/gepa/optimized-assistant-prompt.txt
+tools/gepa/runs/
