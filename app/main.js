@@ -113,6 +113,7 @@
                 left: false,
                 right: false
             },
+            tiltState: { lockout: false, cooldownUntil: 0, recentTimes: [] },
             elementState: {}
         };
         if (Pin.logicCompile && Pin.logicSim) {
@@ -218,15 +219,23 @@
         rightButton.className = "play-control-button flipper-right";
         rightButton.setAttribute("aria-label", "Right flipper");
         rightButton.textContent = "R";
+        const tiltButton = document.createElement("button");
+        tiltButton.type = "button";
+        tiltButton.className = "play-control-button tilt";
+        tiltButton.setAttribute("aria-label", "Tilt");
+        tiltButton.textContent = "Tilt";
+        tiltButton.style.display = "none";
         controls.appendChild(leftButton);
         controls.appendChild(launchButton);
         controls.appendChild(rightButton);
+        controls.appendChild(tiltButton);
         const help = document.createElement("div");
         help.className = "play-instructions";
         help.setAttribute("aria-label", "Help");
         help.innerHTML =
             "<p><strong>Play</strong> &mdash; <kbd>Space</kbd>: hold to charge, release to launch. " +
             "<kbd>Left Arrow</kbd>/<kbd>A</kbd>: left flipper. <kbd>Right Arrow</kbd>/<kbd>L</kbd>: right flipper. " +
+            "<kbd>Alt</kbd>: tilt bump. " +
             "<kbd>H</kbd>: hide/show touch buttons. " +
             "<kbd>R</kbd>: restart. <kbd>D</kbd>: open <strong>design (edit) mode</strong>. " +
             "Touch: use the buttons below the table, or hold/release the table while staged and hold left/right screen half for flippers.</p>" +
@@ -251,6 +260,32 @@
         const activePointers = {};
         let launchButtonPointerId = null;
         let controlsHidden = false;
+        let motionTiltEnabled = false;
+        let devicemotionHandler = null;
+        let canvasBackingScale = 1;
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        /*
+         * What: Apply adaptive canvas backing resolution for play-mode rendering.
+         * Why: lower resolution under sustained pressure reduces pixel fill cost
+         * while preserving authored table coordinates and input behavior.
+         */
+        function syncPlayCanvasResolution(pixelRatioScale) {
+            const pf = table.playfield;
+            const dpr = clamp(window.devicePixelRatio || 1, 1, 3);
+            const qualityScale = clamp(Number(pixelRatioScale) || 1, 0.55, 1);
+            const targetBackingScale = dpr * qualityScale;
+            const targetWidth = Math.max(1, Math.round(pf.width * targetBackingScale));
+            const targetHeight = Math.max(1, Math.round(pf.height * targetBackingScale));
+            if (canvas.width === targetWidth && canvas.height === targetHeight && canvasBackingScale === targetBackingScale) return;
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx.setTransform(targetBackingScale, 0, 0, targetBackingScale, 0, 0);
+            canvasBackingScale = targetBackingScale;
+        }
 
         // Fit the play surface to the viewport so the table is visible without browser zoom.
         function fitPlayCanvas() {
@@ -296,6 +331,7 @@
         }
 
         function launchBall() {
+            if (world.tiltState && world.tiltState.lockout) return;
             const ball = world.balls.find(function findBall(b) { return b.inLaunchLane; }) || world.balls[0];
             if (!ball) {
                 world.launchCharging = false;
@@ -336,6 +372,11 @@
         }
 
         function setTouchFlipper(side, pressed) {
+            if (world.tiltState && world.tiltState.lockout) {
+                world.controls.left = false;
+                world.controls.right = false;
+                return;
+            }
             if (!side) return;
             const code = side === "left" ? "ArrowLeft" : "ArrowRight";
             setFlipperControl(code, pressed);
@@ -362,6 +403,7 @@
             if (e.pointerType === "mouse" && e.button !== 0) return;
             e.preventDefault();
             Pin.audio.ensure();
+            if (world.tiltState && world.tiltState.lockout) return;
             if (highScoresAreVisible() || world.state === "game_over") {
                 startFromPlayPrompt();
                 return;
@@ -396,6 +438,7 @@
             if (e.pointerType === "mouse" && e.button !== 0) return;
             e.preventDefault();
             Pin.audio.ensure();
+            if (world.tiltState && world.tiltState.lockout) return;
             if (highScoresAreVisible() || world.state === "game_over") return;
             if (canvas.setPointerCapture) {
                 try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
@@ -424,6 +467,11 @@
         }
 
         function setFlipperControl(code, pressed) {
+            if (world.tiltState && world.tiltState.lockout) {
+                world.controls.left = false;
+                world.controls.right = false;
+                return;
+            }
             if (code === "ArrowLeft" || code === "KeyA") {
                 if (pressed && !world.controls.left && Pin.audio) Pin.audio.flipper();
                 world.controls.left = pressed;
@@ -431,6 +479,57 @@
             if (code === "ArrowRight" || code === "KeyL") {
                 if (pressed && !world.controls.right && Pin.audio) Pin.audio.flipper();
                 world.controls.right = pressed;
+            }
+        }
+
+        function triggerTilt() {
+            if (!Pin.physics || !Pin.physics.applyTilt) return;
+            if (world.tiltState && world.tiltState.lockout) return;
+            Pin.physics.applyTilt(world);
+        }
+
+        function shouldEnableMotionTilt() {
+            return typeof window !== "undefined" && typeof window.DeviceMotionEvent !== "undefined";
+        }
+
+        function onTiltButtonDown(e) {
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            e.preventDefault();
+            Pin.audio.ensure();
+            triggerTilt();
+        }
+
+        function installMotionTilt() {
+            if (!shouldEnableMotionTilt()) {
+                tiltButton.style.display = "";
+                return;
+            }
+            const threshold = 14;
+            devicemotionHandler = function onMotion(event) {
+                if (!event || !event.accelerationIncludingGravity) return;
+                const accel = event.accelerationIncludingGravity;
+                const mag = Math.sqrt(
+                    (accel.x || 0) * (accel.x || 0) +
+                    (accel.y || 0) * (accel.y || 0) +
+                    (accel.z || 0) * (accel.z || 0)
+                );
+                if (mag >= threshold) triggerTilt();
+            };
+            function enableMotionListener() {
+                if (motionTiltEnabled) return;
+                window.addEventListener("devicemotion", devicemotionHandler);
+                motionTiltEnabled = true;
+                tiltButton.style.display = "none";
+            }
+            if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+                DeviceMotionEvent.requestPermission().then(function afterPermission(result) {
+                    if (result === "granted") enableMotionListener();
+                    else tiltButton.style.display = "";
+                }).catch(function denied() {
+                    tiltButton.style.display = "";
+                });
+            } else {
+                enableMotionListener();
             }
         }
 
@@ -581,6 +680,7 @@
             world.ballsRemaining = table.rules.balls;
             world.score = 0;
             world.state = "ready";
+            if (Pin.physics && Pin.physics.clearTiltLockout) Pin.physics.clearTiltLockout(world);
             resetLaunchControl();
             playedGameOverSound = false;
             handledGameOverScores = false;
@@ -605,7 +705,12 @@
             Pin.audio.ensure();
             setFlipperControl(e.code, true);
             if (e.code === "ArrowLeft" || e.code === "ArrowRight" || e.code === "Space") e.preventDefault();
+            if ((e.code === "AltLeft" || e.code === "AltRight") && !e.repeat) {
+                e.preventDefault();
+                triggerTilt();
+            }
             if (e.code === "Space") {
+                if (world.tiltState && world.tiltState.lockout) return;
                 if (highScoresAreVisible() || world.state === "game_over") {
                     startFromPlayPrompt();
                     return;
@@ -632,16 +737,26 @@
 
         let last = performance.now();
         let accumulator = 0;
-        const fixedDt = 1 / 120;
+        const baseFixedDt = 1 / 120;
+        const maxBacklogSteps = 14;
         let perfLastLog = performance.now();
         const qualityController = (Pin.performance && Pin.performance.createAdaptiveQualityController) ?
             Pin.performance.createAdaptiveQualityController() :
             null;
+        let qualityProfile = { glowScale: 1, reducedEffects: false, pixelRatioScale: 1, sparkLimit: 220, trailEnabled: true };
+        syncPlayCanvasResolution(qualityProfile.pixelRatioScale);
         function frame(now) {
             if (!running) return;
             const frameDt = Math.min(0.08, (now - last) / 1000);
             last = now;
-            accumulator = Math.min(0.12, accumulator + frameDt);
+            const fixedDt = Pin.table && Pin.table.getFixedPhysicsDt ?
+                Pin.table.getFixedPhysicsDt(world && world.table && world.table.playfield) :
+                baseFixedDt;
+            const realTimeScale = Pin.table && Pin.table.getRealTimeScale ?
+                Pin.table.getRealTimeScale(world && world.table && world.table.playfield) :
+                1;
+            const scaledFrameDt = frameDt * realTimeScale;
+            accumulator = Math.min(fixedDt * maxBacklogSteps, accumulator + scaledFrameDt);
             while (accumulator >= fixedDt) {
                 world.lastPhysicsDt = fixedDt;
                 refreshRuntime(world);
@@ -650,6 +765,11 @@
                 perfEnd("stepWorld", physicsStartedAt);
                 if (Pin.events) Pin.events.processRules(world, fixedDt);
                 accumulator -= fixedDt;
+            }
+            if (world.tiltState && world.tiltState.lockout) {
+                world.controls.left = false;
+                world.controls.right = false;
+                world.launchCharging = false;
             }
             if (Pin.render && Pin.render.setQuality) {
                 /*
@@ -664,11 +784,14 @@
                         frameDt: frameDt,
                         backlogSteps: accumulator / fixedDt
                     }) :
-                    { glowScale: 1, reducedEffects: false };
-                Pin.render.setQuality(quality);
+                    { glowScale: 1, reducedEffects: false, pixelRatioScale: 1, sparkLimit: 220, trailEnabled: true };
+                qualityProfile = quality;
+                Pin.render.setQuality(qualityProfile);
             }
+            syncPlayCanvasResolution(qualityProfile.pixelRatioScale);
             const lifecycle = Pin.ballLifecycle.update(world);
             if (lifecycle.drained && Pin.audio) Pin.audio.drain();
+            if (lifecycle.drained && Pin.physics && Pin.physics.clearTiltLockout) Pin.physics.clearTiltLockout(world);
             if (world.state === "game_over" && !playedGameOverSound) {
                 if (Pin.audio) Pin.audio.gameOver();
                 playedGameOverSound = true;
@@ -719,6 +842,8 @@
         launchButton.addEventListener("pointerup", onLaunchButtonUp);
         launchButton.addEventListener("pointercancel", onLaunchButtonUp);
         launchButton.addEventListener("lostpointercapture", onLaunchButtonUp);
+        tiltButton.addEventListener("pointerdown", onTiltButtonDown);
+        installMotionTilt();
         root._pinballCleanup = function cleanupPlay() {
             running = false;
             if (frameRaf) {
@@ -748,6 +873,11 @@
             launchButton.removeEventListener("pointerup", onLaunchButtonUp);
             launchButton.removeEventListener("pointercancel", onLaunchButtonUp);
             launchButton.removeEventListener("lostpointercapture", onLaunchButtonUp);
+            tiltButton.removeEventListener("pointerdown", onTiltButtonDown);
+            if (motionTiltEnabled && devicemotionHandler) {
+                window.removeEventListener("devicemotion", devicemotionHandler);
+                motionTiltEnabled = false;
+            }
             world.controls.left = false;
             world.controls.right = false;
             world.launchCharging = false;

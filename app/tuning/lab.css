@@ -125,6 +125,10 @@ body {
     margin: 0;
 }
 
+.lab-top-nav {
+    margin: 0;
+}
+
 .lab-perf {
     margin-left: auto;
     color: #9fb1d6;
@@ -278,6 +282,30 @@ body {
     font-size: 13px;
 }
 
+.lab-eval-run-list {
+    max-height: 180px;
+    overflow: auto;
+    border: 1px solid rgba(120, 140, 190, 0.22);
+    border-radius: 8px;
+    background: rgba(11, 16, 27, 0.58);
+    padding: 6px 8px;
+    margin: 4px 0 10px;
+}
+
+.lab-eval-run-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+    color: #dbe7ff;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.lab-eval-run-check input[type="checkbox"] {
+    cursor: pointer;
+}
+
 .lab-progress {
     height: 6px;
     margin: 0 0 10px;
@@ -338,6 +366,27 @@ body {
     padding: 8px;
     margin-bottom: 7px;
     background: rgba(11, 16, 27, 0.66);
+}
+
+.lab-eval-check-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.lab-eval-run-one {
+    border: 1px solid rgba(120, 140, 190, 0.34);
+    border-radius: 6px;
+    background: rgba(24, 34, 52, 0.92);
+    color: #dbe7ff;
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.lab-eval-run-one:hover {
+    border-color: rgba(160, 195, 255, 0.72);
 }
 
 .lab-eval-check.pass {

@@ -1,7 +1,10 @@
 (function initRenderer(Pin) {
     const quality = {
         glowScale: 1,
-        reducedEffects: false
+        reducedEffects: false,
+        pixelRatioScale: 1,
+        sparkLimit: 220,
+        trailEnabled: true
     };
     const imageCache = {};
     const staticCache = {
@@ -15,8 +18,7 @@
         reducedEffects: false,
         dirty: true
     };
-    const SPARK_LIMIT = 220;
-    
+
     function createImageEntry(src) {
         const image = new Image();
         const entry = {
@@ -86,7 +88,9 @@
      */
     function addSpark(world, x, y, vx, vy, life, size, color) {
         const sparks = sparkList(world);
-        if (sparks.length >= SPARK_LIMIT) sparks.splice(0, sparks.length - SPARK_LIMIT + 1);
+        const sparkLimit = Math.max(0, Math.floor(Number(quality.sparkLimit) || 0));
+        if (!sparkLimit) return;
+        if (sparks.length >= sparkLimit) sparks.splice(0, sparks.length - sparkLimit + 1);
         sparks.push({
             x: x,
             y: y,
@@ -105,7 +109,7 @@
      * without relying on render-frame timing or random frame drops.
      */
     function emitBallTrail(world, ball, dt) {
-        if (!world || !ball || ball.inLaunchLane || quality.reducedEffects) return;
+        if (!world || !ball || ball.inLaunchLane || quality.reducedEffects || !quality.trailEnabled) return;
         const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
         if (speed < 2) return;
         ball._sparkTrailCarry = (ball._sparkTrailCarry || 0) + speed * dt * 1.2;
@@ -591,6 +595,15 @@
                     quality.reducedEffects = next.reducedEffects;
                     changed = true;
                 }
+            }
+            if (typeof next.pixelRatioScale === "number" && Number.isFinite(next.pixelRatioScale)) {
+                quality.pixelRatioScale = Math.max(0.55, Math.min(1, next.pixelRatioScale));
+            }
+            if (typeof next.sparkLimit === "number" && Number.isFinite(next.sparkLimit)) {
+                quality.sparkLimit = Math.max(0, Math.min(400, Math.floor(next.sparkLimit)));
+            }
+            if (typeof next.trailEnabled === "boolean") {
+                quality.trailEnabled = next.trailEnabled;
             }
             if (changed) staticCache.dirty = true;
         }

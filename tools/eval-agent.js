@@ -182,6 +182,7 @@ function loadPinRuntime() {
         "app/elements/ramp.js",
         "app/rules.js",
         "app/physics.js",
+        "app/aiPromptContract.js",
         "app/aiLabContract.js",
         "app/tableEval.js"
     ].forEach(function each(file) {
@@ -322,6 +323,98 @@ function hashTable(table) {
     return crypto.createHash("sha256").update(JSON.stringify(table)).digest("hex");
 }
 
+function defaultLogicDocument(table) {
+    return table && table.logicDocument
+        ? table.logicDocument
+        : {
+            logicVersion: 1,
+            switchRegistry: [],
+            stateTable: [],
+            computedState: [],
+            lampBindings: [],
+            actionRules: [],
+            resetRules: []
+        };
+}
+
+function compactPromptContext(table, evalReport) {
+    /*
+     * What: Build the same kind of compact schema context used by the browser assistant.
+     * Why: Offline prompt optimization must test against realistic context without sending
+     * entire table JSON blobs that obscure contract failures.
+     * Correctness: The candidate/switch/lamp lists are derived from current table elements,
+     * and the executable logic source is the table logicDocument schema used by validators.
+     */
+    const switchTypes = {
+        lane: true,
+        dropTarget: true,
+        bumper: true,
+        scoreZone: true,
+        drain: true,
+        spinner: true,
+        kicker: true,
+        trough: true,
+        gate: true
+    };
+    const lampTypes = {
+        light: true,
+        arrowLight: true,
+        boxLight: true,
+        dropTarget: true,
+        lane: true
+    };
+    const elements = Array.isArray(table && table.elements) ? table.elements : [];
+    return {
+        tableName: table && table.name || "",
+        summary: evalReport && evalReport.summary ? evalReport.summary : null,
+        failedChecks: ((evalReport && evalReport.checks) || []).filter(function filter(check) {
+            return check && check.status === "fail";
+        }).map(function map(check) {
+            return { id: check.id, message: check.message };
+        }).slice(0, 16),
+        features: Array.isArray(table && table.features) ? table.features : [],
+        selected: null,
+        elements: elements.map(function map(el) {
+            return { id: el.id, type: el.type, name: el.name || el.label || el.text || "" };
+        }),
+        switchCandidates: elements.filter(function filter(el) {
+            return el && el.id && switchTypes[el.type];
+        }).map(function map(el) {
+            return { id: el.id, type: el.type, name: el.name || el.label || el.id };
+        }),
+        lampCandidates: elements.filter(function filter(el) {
+            return el && el.id && lampTypes[el.type];
+        }).map(function map(el) {
+            const lampId = el.type === "dropTarget" ? String(el.id) : String(el.lampId || el.id);
+            return { lampId: lampId, sourceElementId: el.id, type: el.type, name: el.name || el.label || el.text || lampId };
+        }),
+        timerSwitches: [
+            { id: "timer_100ms", kind: "timer", intervalMs: 100 },
+            { id: "timer_1s", kind: "timer", intervalMs: 1000 }
+        ],
+        logicDoc: defaultLogicDocument(table)
+    };
+}
+
+function buildCandidatePatchPrompt(candidateText, task, context, repairNote) {
+    /*
+     * What: Render a GEPA prompt candidate into a concrete patch-generation prompt.
+     * Why: GEPA should mutate the schema instructions while the task/context envelope
+     * remains stable and auditable.
+     * Correctness: The evaluator always appends the same task, context, and repair fields,
+     * so score changes are attributable to the candidate instructions.
+     */
+    const out = [
+        String(candidateText || "").trim(),
+        "Task:",
+        String(task || "").trim(),
+        "Table context:",
+        JSON.stringify(context || {})
+    ];
+    if (repairNote) out.push("Repair note:\n" + repairNote);
+    return out.join("\n");
+}
+
 function appendDatasetRecord(filePath, record) {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.appendFileSync(filePath, JSON.stringify(record) + "\n", "utf8");
@@ -407,6 +500,38 @@ function parsePatchJson(text) {
     return null;
 }
 
+function parseEvalChecksArg(value) {
+    /*
+     * What: Parse a comma-separated eval-check selection for prompt-eval runs.
+     * Why: prompt optimization sometimes needs only schema/logic validation,
+     * not the full "let us launch 10,000 rays because we can" experience.
+     */
+    if (value == null) return null;
+    const items = String(value)
+        .split(",")
+        .map(function map(item) { return String(item || "").trim(); })
+        .filter(function filter(item) { return !!item; });
+    return items.length ? items : [];
+}
+
+function scorePromptResult(result) {
+    /*
+     * What: Convert patch/eval feedback into a bounded GEPA metric.
+     * Why: GEPA needs a scalar objective, while reflection still receives the detailed
+     * side information through the JSON result emitted by prompt-eval.
+     * Correctness: Contract/schema failures dominate the penalty because those are the
+     * prompt problems this optimizer is intended to reduce.
+     */
+    const contractPenalty = (result.contractIssues || []).length * 0.18;
+    const validationPenalty = (result.validationIssues || []).length * 0.12;
+    const summary = result.evalReport && result.evalReport.summary ? result.evalReport.summary : {};
+    const failPenalty = Number(summary.failed || 0) * 0.16;
+    const warnPenalty = Number(summary.warnings || 0) * 0.04;
+    const base = result.accepted ? 1 : 0.35;
+    const score = Math.max(0, Math.min(1, base - contractPenalty - validationPenalty - failPenalty - warnPenalty));
+    return Math.round(score * 10000) / 10000;
+}
+
 async function main() {
     const args = parseArgs(process.argv.slice(2));
     const cmd = args._[0] || "help";
@@ -414,7 +539,8 @@ async function main() {
         process.stdout.write(
             "Usage:\n" +
             "  node tools/eval-agent.js validate-patch --table <table.json> --patch <patch.json> [--out <result.json>] [--dataset <records.jsonl>]\n" +
-            "  node tools/eval-agent.js provider-loop --table <table.json> --prompt <text> [--max-steps 4] [--dataset <records.jsonl>]\n"
+            "  node tools/eval-agent.js provider-loop --table <table.json> --prompt <text> [--max-steps 4] [--dataset <records.jsonl>]\n" +
+            "  node tools/eval-agent.js prompt-eval --table <table.json> --task <text> --candidate <prompt.txt> [--max-steps 2] [--eval-checks table_validation,compilation] [--dataset <records.jsonl>]\n"
         );
         return;
     }
@@ -532,6 +658,87 @@ async function main() {
         process.stdout.write(JSON.stringify(finalPayload, null, 2) + "\n");
         return;
     }
+    if (cmd === "prompt-eval") {
+        const tablePath = args.table ? path.resolve(args.table) : "";
+        const task = String(args.task || "").trim();
+        const candidatePath = args.candidate ? path.resolve(args.candidate) : "";
+        if (!tablePath || !task || !candidatePath) throw new Error("prompt-eval requires --table, --task, and --candidate");
+        const table = loadJson(tablePath);
+        const candidateText = fs.readFileSync(candidatePath, "utf8");
+        const maxSteps = Math.max(1, Number(args["max-steps"] || 2));
+        const evalChecks = parseEvalChecksArg(args["eval-checks"]);
+        let repair = "";
+        let lastEvalReport = null;
+        let finalPayload = null;
+        for (let step = 1; step <= maxSteps; step++) {
+            const context = compactPromptContext(table, lastEvalReport);
+            const prompt = buildCandidatePatchPrompt(candidateText, task, context, repair);
+            const raw = await callProvider(prompt, process.env);
+            const patch = parsePatchJson(raw);
+            if (!patch) {
+                finalPayload = {
+                    attempt: step,
+                    accepted: false,
+                    score: 0,
+                    patch: null,
+                    contractIssues: ["Response was not valid JSON patch."],
+                    validationIssues: [],
+                    evalReport: null,
+                    rawResponseSample: raw.slice(0, 1000),
+                    contractVersion: 0,
+                    runtimeFingerprint: "",
+                    physicsContract: ""
+                };
+                repair = "Response was not valid JSON patch. Return only one JSON object using the supported patch keys.";
+                continue;
+            }
+            const result = evaluatePatch(pin, table, patch, evalChecks ? { evalChecks: evalChecks } : {});
+            finalPayload = {
+                attempt: step,
+                accepted: !!result.accepted,
+                patch: patch,
+                contractIssues: result.contractIssues || [],
+                validationIssues: result.validationIssues || [],
+                evalReport: result.evalReport || null,
+                contractVersion: result.contractVersion || 0,
+                runtimeFingerprint: result.runtimeFingerprint || "",
+                physicsContract: result.physicsContract || ""
+            };
+            finalPayload.score = scorePromptResult(finalPayload);
+            lastEvalReport = finalPayload.evalReport;
+            if (args.dataset) {
+                appendDatasetRecord(path.resolve(args.dataset), {
+                    runId: "prompt_eval_" + Date.now(),
+                    timestamp: new Date().toISOString(),
+                    tableId: path.basename(tablePath),
+                    task: task,
+                    attempt: step,
+                    model: String(process.env.PIN_AI_MODEL || ""),
+                    score: finalPayload.score,
+                    patch: patch,
+                    accepted: finalPayload.accepted,
+                    contractIssues: finalPayload.contractIssues,
+                    validationIssues: finalPayload.validationIssues,
+                    evalReport: finalPayload.evalReport
+                });
+            }
+            if (finalPayload.accepted) break;
+            repair =
+                "Contract issues: " + JSON.stringify(finalPayload.contractIssues || []) + "\n" +
+                "Validation issues: " + JSON.stringify((finalPayload.validationIssues || []).slice(0, 20)) + "\n" +
+                "Eval failed checks: " + JSON.stringify(
+                    ((finalPayload.evalReport && finalPayload.evalReport.checks) || []).filter(function filter(check) {
+                        return check && check.status === "fail";
+                    }).map(function map(check) {
+                        return { id: check.id, message: check.message };
+                    }).slice(0, 20)
+                );
+        }
+        if (!finalPayload) throw new Error("No prompt evaluation result produced.");
+        if (args.out) fs.writeFileSync(path.resolve(args.out), JSON.stringify(finalPayload, null, 2), "utf8");
+        process.stdout.write(JSON.stringify(finalPayload, null, 2) + "\n");
+        return;
+    }
     throw new Error("Unknown command: " + cmd);
 }
 
@@ -546,5 +753,8 @@ module.exports = {
     loadPinRuntime: loadPinRuntime,
     validatePatchContract: validatePatchContract,
     applyAssistantPatchToTable: applyAssistantPatchToTable,
-    evaluatePatch: evaluatePatch
+    evaluatePatch: evaluatePatch,
+    compactPromptContext: compactPromptContext,
+    buildCandidatePatchPrompt: buildCandidatePatchPrompt,
+    scorePromptResult: scorePromptResult
 };

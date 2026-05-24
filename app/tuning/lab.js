@@ -166,6 +166,25 @@
             maxSpeed: 24,
             ballRadius: 8
         }, (Pin.table && Pin.table.DEFAULT_PLAYFIELD) || {});
+        const evalRunChecks = (Pin.tableEval && typeof Pin.tableEval.listChecks === "function")
+            ? Pin.tableEval.listChecks()
+            : [
+                { id: "table_validation", label: "Table Schema Validation", category: "static" },
+                { id: "playability_validation", label: "Playability Validation", category: "static" },
+                { id: "ids_and_types", label: "Element IDs and Types", category: "static" },
+                { id: "numeric_fields", label: "Numeric Field Validation", category: "static" },
+                { id: "bounds", label: "Playfield Bounds", category: "static" },
+                { id: "compilation", label: "Runtime Compilation", category: "static" },
+                { id: "launcher_rays", label: "Launcher Reachability Rays", category: "stuck" },
+                { id: "flipper_reachability", label: "Flipper Reachability Rays", category: "reachability" },
+                { id: "target_to_flipper_reachability", label: "Target To Flipper Reachability", category: "reachability" },
+                { id: "reachability_todo", label: "Reachability TODO Reminder", category: "reachability" }
+            ];
+        const defaultEvalSelection = {};
+        evalRunChecks.forEach(function each(check) {
+            if (!check || typeof check.id !== "string") return;
+            defaultEvalSelection[check.id] = true;
+        });
         const root = document.getElementById("app");
         const state = {
             scenarioId: Pin.physicsHarness.scenarios[0].id,
@@ -185,6 +204,8 @@
                 launchMaxTicks: 10000,
                 targetRayCount: 7,
                 targetMaxBounces: 5,
+                runChecks: evalRunChecks,
+                selectedChecks: defaultEvalSelection,
                 runId: 0,
                 running: false
             },
@@ -193,6 +214,7 @@
                 running: false,
                 providerChecking: false,
                 providerLastCheckedMs: 0,
+                modelsLoading: false,
                 mode: "stepwise",
                 autoEnabled: false,
                 batchEnabled: false,
@@ -293,6 +315,16 @@
         tabBody.appendChild(evalPanel);
         tabBody.appendChild(aiPanel);
 
+        const navRow = create("div", "lab-actions lab-top-nav");
+        const navSelector = create("button", "", "Selector");
+        const navPlay = create("button", "", "Play");
+        const navDesign = create("button", "", "Design");
+        const navLogic = create("button", "", "Logic");
+        navRow.appendChild(navSelector);
+        navRow.appendChild(navPlay);
+        navRow.appendChild(navDesign);
+        navRow.appendChild(navLogic);
+        topBar.appendChild(navRow);
         const scenarioSelect = create("select", "lab-select");
         Pin.physicsHarness.scenarios.forEach(function each(entry) {
             const opt = document.createElement("option");
@@ -369,9 +401,18 @@
         const evalManifestInfo = create("div", "small", "Manifest tables: 0");
         const evalActions = create("div", "lab-actions");
         const loadTableButton = create("button", "", "Load Table");
-        const runEvalButton = create("button", "", "Run Evaluation");
+        const runSelectedEvalButton = create("button", "", "Run Selected");
+        const runAllEvalButton = create("button", "", "Run All");
+        const evalSelectionActions = create("div", "lab-actions");
+        const evalSelectAllButton = create("button", "", "Select All");
+        const evalClearAllButton = create("button", "", "Clear All");
+        const evalSelectionSummary = create("div", "small", "");
+        const evalRunChecksList = create("div", "lab-eval-run-list");
         evalActions.appendChild(loadTableButton);
-        evalActions.appendChild(runEvalButton);
+        evalActions.appendChild(runSelectedEvalButton);
+        evalActions.appendChild(runAllEvalButton);
+        evalSelectionActions.appendChild(evalSelectAllButton);
+        evalSelectionActions.appendChild(evalClearAllButton);
         const launchRayRow = create("label", "lab-inline-field");
         launchRayRow.textContent = "Rays per source";
         const launchRayInput = document.createElement("input");
@@ -430,6 +471,9 @@
         evalWrap.appendChild(evalTableSelect);
         evalWrap.appendChild(evalManifestInfo);
         evalWrap.appendChild(evalActions);
+        evalWrap.appendChild(evalSelectionActions);
+        evalWrap.appendChild(evalSelectionSummary);
+        evalWrap.appendChild(evalRunChecksList);
         evalWrap.appendChild(launchRayRow);
         evalWrap.appendChild(launchCollisionRow);
         evalWrap.appendChild(launchTickRow);
@@ -443,6 +487,50 @@
         aiPanel.appendChild(create("h2", "", "AI-Lab"));
         aiPanel.appendChild(create("p", "small", "Visibility-first patch loop using shared contract and evaluator runtime."));
         const aiWrap = create("div", "lab-group");
+        const aiProviderLabelRow = create("label", "lab-inline-field");
+        aiProviderLabelRow.textContent = "Provider label";
+        const aiProviderLabelInput = document.createElement("input");
+        aiProviderLabelInput.type = "text";
+        aiProviderLabelInput.className = "lab-number";
+        aiProviderLabelInput.placeholder = "OpenAI-compatible";
+        aiProviderLabelRow.appendChild(aiProviderLabelInput);
+        const aiBaseUrlRow = create("label", "lab-inline-field");
+        aiBaseUrlRow.textContent = "Base URL";
+        const aiBaseUrlInput = document.createElement("input");
+        aiBaseUrlInput.type = "text";
+        aiBaseUrlInput.className = "lab-number";
+        aiBaseUrlInput.placeholder = "https://api.openai.com/v1";
+        aiBaseUrlRow.appendChild(aiBaseUrlInput);
+        const aiModelRow = create("label", "lab-inline-field");
+        aiModelRow.textContent = "Model";
+        const aiModelInput = document.createElement("input");
+        aiModelInput.type = "text";
+        aiModelInput.className = "lab-number";
+        aiModelInput.placeholder = "gpt-4.1";
+        aiModelRow.appendChild(aiModelInput);
+        const aiModelPickRow = create("label", "lab-inline-field");
+        aiModelPickRow.textContent = "Models";
+        const aiModelSelect = document.createElement("select");
+        aiModelSelect.className = "lab-select";
+        const aiModelDefaultOpt = document.createElement("option");
+        aiModelDefaultOpt.value = "";
+        aiModelDefaultOpt.textContent = "(choose discovered model)";
+        aiModelSelect.appendChild(aiModelDefaultOpt);
+        aiModelPickRow.appendChild(aiModelSelect);
+        const aiApiKeyRow = create("label", "lab-inline-field");
+        aiApiKeyRow.textContent = "API key";
+        const aiApiKeyInput = document.createElement("input");
+        aiApiKeyInput.type = "password";
+        aiApiKeyInput.className = "lab-number";
+        aiApiKeyInput.placeholder = "sk-...";
+        aiApiKeyRow.appendChild(aiApiKeyInput);
+        const aiProviderSettingsRow = create("div", "lab-actions");
+        const aiProviderSaveBtn = create("button", "", "Save Provider");
+        const aiProviderClearBtn = create("button", "", "Clear Provider");
+        const aiProviderModelsBtn = create("button", "", "Load Models");
+        aiProviderSettingsRow.appendChild(aiProviderSaveBtn);
+        aiProviderSettingsRow.appendChild(aiProviderClearBtn);
+        aiProviderSettingsRow.appendChild(aiProviderModelsBtn);
         const aiPrompt = document.createElement("textarea");
         aiPrompt.className = "lab-export";
         aiPrompt.style.minHeight = "90px";
@@ -486,6 +574,12 @@
         aiFlagRow.appendChild(aiStopWarnBtn);
         aiFlagRow.appendChild(aiManualApplyBtn);
         const aiAttempts = create("div", "lab-eval-checks lab-scroll-list");
+        aiWrap.appendChild(aiProviderLabelRow);
+        aiWrap.appendChild(aiBaseUrlRow);
+        aiWrap.appendChild(aiModelRow);
+        aiWrap.appendChild(aiModelPickRow);
+        aiWrap.appendChild(aiApiKeyRow);
+        aiWrap.appendChild(aiProviderSettingsRow);
         aiWrap.appendChild(aiPrompt);
         aiWrap.appendChild(aiProviderStatus);
         aiWrap.appendChild(aiProviderRow);
@@ -561,6 +655,102 @@
             state.runtime.dirty = true;
         }
 
+        /* What: Collect currently checked evaluator test IDs.
+         * Why: Run Selected needs a stable list of requested checks.
+         */
+        function selectedEvalRunCheckIds() {
+            return (state.eval.runChecks || []).filter(function filter(check) {
+                return check && typeof check.id === "string" && !!state.eval.selectedChecks[check.id];
+            }).map(function map(check) {
+                return check.id;
+            });
+        }
+
+        /* What: Keep eval-run controls consistent with selection/run state.
+         * Why: disabling invalid actions avoids confusing no-op runs.
+         */
+        function updateEvalRunSelectionSummary() {
+            const selectedCount = selectedEvalRunCheckIds().length;
+            const totalCount = (state.eval.runChecks || []).length;
+            evalSelectionSummary.textContent = "Selected checks: " + selectedCount + " / " + totalCount;
+            runSelectedEvalButton.disabled = state.eval.running || selectedCount === 0;
+            runAllEvalButton.disabled = state.eval.running;
+            loadTableButton.disabled = state.eval.running;
+            evalSelectAllButton.disabled = state.eval.running;
+            evalClearAllButton.disabled = state.eval.running;
+        }
+
+        /* What: Render the eval checklist with one checkbox per test group.
+         * Why: operators need direct control over individual vs batch runs.
+         */
+        function renderEvalRunChecksList() {
+            evalRunChecksList.innerHTML = "";
+            const checks = state.eval.runChecks || [];
+            if (!checks.length) {
+                evalRunChecksList.appendChild(create("div", "small", "No selectable checks were reported by evaluator."));
+                updateEvalRunSelectionSummary();
+                state.runtime.dirty = true;
+                return;
+            }
+            checks.forEach(function each(check) {
+                if (!check || typeof check.id !== "string") return;
+                const row = create("label", "lab-eval-run-check");
+                const box = document.createElement("input");
+                box.type = "checkbox";
+                box.checked = !!state.eval.selectedChecks[check.id];
+                box.disabled = state.eval.running;
+                box.onchange = function onEvalRunCheckChange() {
+                    state.eval.selectedChecks[check.id] = !!box.checked;
+                    updateEvalRunSelectionSummary();
+                };
+                const text = create("span", "", check.label || check.id);
+                row.appendChild(box);
+                row.appendChild(text);
+                evalRunChecksList.appendChild(row);
+            });
+            updateEvalRunSelectionSummary();
+            state.runtime.dirty = true;
+        }
+
+        /* What: Map a rendered report row back to evaluator check groups.
+         * Why: row-level reruns need deterministic routing to the underlying
+         * test family that produced the selected check result.
+         */
+        function evalCheckGroupsForCheck(check) {
+            if (!check || typeof check.id !== "string") return [];
+            const id = check.id;
+            if (id === "table_object" || id === "validate_table" || id.indexOf("schema_issue_") === 0) return ["table_validation"];
+            if (id === "playability_issues" || id.indexOf("playability_issue_") === 0) return ["playability_validation"];
+            if (id === "element_ids_present" || id === "element_ids_unique" || id === "known_element_types" || id.indexOf("missing_type_") === 0) {
+                return ["ids_and_types"];
+            }
+            if (
+                id === "playfield_dimensions" ||
+                id.indexOf("finite_") === 0 ||
+                id.indexOf("anchor_finite_") === 0 ||
+                id.indexOf("drain_size_") === 0 ||
+                id.indexOf("launcher_shape_") === 0
+            ) {
+                return ["numeric_fields"];
+            }
+            if (id === "elements_near_playfield") return ["bounds"];
+            if (
+                id === "compile_runtime" ||
+                id === "spawn_ball" ||
+                id === "physics_numeric_stability" ||
+                id === "physics_motion" ||
+                id === "world_bounds" ||
+                id === "drain_observed"
+            ) {
+                return ["compilation"];
+            }
+            if (id === "stuck_launcher_ray" || id === "launcher_velocity_spread") return ["launcher_rays"];
+            if (id === "reachability_flipper_rays") return ["flipper_reachability"];
+            if (id === "reachability_target_to_flipper") return ["target_to_flipper_reachability"];
+            if (id === "reachability_todo") return ["reachability_todo"];
+            return [];
+        }
+
         function renderEvalReport(report) {
             if (!report) {
                 setEvalStatus("No report yet.");
@@ -569,6 +759,7 @@
                 evalReport.value = "";
                 setEvalCheckDetail(null);
                 state.eval.selectedCheckIndex = -1;
+                updateEvalRunSelectionSummary();
                 state.runtime.dirty = true;
                 return;
             }
@@ -587,7 +778,22 @@
                     const row = create("div", "lab-eval-check " + check.status);
                     row.tabIndex = 0;
                     if (state.eval.selectedCheckIndex === checkIndex) row.className += " selected";
-                    row.appendChild(create("strong", "", "[" + statusText(check.status) + "] " + check.id));
+                    const titleRow = create("div", "lab-eval-check-head");
+                    titleRow.appendChild(create("strong", "", "[" + statusText(check.status) + "] " + check.id));
+                    const runThisButton = create("button", "lab-eval-run-one", "Run This");
+                    runThisButton.disabled = state.eval.running;
+                    runThisButton.onclick = function onRunThisClick(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const groups = evalCheckGroupsForCheck(check);
+                        if (!groups.length) {
+                            setEvalStatus("No direct rerun mapping for check '" + check.id + "'. Use Run Selected/Run All.", "warn");
+                            return;
+                        }
+                        runTableEvaluation(groups, "check " + check.id);
+                    };
+                    titleRow.appendChild(runThisButton);
+                    row.appendChild(titleRow);
                     row.appendChild(create("div", "small", check.message || ""));
                     if (check.objects && check.objects.length) {
                         row.appendChild(create("div", "small", "Objects: " + check.objects.join(", ")));
@@ -610,6 +816,7 @@
             });
             setEvalCheckDetail(state.eval.selectedCheckIndex >= 0 ? report.checks[state.eval.selectedCheckIndex] : null);
             evalReport.value = JSON.stringify(report, null, 2);
+            updateEvalRunSelectionSummary();
             state.runtime.dirty = true;
         }
 
@@ -738,33 +945,41 @@
             if (runId !== state.eval.runId) return;
             state.eval.report = report;
             state.eval.running = false;
-            runEvalButton.disabled = false;
-            runEvalButton.textContent = "Run Evaluation";
+            runSelectedEvalButton.textContent = "Run Selected";
+            runAllEvalButton.textContent = "Run All";
             setEvalProgress(1, 1);
             const stuckIndex = report.checks.findIndex(function find(check) {
                 return check && check.id === "stuck_launcher_ray";
             });
             state.eval.selectedCheckIndex = stuckIndex >= 0 ? stuckIndex : (report.checks.length ? 0 : -1);
             renderEvalReport(report);
+            renderEvalRunChecksList();
             render();
             console.log("[tableEval]", report);
         }
 
-        function runTableEvaluation() {
+        function runTableEvaluation(selectedCheckIds, runModeLabel) {
             if (!state.eval.selectedTable) {
                 setEvalStatus("Load a table before running evaluation.", "warn");
                 return;
             }
             if (state.eval.running) return;
+            const hasSelectionArray = Array.isArray(selectedCheckIds);
+            const selectedIds = hasSelectionArray ? selectedCheckIds.slice() : [];
+            if (hasSelectionArray && !selectedIds.length) {
+                setEvalStatus("Select at least one test checkbox before running selected evaluation.", "warn");
+                return;
+            }
             const runId = state.eval.runId + 1;
             state.eval.runId = runId;
             state.eval.running = true;
-            runEvalButton.disabled = true;
-            runEvalButton.textContent = "Running...";
+            runSelectedEvalButton.textContent = "Running...";
+            runAllEvalButton.textContent = "Running...";
             evalChecks.innerHTML = "";
             evalReport.value = "";
             setEvalProgress(0, 0);
-            setEvalStatus("Starting evaluation...", "warn");
+            setEvalStatus("Starting evaluation (" + (runModeLabel || (hasSelectionArray ? "selected" : "all")) + ")...", "warn");
+            updateEvalRunSelectionSummary();
 
             const options = {
                 tableId: state.eval.selectedRef || state.eval.selectedName,
@@ -773,6 +988,7 @@
                 launchMaxTicks: state.eval.launchMaxTicks,
                 targetRayCount: state.eval.targetRayCount,
                 targetMaxBounces: state.eval.targetMaxBounces,
+                evalChecks: hasSelectionArray ? selectedIds : undefined,
                 onProgress: function onProgress(progress) {
                     if (runId !== state.eval.runId) return;
                     setEvalProgress(progress.done || 0, progress.total || 0);
@@ -790,10 +1006,11 @@
                 .catch(function failed(error) {
                     if (runId !== state.eval.runId) return;
                     state.eval.running = false;
-                    runEvalButton.disabled = false;
-                    runEvalButton.textContent = "Run Evaluation";
+                    runSelectedEvalButton.textContent = "Run Selected";
+                    runAllEvalButton.textContent = "Run All";
                     setEvalProgress(0, 0);
                     setEvalStatus("Evaluation failed: " + (error && error.message ? error.message : "Unknown error"), "fail");
+                    updateEvalRunSelectionSummary();
                 });
         }
 
@@ -807,11 +1024,101 @@
             }
         }
 
+        function aiLabWriteSettings(next) {
+            if (typeof localStorage === "undefined") return false;
+            try {
+                localStorage.setItem("pin.assistant.settings", JSON.stringify(next || {}));
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function aiLabPopulateSettingsForm() {
+            const settings = aiLabSettings();
+            aiProviderLabelInput.value = String(settings.providerLabel || "");
+            aiBaseUrlInput.value = String(settings.baseUrl || "");
+            aiModelInput.value = String(settings.model || "");
+            aiApiKeyInput.value = String(settings.apiKey || "");
+            aiModelSelect.value = "";
+            state.runtime.dirty = true;
+        }
+
         function aiLabSetStatus(text, level) {
             state.aiLab.status = text || "";
             aiStatus.textContent = text || "";
             aiStatus.className = "lab-eval-summary" + (level ? " " + level : "");
             state.runtime.dirty = true;
+        }
+
+        function currentLabTableForNavigation() {
+            const base = state.eval.selectedTable ? clone(state.eval.selectedTable) : { name: "Physics Lab Table", playfield: {}, elements: [] };
+            base.playfield = base.playfield || {};
+            base.playfield.gravity = state.sandbox.physics.gravity;
+            base.playfield.friction = state.sandbox.physics.friction;
+            base.playfield.restitution = state.sandbox.physics.restitution;
+            base.playfield.maxSpeed = state.sandbox.physics.maxSpeed;
+            base.playfield.ballRadius = state.sandbox.spawn.radius;
+            base.elements = clone(state.sandbox.elements || []);
+            return Pin.table.normalizeTable(base);
+        }
+
+        function persistTableForMainNavigation() {
+            if (!Pin.storage || !Pin.storage.local || typeof Pin.storage.local.save !== "function") return false;
+            try {
+                const table = currentLabTableForNavigation();
+                Pin.storage.local.save("autosave", table);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        function openMainRoute(hashMode) {
+            const saved = persistTableForMainNavigation();
+            const next = new URL("index.html#" + hashMode, location.href);
+            if (!saved) {
+                setEvalStatus("Navigation warning: failed to persist autosave before route change.", "warn");
+            }
+            location.href = next.href;
+        }
+
+        /*
+         * What: Consume one-shot design->physics-lab handoff table data.
+         * Why: when moving from Designer to Sandbox, the current designer table
+         * must win over any pre-existing lab state.
+         */
+        function consumeDesignerHandoff() {
+            if (typeof localStorage === "undefined") return false;
+            let raw = "";
+            try {
+                raw = localStorage.getItem("pin.physicsLab.handoff") || "";
+            } catch (error) {
+                return false;
+            }
+            if (!raw) return false;
+            try {
+                const parsed = JSON.parse(raw);
+                if (!parsed || parsed.source !== "design" || !parsed.table || typeof parsed.table !== "object") {
+                    localStorage.removeItem("pin.physicsLab.handoff");
+                    return false;
+                }
+                const normalized = Pin.table.normalizeTable(parsed.table);
+                state.eval.selectedRef = "design-handoff";
+                state.eval.selectedTable = normalized;
+                state.eval.selectedName = normalized.name || "Designer Handoff";
+                applyLoadedTableToSandbox(normalized);
+                state.scenarioId = "sandbox";
+                scenarioSelect.value = "sandbox";
+                setActiveTab("sandbox");
+                setEvalStatus("Loaded table from Designer handoff.", "pass");
+                localStorage.removeItem("pin.physicsLab.handoff");
+                return true;
+            } catch (error) {
+                try { localStorage.removeItem("pin.physicsLab.handoff"); } catch (innerError) {}
+                setEvalStatus("Designer handoff payload was invalid.", "warn");
+                return false;
+            }
         }
 
         function aiLabContract() {
@@ -853,6 +1160,71 @@
             if (/\/models\/?$/i.test(raw)) return raw.replace(/\/+$/, "");
             if (/\/chat\/completions\/?$/i.test(raw)) return raw.replace(/\/chat\/completions\/?$/i, "/models").replace(/\/+$/, "");
             return raw.replace(/\/+$/, "") + "/models";
+        }
+
+        function aiLabReadProviderDraft() {
+            return {
+                providerLabel: String(aiProviderLabelInput.value || "").trim(),
+                baseUrl: String(aiBaseUrlInput.value || "").trim(),
+                model: String(aiModelInput.value || "").trim(),
+                apiKey: String(aiApiKeyInput.value || "").trim()
+            };
+        }
+
+        function aiLabSetModelOptions(models) {
+            aiModelSelect.innerHTML = "";
+            const base = document.createElement("option");
+            base.value = "";
+            base.textContent = models && models.length ? "(choose discovered model)" : "(no models returned)";
+            aiModelSelect.appendChild(base);
+            (models || []).forEach(function eachModel(id) {
+                const opt = document.createElement("option");
+                opt.value = id;
+                opt.textContent = id;
+                aiModelSelect.appendChild(opt);
+            });
+            const current = String(aiModelInput.value || "").trim();
+            if (current && (models || []).indexOf(current) >= 0) aiModelSelect.value = current;
+            state.runtime.dirty = true;
+        }
+
+        function aiLabFetchModels() {
+            const draft = aiLabReadProviderDraft();
+            if (!draft.baseUrl || !draft.apiKey) {
+                aiLabSetProviderStatus("Provider status: set Base URL and API key to load models.", "warn");
+                aiLabSetModelOptions([]);
+                return Promise.resolve([]);
+            }
+            if (state.aiLab.modelsLoading) return Promise.resolve([]);
+            state.aiLab.modelsLoading = true;
+            aiProviderModelsBtn.disabled = true;
+            aiProviderModelsBtn.textContent = "Loading...";
+            const endpoint = aiLabModelsEndpoint(draft.baseUrl);
+            return fetch(endpoint, {
+                method: "GET",
+                headers: { Authorization: "Bearer " + draft.apiKey }
+            }).then(function onResponse(response) {
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                return response.json();
+            }).then(function onJson(json) {
+                const raw = Array.isArray(json && json.data) ? json.data : [];
+                const models = raw
+                    .map(function map(item) { return item && item.id ? String(item.id) : ""; })
+                    .filter(Boolean)
+                    .sort(function sortModels(a, b) { return a.localeCompare(b, undefined, { sensitivity: "base" }); });
+                aiLabSetModelOptions(models);
+                aiLabSetProviderStatus("Provider status: discovered " + models.length + " models.", "pass");
+                return models;
+            }).catch(function onError(error) {
+                const msg = error && error.message ? error.message : "unknown error";
+                aiLabSetModelOptions([]);
+                aiLabSetProviderStatus("Provider status: failed to load models (" + msg + ").", "fail");
+                return [];
+            }).finally(function onFinally() {
+                state.aiLab.modelsLoading = false;
+                aiProviderModelsBtn.disabled = false;
+                aiProviderModelsBtn.textContent = "Load Models";
+            });
         }
 
         /*
@@ -980,9 +1352,32 @@
             };
             state.aiLab.attempts.push(entry);
             state.aiLab.selectedAttemptIndex = state.aiLab.attempts.length - 1;
-            if (result.patchedTable) state.aiLab.pendingPatchedTable = result.patchedTable;
+            if (result.patchedTable) {
+                state.aiLab.pendingPatchedTable = result.patchedTable;
+                aiLabPreviewTable(result.patchedTable, entry.attempt, entry.accepted);
+            }
             renderAiAttempts();
             return entry;
+        }
+
+        /*
+         * What: Show the patched table immediately in sandbox for visual review.
+         * Why: operator must see geometry/paths right away even when patch is not
+         * yet accepted for apply.
+         */
+        function aiLabPreviewTable(patchedTable, attemptNumber, accepted) {
+            if (!patchedTable) return;
+            const normalized = Pin.table.normalizeTable(clone(patchedTable));
+            applyLoadedTableToSandbox(normalized);
+            state.scenarioId = "sandbox";
+            scenarioSelect.value = "sandbox";
+            setActiveTab("sandbox");
+            reloadControls();
+            rebuildSimulation();
+            aiLabSetStatus(
+                "Previewing attempt #" + attemptNumber + " in sandbox (" + (accepted ? "accepted" : "rejected") + ").",
+                accepted ? "pass" : "warn"
+            );
         }
 
         function aiLabApplyPending() {
@@ -1037,14 +1432,51 @@
             aiLabSetStatus("Rolled back to checkpoint.", "pass");
         }
 
+        function aiLabNormalizeProviderBaseUrl(baseUrl) {
+            const raw = String(baseUrl || "").trim();
+            if (!raw) return "";
+            return raw.replace(/^(\w+:\/\/)0\.0\.0\.0(?=[:/]|$)/i, "$1localhost");
+        }
+
         function aiLabBuildPrompt(baseTask, feedback) {
             const report = state.eval.report || null;
             const failChecks = aiLabFailedChecks(report).slice(0, 16);
+            const table = state.eval.selectedTable || {};
+            const selectedId = state.aiLab.selectedElementId || "";
+            const selected = selectedId && Array.isArray(table.elements)
+                ? (table.elements.find(function find(el) { return el && el.id === selectedId; }) || null)
+                : null;
+            const logicDoc = table && table.logicDocument
+                ? table.logicDocument
+                : {
+                    logicVersion: 1,
+                    switchRegistry: [],
+                    stateTable: [],
+                    computedState: [],
+                    lampBindings: [],
+                    actionRules: [],
+                    resetRules: []
+                };
             const context = {
                 tableName: state.eval.selectedName || "",
                 summary: report && report.summary ? report.summary : null,
-                failedChecks: failChecks
+                failedChecks: failChecks,
+                selected: selected ? { id: selected.id, type: selected.type, name: selected.name || selected.label || "" } : null,
+                elements: Array.isArray(table.elements) ? table.elements.map(function map(el) {
+                    return { id: el.id, type: el.type, name: el.name || el.label || el.text || "" };
+                }) : [],
+                logicDoc: logicDoc
             };
+            const shared = Pin.aiPromptContract && typeof Pin.aiPromptContract.buildPatchPrompt === "function"
+                ? Pin.aiPromptContract
+                : null;
+            if (shared) {
+                return shared.buildPatchPrompt({
+                    task: baseTask,
+                    context: context,
+                    repairNote: feedback ? ("Previous patch failed validation. Fix these issues and return a full corrected patch JSON.\n" + feedback) : ""
+                });
+            }
             return [
                 "Return JSON patch only.",
                 "Allowed keys: tablePatch, addElements, patchElements, removeElements, addFeatures, patchFeatures, removeFeatures, logicDocPatch.",
@@ -1052,29 +1484,31 @@
                 baseTask,
                 "Context:",
                 JSON.stringify(context),
-                feedback ? ("Repair previous issues:\n" + feedback) : ""
+                feedback ? ("Repair note:\n" + feedback) : ""
             ].join("\n");
         }
 
         function aiLabRequestPatch(prompt) {
             const settings = aiLabSettings();
-            const baseUrl = String(settings.baseUrl || "").trim();
+            const baseUrl = aiLabNormalizeProviderBaseUrl(settings.baseUrl);
             const apiKey = String(settings.apiKey || "").trim();
             const model = String(settings.model || "").trim();
-            if (!baseUrl || !apiKey || !model) {
+            if (!baseUrl || !model) {
                 return Promise.reject(new Error("Missing provider settings in assistant config."));
             }
             const endpoint = /\/chat\/completions\/?$/i.test(baseUrl) ? baseUrl.replace(/\/+$/, "") : (baseUrl.replace(/\/+$/, "") + "/chat/completions");
+            const headers = { "Content-Type": "application/json" };
+            if (apiKey) headers.Authorization = "Bearer " + apiKey;
             return fetch(endpoint, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + apiKey
-                },
+                headers: headers,
                 body: JSON.stringify({
                     model: model,
                     temperature: 0.1,
-                    messages: [{ role: "user", content: prompt }]
+                    messages: [
+                        { role: "system", content: "Generate safe structured patch JSON only." },
+                        { role: "user", content: prompt }
+                    ]
                 })
             }).then(function parse(response) {
                 if (!response.ok) throw new Error("Provider HTTP " + response.status);
@@ -1668,7 +2102,9 @@
                 ctx.setLineDash([]);
                 ctx.restore();
             }
-            drawDiagnosticOverlay(selectedEvalCheck());
+            if (state.ui.activeTab === "eval") {
+                drawDiagnosticOverlay(selectedEvalCheck());
+            }
         }
 
         function setSandboxTool(nextTool) {
@@ -2037,8 +2473,25 @@
         loadTableButton.onclick = function loadEvalTableClick() {
             loadEvalTable(evalTableSelect.value);
         };
-        runEvalButton.onclick = function runEvalClick() {
-            runTableEvaluation();
+        runSelectedEvalButton.onclick = function runSelectedEvalClick() {
+            runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        runAllEvalButton.onclick = function runAllEvalClick() {
+            runTableEvaluation(null, "all");
+        };
+        evalSelectAllButton.onclick = function selectAllEvalChecks() {
+            (state.eval.runChecks || []).forEach(function each(check) {
+                if (!check || typeof check.id !== "string") return;
+                state.eval.selectedChecks[check.id] = true;
+            });
+            renderEvalRunChecksList();
+        };
+        evalClearAllButton.onclick = function clearAllEvalChecks() {
+            (state.eval.runChecks || []).forEach(function each(check) {
+                if (!check || typeof check.id !== "string") return;
+                state.eval.selectedChecks[check.id] = false;
+            });
+            renderEvalRunChecksList();
         };
         aiStepBtn.onclick = function runAiStep() {
             state.aiLab.autoEnabled = false;
@@ -2049,6 +2502,50 @@
         };
         aiProviderRefreshBtn.onclick = function refreshAiProvider() {
             aiLabRefreshProviderStatus(true);
+        };
+        aiProviderModelsBtn.onclick = function loadAiModels() {
+            aiLabFetchModels();
+        };
+        aiModelSelect.onchange = function onAiModelSelectChange() {
+            const picked = String(aiModelSelect.value || "").trim();
+            if (!picked) return;
+            aiModelInput.value = picked;
+            state.runtime.dirty = true;
+        };
+        aiBaseUrlInput.onchange = function onAiBaseUrlChange() {
+            aiModelSelect.value = "";
+            aiLabFetchModels();
+        };
+        aiProviderSaveBtn.onclick = function saveAiProvider() {
+            const current = aiLabSettings();
+            const next = Object.assign({}, current, {
+                providerLabel: aiLabReadProviderDraft().providerLabel,
+                baseUrl: aiLabReadProviderDraft().baseUrl,
+                model: aiLabReadProviderDraft().model,
+                apiKey: aiLabReadProviderDraft().apiKey
+            });
+            if (!aiLabWriteSettings(next)) {
+                aiLabSetStatus("Failed to persist provider settings.", "fail");
+                return;
+            }
+            aiLabSetStatus("Provider settings saved to local storage.", "pass");
+            aiLabRefreshProviderStatus(false);
+        };
+        aiProviderClearBtn.onclick = function clearAiProvider() {
+            const current = aiLabSettings();
+            const next = Object.assign({}, current, {
+                providerLabel: "",
+                baseUrl: "",
+                model: "",
+                apiKey: ""
+            });
+            if (!aiLabWriteSettings(next)) {
+                aiLabSetStatus("Failed to clear provider settings.", "fail");
+                return;
+            }
+            aiLabPopulateSettingsForm();
+            aiLabSetStatus("Provider settings cleared.", "warn");
+            aiLabRefreshProviderStatus(false);
         };
         aiAutoBtn.onclick = function toggleAutoMode() {
             state.aiLab.autoEnabled = !state.aiLab.autoEnabled;
@@ -2098,35 +2595,39 @@
         aiPrompt.oninput = function onAiPromptInput() {
             state.aiLab.prompt = aiPrompt.value;
         };
+        navSelector.onclick = function openSelectorRoute() { openMainRoute("tables"); };
+        navPlay.onclick = function openPlayRoute() { openMainRoute("play"); };
+        navDesign.onclick = function openDesignRoute() { openMainRoute("design"); };
+        navLogic.onclick = function openLogicRoute() { openMainRoute("logic"); };
         launchRayInput.onchange = function onLaunchRayCountChange() {
             const next = Math.round(Number(launchRayInput.value));
             state.eval.launchRayCount = Number.isFinite(next) ? clamp(next, 1, 500) : 5;
             launchRayInput.value = String(state.eval.launchRayCount);
-            if (state.eval.report) runTableEvaluation();
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
         };
         launchCollisionInput.onchange = function onLaunchCollisionLimitChange() {
             const next = Math.round(Number(launchCollisionInput.value));
             state.eval.launchMaxCollisions = Number.isFinite(next) ? clamp(next, 1, 5000) : 400;
             launchCollisionInput.value = String(state.eval.launchMaxCollisions);
-            if (state.eval.report) runTableEvaluation();
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
         };
         launchTickInput.onchange = function onLaunchTickLimitChange() {
             const next = Math.round(Number(launchTickInput.value));
             state.eval.launchMaxTicks = Number.isFinite(next) ? clamp(next, 60, 60000) : 10000;
             launchTickInput.value = String(state.eval.launchMaxTicks);
-            if (state.eval.report) runTableEvaluation();
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
         };
         targetRayInput.onchange = function onTargetRayCountChange() {
             const next = Math.round(Number(targetRayInput.value));
             state.eval.targetRayCount = Number.isFinite(next) ? clamp(next, 1, 120) : 7;
             targetRayInput.value = String(state.eval.targetRayCount);
-            if (state.eval.report) runTableEvaluation();
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
         };
         targetBounceInput.onchange = function onTargetBounceLimitChange() {
             const next = Math.round(Number(targetBounceInput.value));
             state.eval.targetMaxBounces = Number.isFinite(next) ? clamp(next, 0, 60) : 5;
             targetBounceInput.value = String(state.eval.targetMaxBounces);
-            if (state.eval.report) runTableEvaluation();
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
         };
         evalTableSelect.onchange = function onEvalTableChange() {
             state.eval.selectedRef = evalTableSelect.value;
@@ -2134,10 +2635,20 @@
 
         scenarioSelect.value = state.scenarioId;
         buildTableSelect();
+        renderEvalRunChecksList();
         renderEvalReport(null);
         renderAiAttempts();
+        aiLabPopulateSettingsForm();
         aiLabRefreshProviderStatus(false);
-        setActiveTab(state.scenarioId === "sandbox" ? "sandbox" : "tune");
+        const handoffLoaded = consumeDesignerHandoff();
+        const forceSandboxFromHash = /(^|[&#])sandbox($|[=&])/i.test(String(location.hash || ""));
+        if (!handoffLoaded && forceSandboxFromHash) {
+            state.scenarioId = "sandbox";
+            scenarioSelect.value = "sandbox";
+            setActiveTab("sandbox");
+        } else if (!handoffLoaded) {
+            setActiveTab(state.scenarioId === "sandbox" ? "sandbox" : "tune");
+        }
         reloadControls();
         rebuildSimulation();
 

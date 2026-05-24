@@ -8,3 +8,7 @@
 
 # Keep shareable template committed
 !.env.example
+
+# Local GEPA launcher: real operator settings live in `.env`, not in a script
+# that someone will eventually stage while tired.
+tools/RunGepa.ps1

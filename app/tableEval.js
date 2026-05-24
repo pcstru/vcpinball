@@ -6,8 +6,20 @@
  * outcomes before deeper gameplay tuning.
  */
 (function initTableEval(Pin) {
-    const FIXED_DT = 1 / 120;
+    const BASE_FIXED_DT = 1 / 120;
     const STEPS = 900;
+    const EVAL_CHECK_DEFS = [
+        { id: "table_validation", label: "Table Schema Validation", category: "static" },
+        { id: "playability_validation", label: "Playability Validation", category: "static" },
+        { id: "ids_and_types", label: "Element IDs and Types", category: "static" },
+        { id: "numeric_fields", label: "Numeric Field Validation", category: "static" },
+        { id: "bounds", label: "Playfield Bounds", category: "static" },
+        { id: "compilation", label: "Runtime Compilation", category: "static" },
+        { id: "launcher_rays", label: "Launcher Reachability Rays", category: "stuck" },
+        { id: "flipper_reachability", label: "Flipper Reachability Rays", category: "reachability" },
+        { id: "target_to_flipper_reachability", label: "Target To Flipper Reachability", category: "reachability" },
+        { id: "reachability_todo", label: "Reachability TODO Reminder", category: "reachability" }
+    ];
     const KNOWN_NUMERIC_FIELDS = [
         "x", "y", "w", "h", "radius", "length", "width", "top", "bottom",
         "thickness", "restAngle", "activeAngle", "flipSpeed", "flipAccel",
@@ -25,6 +37,18 @@
 
     function hasPositiveNumber(value) {
         return isFiniteNumber(value) && value > 0;
+    }
+
+    /*
+     * What: Resolve evaluation timestep from table playfield timing settings.
+     * Why: table validation probes should run on the same fixed-step contract
+     * used by live play and harness simulations.
+     */
+    function fixedDtForWorld(world) {
+        if (Pin.table && Pin.table.getFixedPhysicsDt) {
+            return Pin.table.getFixedPhysicsDt(world && world.table && world.table.playfield);
+        }
+        return BASE_FIXED_DT;
     }
 
     function makeReport(meta) {
@@ -47,6 +71,10 @@
                 launcherDrainRays: 0,
                 launcherTickLimitRays: 0,
                 launcherCollisionLimitRays: 0,
+                launcherVelocitySamples: 0,
+                launcherVelocityMin: 0,
+                launcherVelocityMax: 0,
+                launcherVelocitySpread: 0,
                 flipperRayCount: 0,
                 flipperStuckRays: 0,
                 flipperDrainRays: 0,
@@ -418,7 +446,7 @@
             runtimeSensors: [],
             physicsTick: 0,
             physicsTime: 0,
-            lastPhysicsDt: FIXED_DT,
+            lastPhysicsDt: fixedDtForWorld({ table: table }),
             staticBroadPhase: Pin.physics.buildBroadPhase(staticRuntime.segments || [], staticRuntime.circles || [], table.playfield),
             staticSensorBroadPhase: Pin.physics.buildSensorBroadPhase(staticRuntime.sensors || [])
         };
@@ -521,10 +549,11 @@
         let drained = false;
         const trajectory = [];
         const pf = world.table.playfield || {};
+        const fixedDt = fixedDtForWorld(world);
         for (let i = 0; i < STEPS; i++) {
             refreshDynamicRuntime(world);
-            world.lastPhysicsDt = FIXED_DT;
-            Pin.physics.stepWorld(world, FIXED_DT);
+            world.lastPhysicsDt = fixedDt;
+            Pin.physics.stepWorld(world, fixedDt);
             report.metrics.stepsSimulated += 1;
             const ball = world.balls[0];
             if (!ball) break;
@@ -667,6 +696,12 @@
         return Math.max(min, Math.min(max, count));
     }
 
+    function normalizedFloatLimit(value, fallback, min, max) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return fallback;
+        return Math.max(min, Math.min(max, numeric));
+    }
+
     /* What: Spread launch samples across short tap through full hold.
      * Why: stuck detection needs to sample player launch strength without
      * inventing a separate launch model outside the production launcher state.
@@ -767,9 +802,10 @@
      * world state, so probes refresh that runtime before each physics step.
      */
     function stepEvalWorld(world) {
+        const fixedDt = fixedDtForWorld(world);
         refreshDynamicRuntime(world);
-        world.lastPhysicsDt = FIXED_DT;
-        Pin.physics.stepWorld(world, FIXED_DT);
+        world.lastPhysicsDt = fixedDt;
+        Pin.physics.stepWorld(world, fixedDt);
     }
 
     /* What: Hold the production launcher for a sampled duration and release it.
@@ -777,7 +813,8 @@
      * strike velocity used by interactive play.
      */
     function chargeLauncherForHold(world, holdSeconds) {
-        const chargeSteps = Math.max(0, Math.round(holdSeconds / FIXED_DT));
+        const fixedDt = fixedDtForWorld(world);
+        const chargeSteps = Math.max(0, Math.round(holdSeconds / fixedDt));
         world.launchCharging = true;
         for (let i = 0; i < chargeSteps; i++) {
             stepEvalWorld(world);
@@ -799,6 +836,51 @@
         }
     }
 
+    /* What: Evenly sample long arrays while preserving endpoints.
+     * Why: evaluator diagnostics should stay visually useful without carrying
+     * thousands of points/rays that degrade lab responsiveness.
+     */
+    function sampleArrayEvenly(items, maxCount) {
+        if (!Array.isArray(items) || !items.length) return [];
+        if (!Number.isFinite(maxCount) || maxCount <= 0) return [];
+        if (items.length <= maxCount) return items.slice();
+        if (maxCount === 1) return [items[0]];
+        const out = [];
+        const lastIndex = items.length - 1;
+        let prevIndex = -1;
+        for (let i = 0; i < maxCount; i++) {
+            const idx = Math.round((i * lastIndex) / (maxCount - 1));
+            if (idx === prevIndex) continue;
+            out.push(items[idx]);
+            prevIndex = idx;
+        }
+        if (out[out.length - 1] !== items[lastIndex]) out[out.length - 1] = items[lastIndex];
+        return out;
+    }
+
+    function sampledTrajectoryPath(path, maxPoints) {
+        const sampled = sampleArrayEvenly(path, maxPoints);
+        return sampled.map(function map(point) {
+            return point && isFiniteNumber(point.x) && isFiniteNumber(point.y) ? { x: point.x, y: point.y } : point;
+        }).filter(function keep(point) {
+            return point && isFiniteNumber(point.x) && isFiniteNumber(point.y);
+        });
+    }
+
+    /* What: Build compact trajectory diagnostics for UI/rendering use.
+     * Why: full probe payloads can be extremely large and make the physics lab
+     * sluggish after evaluation completes.
+     */
+    function compactTrajectoryDiagnostics(traces, buildEntry) {
+        const MAX_TRAJECTORIES = 96;
+        const MAX_POINTS_PER_PATH = 160;
+        return sampleArrayEvenly(traces, MAX_TRAJECTORIES).map(function map(trace) {
+            const entry = buildEntry(trace) || {};
+            entry.path = sampledTrajectoryPath(trace && trace.path, MAX_POINTS_PER_PATH);
+            return entry;
+        });
+    }
+
     function traceLauncherRay(table, elements, playfield, holdSeconds, index, limits) {
         if (!launcherFromElements(elements)) {
             return { ok: false, reason: "no_launcher" };
@@ -817,6 +899,7 @@
         const maxTicks = limits.maxTicks;
         const maxCollisions = limits.maxCollisions;
         let exitedLauncher = false;
+        let launchSample = null;
         let limitReason = "";
         world.physicsCollisionCount = 0;
         for (let i = 0; i < maxTicks; i++) {
@@ -827,7 +910,18 @@
                 escaped = true;
                 break;
             }
-            if (!ball.inLaunchLane) exitedLauncher = true;
+            if (!ball.inLaunchLane) {
+                if (!exitedLauncher) {
+                    const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+                    launchSample = {
+                        speed: speed,
+                        vx: ball.vx,
+                        vy: ball.vy,
+                        tick: world.physicsTick || (i + 1)
+                    };
+                }
+                exitedLauncher = true;
+            }
             recordTrajectoryPoint(path, ball, i, false);
             if (ball.drained || drains.some(function some(rect) { return pointInRect(ball, rect); })) {
                 reachedDrain = true;
@@ -861,6 +955,10 @@
                     collisions: world.physicsCollisionCount || 0,
                     limitReason: "repeat",
                     exitedLauncher: exitedLauncher,
+                    launchSpeed: launchSample ? launchSample.speed : 0,
+                    launchVx: launchSample ? launchSample.vx : 0,
+                    launchVy: launchSample ? launchSample.vy : 0,
+                    launchTick: launchSample ? launchSample.tick : 0,
                     holdSeconds: holdSeconds || 0,
                     sampleIndex: index || 0,
                     path: path,
@@ -894,6 +992,10 @@
             holdSeconds: holdSeconds || 0,
             sampleIndex: index || 0,
             simulatedLaunch: true,
+            launchSpeed: launchSample ? launchSample.speed : 0,
+            launchVx: launchSample ? launchSample.vx : 0,
+            launchVy: launchSample ? launchSample.vy : 0,
+            launchTick: launchSample ? launchSample.tick : 0,
             bounces: path.length - 1,
             path: path,
             wallIds: hitObjectIds
@@ -993,7 +1095,8 @@
         return {
             count: normalizedLauncherRayCount(options && options.launchRayCount),
             maxCollisions: normalizedProbeLimit(options && options.launchMaxCollisions, 400, 1, 5000),
-            maxTicks: normalizedProbeLimit(options && options.launchMaxTicks, 10000, 60, 60000)
+            maxTicks: normalizedProbeLimit(options && options.launchMaxTicks, 10000, 60, 60000),
+            minLaunchSpeedSpread: normalizedFloatLimit(options && options.launchMinSpeedSpread, 2.5, 0, 60)
         };
     }
 
@@ -1101,9 +1204,25 @@
         });
     }
 
-    function sourceOriginForElement(el) {
+    /* What: Resolve a stable geometric center for a trigger source element.
+     * Why: target-to-flipper probes must spread from the authored source shape,
+     * not from whichever fallback field happens to be present.
+     */
+    function sourceCenterForElement(el) {
         if (!el) return null;
         if (isFiniteNumber(el.x) && isFiniteNumber(el.y)) return { x: el.x, y: el.y };
+        if (Array.isArray(el.anchors) && el.anchors.length) {
+            let sx = 0;
+            let sy = 0;
+            let count = 0;
+            el.anchors.forEach(function each(anchor) {
+                if (!anchor || !isFiniteNumber(anchor.x) || !isFiniteNumber(anchor.y)) return;
+                sx += anchor.x;
+                sy += anchor.y;
+                count += 1;
+            });
+            if (count > 0) return { x: sx / count, y: sy / count };
+        }
         if (el.type === "path" && Array.isArray(el.anchors) && el.anchors.length >= 2) {
             const a = el.anchors[0];
             const b = el.anchors[1];
@@ -1117,6 +1236,100 @@
         return null;
     }
 
+    function projectOnDirection(point, dirX, dirY) {
+        return point.x * dirX + point.y * dirY;
+    }
+
+    /* What: Compile one source element to recover its real contact geometry.
+     * Why: probe starts must use collider/sensor boundaries rather than inferred
+     * center points, otherwise rays can begin inside blocking geometry.
+     */
+    function sourceGeometryForElement(table, world, source) {
+        if (!Pin.elements || typeof Pin.elements.compileElements !== "function") {
+            return { segments: [], circles: [], sensors: [] };
+        }
+        const runtime = Pin.elements.compileElements(table, world, {
+            elements: [source]
+        }) || {};
+        const segments = (runtime.segments || []).filter(function filter(seg) {
+            return seg && isFiniteNumber(seg.x1) && isFiniteNumber(seg.y1) && isFiniteNumber(seg.x2) && isFiniteNumber(seg.y2);
+        });
+        const circles = (runtime.circles || []).filter(function filter(circle) {
+            return circle && isFiniteNumber(circle.x) && isFiniteNumber(circle.y) && hasPositiveNumber(circle.radius);
+        });
+        const sensors = (runtime.sensors || []).filter(function filter(sensor) {
+            if (!sensor || !sensor.shape || !isFiniteNumber(sensor.x) || !isFiniteNumber(sensor.y)) return false;
+            if (sensor.shape === "circle") return hasPositiveNumber(sensor.radius);
+            if (sensor.shape === "rect") return hasPositiveNumber(sensor.w) && hasPositiveNumber(sensor.h);
+            return false;
+        });
+        return { segments: segments, circles: circles, sensors: sensors };
+    }
+
+    /* What: Compute how far a ray start must move from source center to exit.
+     * Why: non-pass-through colliders should never spawn probe balls from inside
+     * their own blocking volume.
+     */
+    function sourceEdgeOffset(geometry, sourceCenter, dirX, dirY, ballRadius) {
+        if (!geometry || !sourceCenter) return 0;
+        const clearance = 0.5;
+        const centerProjection = projectOnDirection(sourceCenter, dirX, dirY);
+        let hasBlocking = false;
+        let hasAny = false;
+        let maxProjection = centerProjection;
+
+        (geometry.circles || []).forEach(function each(circle) {
+            if (circle.passThrough) return;
+            const support =
+                projectOnDirection({ x: circle.x, y: circle.y }, dirX, dirY) +
+                circle.radius +
+                ballRadius +
+                clearance;
+            maxProjection = Math.max(maxProjection, support);
+            hasBlocking = true;
+            hasAny = true;
+        });
+        (geometry.segments || []).forEach(function each(seg) {
+            if (seg.passThrough) return;
+            const thickness = hasPositiveNumber(seg.thickness) ? seg.thickness : 0;
+            const support =
+                Math.max(
+                    projectOnDirection({ x: seg.x1, y: seg.y1 }, dirX, dirY),
+                    projectOnDirection({ x: seg.x2, y: seg.y2 }, dirX, dirY)
+                ) +
+                thickness +
+                ballRadius +
+                clearance;
+            maxProjection = Math.max(maxProjection, support);
+            hasBlocking = true;
+            hasAny = true;
+        });
+
+        if (!hasBlocking) {
+            (geometry.sensors || []).forEach(function each(sensor) {
+                let support = -Infinity;
+                if (sensor.shape === "circle") {
+                    support =
+                        projectOnDirection({ x: sensor.x, y: sensor.y }, dirX, dirY) +
+                        sensor.radius +
+                        clearance;
+                } else if (sensor.shape === "rect") {
+                    support =
+                        projectOnDirection({ x: sensor.x, y: sensor.y }, dirX, dirY) +
+                        Math.abs(dirX) * sensor.w * 0.5 +
+                        Math.abs(dirY) * sensor.h * 0.5 +
+                        clearance;
+                }
+                if (!Number.isFinite(support)) return;
+                maxProjection = Math.max(maxProjection, support);
+                hasAny = true;
+            });
+        }
+
+        if (!hasAny) return 0;
+        return Math.max(0, maxProjection - centerProjection);
+    }
+
     function spreadRadiansForIndex(index, count, spreadDeg) {
         if (count <= 1 || spreadDeg <= 0) return 0;
         const t = count <= 1 ? 0.5 : (index / (count - 1));
@@ -1124,25 +1337,33 @@
     }
 
     function traceTargetRay(table, elements, source, targetFlipper, rayIndex, limits) {
-        const sourceOrigin = sourceOriginForElement(source);
-        if (!sourceOrigin || !targetFlipper || !targetFlipper.pivot) {
+        const sourceCenter = sourceCenterForElement(source);
+        if (!sourceCenter || !targetFlipper || !targetFlipper.pivot) {
             return { ok: false, reason: "bad_source" };
         }
         const world = buildEvalWorld(table);
         const playfield = (table && table.playfield) || {};
         const ballRadius = hasPositiveNumber(playfield.ballRadius) ? playfield.ballRadius : 8;
         const envelope = flipperArcEnvelope(targetFlipper, table);
-        const toPivotX = targetFlipper.pivot.x - sourceOrigin.x;
-        const toPivotY = targetFlipper.pivot.y - sourceOrigin.y;
+        const toPivotX = targetFlipper.pivot.x - sourceCenter.x;
+        const toPivotY = targetFlipper.pivot.y - sourceCenter.y;
         const baseAngle = Math.atan2(toPivotY, toPivotX);
         const angle = baseAngle + spreadRadiansForIndex(rayIndex, limits.count, limits.spreadDeg);
+        const directionX = Math.cos(angle);
+        const directionY = Math.sin(angle);
+        const sourceGeometry = sourceGeometryForElement(table, world, source);
+        const edgeOffset = sourceEdgeOffset(sourceGeometry, sourceCenter, directionX, directionY, ballRadius);
+        const sourceOrigin = {
+            x: sourceCenter.x + directionX * edgeOffset,
+            y: sourceCenter.y + directionY * edgeOffset
+        };
         const probeSpeed = 15;
         world.balls = [{
             x: sourceOrigin.x,
             y: sourceOrigin.y,
             radius: ballRadius,
-            vx: Math.cos(angle) * probeSpeed,
-            vy: Math.sin(angle) * probeSpeed,
+            vx: directionX * probeSpeed,
+            vy: directionY * probeSpeed,
             level: 0
         }];
         const path = [];
@@ -1278,14 +1499,13 @@
             message: message,
             objects: unreached,
             diagnostics: Object.assign(diagnostics, {
-                trajectories: traces.map(function map(trace) {
+                trajectories: compactTrajectoryDiagnostics(traces, function build(trace) {
                     return {
                         label: trace.sourceId + " -> " + trace.targetFlipperId,
                         status: trace.reached ? "pass" : "warn",
                         limitReason: trace.limitReason || "",
                         ticks: trace.ticks || 0,
-                        collisions: trace.collisions || 0,
-                        path: trace.path
+                        collisions: trace.collisions || 0
                     };
                 }),
                 labels: (diagnostics.labels || []).concat(envelopeLabels).concat([{
@@ -1342,6 +1562,14 @@
                 objects: [],
                 diagnostics: {}
             });
+            addCheck(report, {
+                id: "launcher_velocity_spread",
+                category: "stuck",
+                status: "warn",
+                message: "Launcher velocity spread check skipped: launcher probes did not produce launch traces.",
+                objects: [],
+                diagnostics: {}
+            });
             return;
         }
         const stuckTraces = traces.filter(function filter(trace) { return trace.stuckLikely; });
@@ -1354,6 +1582,18 @@
         report.metrics.launcherDrainRays = drainTraces.length;
         report.metrics.launcherTickLimitRays = tickLimitTraces.length;
         report.metrics.launcherCollisionLimitRays = collisionLimitTraces.length;
+        const launchSpeeds = traces.filter(function filter(trace) {
+            return trace && trace.exitedLauncher && hasPositiveNumber(trace.launchSpeed);
+        }).map(function map(trace) {
+            return trace.launchSpeed;
+        });
+        const minSpeed = launchSpeeds.length ? Math.min.apply(null, launchSpeeds) : 0;
+        const maxSpeed = launchSpeeds.length ? Math.max.apply(null, launchSpeeds) : 0;
+        const spread = launchSpeeds.length ? (maxSpeed - minSpeed) : 0;
+        report.metrics.launcherVelocitySamples = launchSpeeds.length;
+        report.metrics.launcherVelocityMin = minSpeed;
+        report.metrics.launcherVelocityMax = maxSpeed;
+        report.metrics.launcherVelocitySpread = spread;
 
         const status = stuckTraces.length || trappedLauncherTraces.length ? "warn" : "pass";
         const message = stuckTraces.length ?
@@ -1369,20 +1609,40 @@
             objects: [],
             diagnostics: {
                 objectIds: [],
-                trajectories: traces.map(function map(trace) {
+                trajectories: compactTrajectoryDiagnostics(traces, function build(trace) {
                     return {
                         label: "hold " + trace.holdSeconds.toFixed(2) + "s",
                         status: trace.stuckLikely ? "warn" : "pass",
                         limitReason: trace.limitReason || "",
                         ticks: trace.ticks || 0,
-                        collisions: trace.collisions || 0,
-                        path: trace.path
+                        collisions: trace.collisions || 0
                     };
                 }),
                 labels: [{
                     text: traces.length + " launch probes | stuck " + stuckTraces.length + " | drain " + drainTraces.length + " | limits c" + limits.maxCollisions + "/t" + limits.maxTicks,
                     x: 16,
                     y: 34
+                }]
+            }
+        });
+        const spreadStatus = launchSpeeds.length < 2 ? "warn" : (spread >= limits.minLaunchSpeedSpread ? "pass" : "warn");
+        const spreadMessage = launchSpeeds.length < 2 ?
+            "Launcher velocity spread could not be measured across at least two exiting probes." :
+            (spread >= limits.minLaunchSpeedSpread ?
+                ("Launcher velocity spread passed: " + spread.toFixed(2) + " across " + launchSpeeds.length + " launch samples.") :
+                ("Launcher velocity spread is too narrow (" + spread.toFixed(2) + "); expected at least " + limits.minLaunchSpeedSpread.toFixed(2) + "."));
+        addCheck(report, {
+            id: "launcher_velocity_spread",
+            category: "stuck",
+            status: spreadStatus,
+            message: spreadMessage,
+            objects: [],
+            diagnostics: {
+                objectIds: [],
+                labels: [{
+                    text: "Launch speed min " + minSpeed.toFixed(2) + " | max " + maxSpeed.toFixed(2) + " | spread " + spread.toFixed(2) + " | target >= " + limits.minLaunchSpeedSpread.toFixed(2),
+                    x: 16,
+                    y: 88
                 }]
             }
         });
@@ -1423,14 +1683,13 @@
                 "Flipper reachability probes completed across " + traces.length + " sampled shots.",
             objects: objectIds,
             diagnostics: Object.assign(diagnostics, {
-                trajectories: traces.map(function map(trace) {
+                trajectories: compactTrajectoryDiagnostics(traces, function build(trace) {
                     return {
                         label: trace.flipperId + " t=" + trace.contactT.toFixed(2),
                         status: trace.stuckLikely ? "warn" : "pass",
                         limitReason: trace.limitReason || "",
                         ticks: trace.ticks || 0,
-                        collisions: trace.collisions || 0,
-                        path: trace.path
+                        collisions: trace.collisions || 0
                     };
                 }),
                 labels: diagnostics.labels.concat([{
@@ -1489,7 +1748,51 @@
         return { opts: opts, normalized: normalized, report: report, elements: extractElements(normalized) };
     }
 
-    function runPreLauncherChecks(context) {
+    /* What: Expose stable, user-facing evaluation check IDs.
+     * Why: the physics lab needs a deterministic checklist for individual or
+     * batch execution without hard-coding evaluator internals in the UI.
+     */
+    function listChecks() {
+        return EVAL_CHECK_DEFS.map(function map(definition) {
+            return {
+                id: definition.id,
+                label: definition.label,
+                category: definition.category
+            };
+        });
+    }
+
+    /* What: Resolve which evaluator checks are enabled for this run.
+     * Why: callers can run one check, a selected subset, or the full suite.
+     */
+    function resolveCheckSelection(options) {
+        const requested = options && options.evalChecks;
+        const defaults = {};
+        EVAL_CHECK_DEFS.forEach(function each(definition) {
+            defaults[definition.id] = true;
+        });
+        if (!requested) return defaults;
+        const selected = {};
+        EVAL_CHECK_DEFS.forEach(function each(definition) {
+            selected[definition.id] = false;
+        });
+        if (Array.isArray(requested)) {
+            requested.forEach(function each(id) {
+                if (typeof id !== "string") return;
+                if (Object.prototype.hasOwnProperty.call(selected, id)) selected[id] = true;
+            });
+            return selected;
+        }
+        if (requested && typeof requested === "object") {
+            Object.keys(selected).forEach(function each(id) {
+                selected[id] = !!requested[id];
+            });
+            return selected;
+        }
+        return defaults;
+    }
+
+    function runPreLauncherChecks(context, selectedChecks) {
         const normalized = context.normalized;
         const report = context.report;
         if (!checkCoreShape(normalized, report)) {
@@ -1497,12 +1800,12 @@
             return false;
         }
         const elements = context.elements;
-        checkTableValidation(normalized, report);
-        checkPlayabilityValidation(normalized, report);
-        checkIdsAndTypes(elements, report);
-        checkNumericFields(normalized, elements, report);
-        checkBounds(normalized, elements, report);
-        checkCompilation(normalized, report);
+        if (selectedChecks.table_validation) checkTableValidation(normalized, report);
+        if (selectedChecks.playability_validation) checkPlayabilityValidation(normalized, report);
+        if (selectedChecks.ids_and_types) checkIdsAndTypes(elements, report);
+        if (selectedChecks.numeric_fields) checkNumericFields(normalized, elements, report);
+        if (selectedChecks.bounds) checkBounds(normalized, elements, report);
+        if (selectedChecks.compilation) checkCompilation(normalized, report);
         return true;
     }
 
@@ -1518,32 +1821,54 @@
 
     function evaluateTable(table, options) {
         const context = createEvaluationContext(table, options);
-        if (!runPreLauncherChecks(context)) return context.report;
-        checkLauncherRayStuck(context.normalized, context.elements, context.report, context.opts);
-        checkFlipperRayReachability(context.normalized, context.elements, context.report, context.opts);
-        checkTargetToFlipperReachability(context.normalized, context.elements, context.report, context.opts);
-        addReachabilityTodo(context.report);
+        const selectedChecks = resolveCheckSelection(context.opts);
+        if (!runPreLauncherChecks(context, selectedChecks)) return context.report;
+        if (selectedChecks.launcher_rays) {
+            checkLauncherRayStuck(context.normalized, context.elements, context.report, context.opts);
+        }
+        if (selectedChecks.flipper_reachability) {
+            checkFlipperRayReachability(context.normalized, context.elements, context.report, context.opts);
+        }
+        if (selectedChecks.target_to_flipper_reachability) {
+            checkTargetToFlipperReachability(context.normalized, context.elements, context.report, context.opts);
+        }
+        if (selectedChecks.reachability_todo) addReachabilityTodo(context.report);
         finalizeOverall(context.report);
         return context.report;
     }
 
     function evaluateTableAsync(table, options) {
         const context = createEvaluationContext(table, options);
+        const selectedChecks = resolveCheckSelection(context.opts);
         const onProgress = typeof context.opts.onProgress === "function" ? context.opts.onProgress : function noop() {};
-        if (!runPreLauncherChecks(context)) return Promise.resolve(context.report);
+        if (!runPreLauncherChecks(context, selectedChecks)) return Promise.resolve(context.report);
 
         const limits = launcherProbeLimits(context.opts);
         const targetLimits = targetReachabilityLimits(context.opts);
+        const runLauncher = !!selectedChecks.launcher_rays;
+        const runFlipper = !!selectedChecks.flipper_reachability;
+        const runTarget = !!selectedChecks.target_to_flipper_reachability;
+        const runTodo = !!selectedChecks.reachability_todo;
         const launcherTraces = [];
         const flipperTraces = [];
         const targetTraces = [];
-        const flippers = flippersFromElements(context.elements);
-        const targetSources = logicTriggerSourceElements(context.normalized, context.elements);
-        const totalTargetProbes = targetSources.length * flippers.length * targetLimits.count;
-        const totalProbes = limits.count + flippers.length * limits.count + totalTargetProbes;
+        const flippers = (runFlipper || runTarget) ? flippersFromElements(context.elements) : [];
+        const targetSources = runTarget ? logicTriggerSourceElements(context.normalized, context.elements) : [];
+        const launcherProbeCount = runLauncher ? limits.count : 0;
+        const totalFlipperProbes = runFlipper ? (flippers.length * limits.count) : 0;
+        const totalTargetProbes = runTarget ? (targetSources.length * flippers.length * targetLimits.count) : 0;
+        const totalProbes = launcherProbeCount + totalFlipperProbes + totalTargetProbes;
         let firstFailure = null;
         let lastYieldTime = 0;
-        onProgress({ phase: "launcher", done: 0, total: totalProbes, message: "Launcher probes 0 / " + limits.count });
+        if (totalProbes > 0) {
+            if (runLauncher) {
+                onProgress({ phase: "launcher", done: 0, total: totalProbes, message: "Launcher probes 0 / " + launcherProbeCount });
+            } else if (runFlipper) {
+                onProgress({ phase: "flipper", done: 0, total: totalProbes, message: "Flipper probes 0 / " + totalFlipperProbes });
+            } else if (runTarget) {
+                onProgress({ phase: "reachability", done: 0, total: totalProbes, message: "Target probes 0 / " + totalTargetProbes });
+            }
+        }
 
         function maybeYield(next) {
             const now = Date.now();
@@ -1554,15 +1879,16 @@
         }
 
         function finishEvaluation() {
-            addFlipperRayCheck(context.report, flipperTraces, limits, flippers.length, context.elements);
-            addTargetReachabilityCheck(context.report, targetTraces, targetSources, context.elements, targetLimits);
-            addReachabilityTodo(context.report);
+            if (runFlipper) addFlipperRayCheck(context.report, flipperTraces, limits, flippers.length, context.elements);
+            if (runTarget) addTargetReachabilityCheck(context.report, targetTraces, targetSources, context.elements, targetLimits);
+            if (runTodo) addReachabilityTodo(context.report);
             finalizeOverall(context.report);
             onProgress({ phase: "complete", done: totalProbes, total: totalProbes, message: "Evaluation complete" });
             return Promise.resolve(context.report);
         }
 
         function runTargetNext(index) {
+            if (!runTarget) return finishEvaluation();
             if (index >= totalTargetProbes) return finishEvaluation();
             const sourceIndex = Math.floor(index / (flippers.length * targetLimits.count));
             const inSource = index % (flippers.length * targetLimits.count);
@@ -1574,7 +1900,7 @@
             if (trace.ok) targetTraces.push(trace);
             onProgress({
                 phase: "reachability",
-                done: limits.count + (flippers.length * limits.count) + index + 1,
+                done: launcherProbeCount + totalFlipperProbes + index + 1,
                 total: totalProbes,
                 message: "Target probes " + (index + 1) + " / " + totalTargetProbes
             });
@@ -1589,14 +1915,26 @@
         }
 
         function runFlipperNext(index) {
-            const totalFlipperProbes = flippers.length * limits.count;
+            if (!runFlipper) {
+                if (runTarget) {
+                    onProgress({
+                        phase: "reachability",
+                        done: launcherProbeCount,
+                        total: totalProbes,
+                        message: "Target probes 0 / " + totalTargetProbes
+                    });
+                }
+                return runTargetNext(0);
+            }
             if (index >= totalFlipperProbes) {
-                onProgress({
-                    phase: "reachability",
-                    done: limits.count + totalFlipperProbes,
-                    total: totalProbes,
-                    message: "Target probes 0 / " + totalTargetProbes
-                });
+                if (runTarget) {
+                    onProgress({
+                        phase: "reachability",
+                        done: launcherProbeCount + totalFlipperProbes,
+                        total: totalProbes,
+                        message: "Target probes 0 / " + totalTargetProbes
+                    });
+                }
                 return runTargetNext(0);
             }
 
@@ -1607,7 +1945,7 @@
 
             onProgress({
                 phase: "flipper",
-                done: limits.count + index + 1,
+                done: launcherProbeCount + index + 1,
                 total: totalProbes,
                 message: "Flipper probes " + (index + 1) + " / " + totalFlipperProbes
             });
@@ -1623,9 +1961,21 @@
         }
 
         function runNext(index) {
-            if (index >= limits.count || firstFailure) {
+            if (!runLauncher) {
+                if (runFlipper) {
+                    onProgress({ phase: "flipper", done: launcherProbeCount, total: totalProbes, message: "Flipper probes 0 / " + totalFlipperProbes });
+                } else if (runTarget) {
+                    onProgress({ phase: "reachability", done: launcherProbeCount, total: totalProbes, message: "Target probes 0 / " + totalTargetProbes });
+                }
+                return runFlipperNext(0);
+            }
+            if (index >= launcherProbeCount || firstFailure) {
                 addLauncherRayCheck(context.report, launcherTraces, limits, firstFailure);
-                onProgress({ phase: "flipper", done: limits.count, total: totalProbes, message: "Flipper probes 0 / " + (flippers.length * limits.count) });
+                if (runFlipper) {
+                    onProgress({ phase: "flipper", done: launcherProbeCount, total: totalProbes, message: "Flipper probes 0 / " + totalFlipperProbes });
+                } else if (runTarget) {
+                    onProgress({ phase: "reachability", done: launcherProbeCount, total: totalProbes, message: "Target probes 0 / " + totalTargetProbes });
+                }
                 return runFlipperNext(0);
             }
 
@@ -1638,11 +1988,11 @@
                 phase: "launcher",
                 done: index + 1,
                 total: totalProbes,
-                message: "Launcher probes " + (index + 1) + " / " + limits.count
+                message: "Launcher probes " + (index + 1) + " / " + launcherProbeCount
             });
 
             const now = Date.now();
-            const shouldYield = index + 1 < limits.count && ((index + 1) % 4 === 0 || now - lastYieldTime > 50);
+            const shouldYield = index + 1 < launcherProbeCount && ((index + 1) % 4 === 0 || now - lastYieldTime > 50);
             if (shouldYield) {
                 lastYieldTime = now;
                 return yieldToBrowser().then(function resume() {
@@ -1652,10 +2002,12 @@
             return runNext(index + 1);
         }
 
+        if (totalProbes === 0) return finishEvaluation();
         return runNext(0);
     }
 
     Pin.tableEval = {
+        listChecks: listChecks,
         evaluateTable: evaluateTable,
         evaluateTableAsync: evaluateTableAsync
     };

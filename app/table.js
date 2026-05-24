@@ -1,4 +1,12 @@
 (function initTableModule(Pin) {
+    const DEFAULT_TILT_SETTINGS = {
+        enabled: true,
+        impulseX: 0,
+        impulseY: -8,
+        cooldownSeconds: 0.35,
+        warningWindowSeconds: 2,
+        warningLimit: 3
+    };
     const DEFAULT_PLAYFIELD = {
         width: 500,
         height: 880,
@@ -6,7 +14,9 @@
         gravity: 0.35,
         friction: 0.999,
         restitution: 0.55,
-        maxSpeed: 24
+        maxSpeed: 24,
+        realTimeScale: 1,
+        tilt: Object.assign({}, DEFAULT_TILT_SETTINGS)
     };
     const DEFAULT_FLIPPER_TUNING = {
         flipSpeed: 24,
@@ -122,6 +132,49 @@
         return JSON.parse(JSON.stringify(table));
     }
 
+    /*
+     * What: Resolve the table-authored simulation speed scale.
+     * Why: fixed-step loops need one auditable source of truth for table-local
+     * slow-motion behavior and a deterministic fallback when data is missing.
+     */
+    function getRealTimeScale(playfield) {
+        const raw = playfield && typeof playfield.realTimeScale === "number" ? playfield.realTimeScale : DEFAULT_PLAYFIELD.realTimeScale;
+        if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_PLAYFIELD.realTimeScale;
+        return raw;
+    }
+
+    /*
+     * What: Compute the authoritative fixed physics timestep for this table.
+     * Why: all simulation loops should consume the same step size when table
+     * slow-motion is enabled, otherwise timing diverges across runtime paths.
+     */
+    function getFixedPhysicsDt(playfield) {
+        return (1 / 120) * getRealTimeScale(playfield);
+    }
+
+    /*
+     * What: Resolve table-authored tilt settings with safe defaults.
+     * Why: input and physics should consume one normalized tilt contract even
+     * when older tables omit fields or provide invalid values.
+     */
+    function getTiltSettings(playfield) {
+        const authored = playfield && playfield.tilt && typeof playfield.tilt === "object" ? playfield.tilt : {};
+        const tilt = Object.assign({}, DEFAULT_TILT_SETTINGS, authored);
+        tilt.enabled = authored.enabled == null ? DEFAULT_TILT_SETTINGS.enabled : !!authored.enabled;
+        tilt.impulseX = Number.isFinite(tilt.impulseX) ? tilt.impulseX : DEFAULT_TILT_SETTINGS.impulseX;
+        tilt.impulseY = Number.isFinite(tilt.impulseY) ? tilt.impulseY : DEFAULT_TILT_SETTINGS.impulseY;
+        tilt.cooldownSeconds = Number.isFinite(tilt.cooldownSeconds) && tilt.cooldownSeconds >= 0 ?
+            tilt.cooldownSeconds :
+            DEFAULT_TILT_SETTINGS.cooldownSeconds;
+        tilt.warningWindowSeconds = Number.isFinite(tilt.warningWindowSeconds) && tilt.warningWindowSeconds > 0 ?
+            tilt.warningWindowSeconds :
+            DEFAULT_TILT_SETTINGS.warningWindowSeconds;
+        tilt.warningLimit = Number.isFinite(tilt.warningLimit) && tilt.warningLimit >= 1 ?
+            Math.round(tilt.warningLimit) :
+            DEFAULT_TILT_SETTINGS.warningLimit;
+        return tilt;
+    }
+
     function safeLauncherWidth(playfield) {
         /*
          * What: Resolve the minimum lane width that can hold and release a ball.
@@ -169,6 +222,7 @@
         if (table.version == null) table.version = defaults.version;
         if (typeof table.name !== "string") table.name = defaults.name;
         table.playfield = Object.assign({}, defaults.playfield, table.playfield || {});
+        table.playfield.tilt = getTiltSettings(table.playfield);
         table.rules = Object.assign({}, defaults.rules, table.rules || {});
         if (typeof table.rules.balls !== "number" || Number.isNaN(table.rules.balls) || table.rules.balls < 1) {
             table.rules.balls = defaults.rules.balls;
@@ -228,6 +282,38 @@
                     issue("error", "playfield." + k + " must be a number.");
                 }
             });
+            if (Object.prototype.hasOwnProperty.call(table.playfield, "realTimeScale")) {
+                if (typeof table.playfield.realTimeScale !== "number" || Number.isNaN(table.playfield.realTimeScale)) {
+                    issue("error", "playfield.realTimeScale must be a number.");
+                } else if (!(table.playfield.realTimeScale > 0)) {
+                    issue("error", "playfield.realTimeScale must be greater than 0.");
+                }
+            }
+            if (Object.prototype.hasOwnProperty.call(table.playfield, "tilt")) {
+                if (!table.playfield.tilt || typeof table.playfield.tilt !== "object" || Array.isArray(table.playfield.tilt)) {
+                    issue("error", "playfield.tilt must be an object.");
+                } else {
+                    const tilt = table.playfield.tilt;
+                    if (Object.prototype.hasOwnProperty.call(tilt, "enabled") && typeof tilt.enabled !== "boolean") {
+                        issue("error", "playfield.tilt.enabled must be a boolean.");
+                    }
+                    ["impulseX", "impulseY", "cooldownSeconds", "warningWindowSeconds", "warningLimit"].forEach(function each(key) {
+                        if (!Object.prototype.hasOwnProperty.call(tilt, key)) return;
+                        if (typeof tilt[key] !== "number" || Number.isNaN(tilt[key])) {
+                            issue("error", "playfield.tilt." + key + " must be a number.");
+                        }
+                    });
+                    if (typeof tilt.cooldownSeconds === "number" && tilt.cooldownSeconds < 0) {
+                        issue("error", "playfield.tilt.cooldownSeconds must be >= 0.");
+                    }
+                    if (typeof tilt.warningWindowSeconds === "number" && !(tilt.warningWindowSeconds > 0)) {
+                        issue("error", "playfield.tilt.warningWindowSeconds must be > 0.");
+                    }
+                    if (typeof tilt.warningLimit === "number" && tilt.warningLimit < 1) {
+                        issue("error", "playfield.tilt.warningLimit must be >= 1.");
+                    }
+                }
+            }
         }
         if (table && table.rules) {
             if (typeof table.rules.balls !== "number" || Number.isNaN(table.rules.balls) || table.rules.balls < 1) {
@@ -402,7 +488,11 @@
         safeLauncherWidth: safeLauncherWidth,
         clampLauncherWidth: clampLauncherWidth,
         clampLauncherWidths: clampLauncherWidths,
+        getRealTimeScale: getRealTimeScale,
+        getFixedPhysicsDt: getFixedPhysicsDt,
+        getTiltSettings: getTiltSettings,
         DEFAULT_PLAYFIELD: DEFAULT_PLAYFIELD,
+        DEFAULT_TILT_SETTINGS: DEFAULT_TILT_SETTINGS,
         DEFAULT_FLIPPER_TUNING: DEFAULT_FLIPPER_TUNING
     };
 })(window.Pin);

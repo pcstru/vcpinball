@@ -62,21 +62,40 @@
         };
     }
 
-    function toModelsEndpoint(baseUrl) {
-        /* What: Build an OpenAI-compatible models endpoint from provider base URL.
-         * Why: Provider settings may be entered as root, /v1, or direct /models URLs.
+    function normalizeProviderBaseUrl(baseUrl) {
+        /* What: Normalize provider base URL for browser-side fetch calls.
+         * Why: Local servers are often entered as 0.0.0.0, but browsers should connect
+         *      via localhost for deterministic same-machine access.
          */
         const raw = String(baseUrl || "").trim();
         if (!raw) return "";
-        if (/\/models\/?$/i.test(raw)) return raw.replace(/\/+$/, "");
-        return raw.replace(/\/+$/, "") + "/models";
+        return raw.replace(/^(\w+:\/\/)0\.0\.0\.0(?=[:/]|$)/i, "$1localhost");
+    }
+
+    function toModelsEndpoints(baseUrl) {
+        /* What: Build candidate model endpoints from provider base URL.
+         * Why: Providers vary between /models and /v1/models roots.
+         */
+        const raw = normalizeProviderBaseUrl(baseUrl);
+        if (!raw) return [];
+        const base = raw.replace(/\/+$/, "");
+        const out = [];
+        function push(url) {
+            if (!url) return;
+            if (out.indexOf(url) >= 0) return;
+            out.push(url);
+        }
+        if (/\/models$/i.test(base)) push(base);
+        else push(base + "/models");
+        if (!/\/v\d+$/i.test(base) && !/\/v\d+\/models$/i.test(base)) push(base + "/v1/models");
+        return out;
     }
 
     function toChatEndpoint(baseUrl) {
         /* What: Build an OpenAI-compatible chat endpoint from provider base URL.
          * Why: Providers may expose root, /v1, or direct /chat/completions URLs.
          */
-        const raw = String(baseUrl || "").trim();
+        const raw = normalizeProviderBaseUrl(baseUrl);
         if (!raw) return "";
         if (/\/chat\/completions\/?$/i.test(raw)) return raw.replace(/\/+$/, "");
         return raw.replace(/\/+$/, "") + "/chat/completions";
@@ -449,11 +468,9 @@
             return Promise.resolve().then(function finishLoad() {
                 const settings = state.settings || {};
                 const hasBaseUrl = !!String(settings.baseUrl || "").trim();
-                const hasApiKey = !!String(settings.apiKey || "").trim();
-                if (!hasBaseUrl || !hasApiKey) {
+                if (!hasBaseUrl) {
                     const missing = [];
                     if (!hasBaseUrl) missing.push("baseUrl");
-                    if (!hasApiKey) missing.push("apiKey");
                     state.availableModels = [];
                     state.connectionStatus = "Missing required provider settings: " + missing.join(", ");
                     return [];
@@ -463,15 +480,26 @@
                     state.connectionStatus = "Model loading unavailable (no fetch)";
                     return [];
                 }
-                const endpoint = toModelsEndpoint(settings.baseUrl);
-                const headers = {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + String(settings.apiKey || "").trim()
-                };
-                return fetch(endpoint, { method: "GET", headers: headers }).then(function parseResponse(response) {
-                    if (!response.ok) throw new Error("HTTP " + response.status + " from " + endpoint);
-                    return response.json();
-                }).then(function parseModels(payload) {
+                const endpoints = toModelsEndpoints(settings.baseUrl);
+                const apiKey = String(settings.apiKey || "").trim();
+                const headers = { "Content-Type": "application/json" };
+                if (apiKey) headers.Authorization = "Bearer " + apiKey;
+
+                function tryEndpoint(index, errors) {
+                    if (index >= endpoints.length) {
+                        throw new Error("All model endpoints failed: " + errors.join(" | "));
+                    }
+                    const endpoint = endpoints[index];
+                    return fetch(endpoint, { method: "GET", headers: headers }).then(function parseResponse(response) {
+                        if (!response.ok) throw new Error("HTTP " + response.status + " from " + endpoint);
+                        return response.json();
+                    }).catch(function onEndpointError(err) {
+                        const msg = err && err.message ? String(err.message) : "Unknown error";
+                        return tryEndpoint(index + 1, errors.concat([msg]));
+                    });
+                }
+
+                return tryEndpoint(0, []).then(function parseModels(payload) {
                     const rows = payload && Array.isArray(payload.data) ? payload.data : [];
                     const configured = settings.model ? String(settings.model) : "";
                     const seen = {};
@@ -510,13 +538,11 @@
             return Promise.resolve().then(function finishTest() {
                 const settings = state.settings || {};
                 const hasBaseUrl = !!String(settings.baseUrl || "").trim();
-                const hasApiKey = !!String(settings.apiKey || "").trim();
-                if (hasBaseUrl && hasApiKey) {
+                if (hasBaseUrl) {
                     state.connectionStatus = "Configuration valid (static mode)";
                 } else {
                     const missing = [];
                     if (!hasBaseUrl) missing.push("baseUrl");
-                    if (!hasApiKey) missing.push("apiKey");
                     state.connectionStatus = "Missing required provider settings: " + missing.join(", ");
                 }
             }).catch(function onError(err) {
@@ -534,6 +560,19 @@
                 kind: kind,
                 detail: detail
             });
+        }
+        function appendLogData(kind, data) {
+            /* What: Write structured trace events to the assistant log.
+             * Why: Provider debugging requires visibility into each request step,
+             *      including prompt payloads, raw responses, validation, and apply flow.
+             */
+            let detail = "";
+            try {
+                detail = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+            } catch (err) {
+                detail = String(data);
+            }
+            appendLog(kind, detail);
         }
 
         function summarizePatch(patch) {
@@ -553,12 +592,10 @@
         function ensureProviderReady() {
             const settings = state.settings || {};
             const baseUrl = safeString(settings.baseUrl).trim();
-            const apiKey = safeString(settings.apiKey).trim();
             const model = safeString(settings.model).trim();
-            if (!baseUrl || !apiKey || !model) {
+            if (!baseUrl || !model) {
                 const missing = [];
                 if (!baseUrl) missing.push("baseUrl");
-                if (!apiKey) missing.push("apiKey");
                 if (!model) missing.push("model");
                 return { ok: false, message: "Missing required provider settings: " + missing.join(", ") };
             }
@@ -621,34 +658,18 @@
                 ],
                 logicDoc: logicDoc
             };
+            const shared = Pin.aiPromptContract && typeof Pin.aiPromptContract.buildPatchPrompt === "function"
+                ? Pin.aiPromptContract
+                : null;
+            if (shared) {
+                return shared.buildPatchPrompt({
+                    task: safeString(task),
+                    context: compact
+                });
+            }
             return [
-                "You are a patch generator for a pinball table editor.",
-                "Return ONLY JSON patch object with optional keys:",
-                "tablePatch, addElements, patchElements, removeElements, addFeatures, patchFeatures, removeFeatures, logicDocPatch.",
-                "Feature schema (for addFeatures/patchFeatures.patch): id, name, description, goal, objects[], states[], rules[], lamps[].",
-                "Prefer feature-first updates: add/patch feature metadata when creating or changing gameplay logic.",
-                "When editing logic, write into logicDocPatch using current schema keys only:",
-                "logicVersion, switchRegistry, stateTable, computedState, lampBindings, actionRules, resetRules.",
-                "Strict logic schema:",
-                "- lampBindings rows use { lampId, expr } (NOT expression).",
-                "- actionRules rows use { id, trigger, condition, effects, enabled } (NOT when).",
-                "- action effect rows use { type, target?, value? } where type in set|add|score|reset|setElementProperty|clearElementProperty (NOT setState).",
-                "- resetRules rows use { id, trigger, scope, resets } (NOT effects).",
-                "- actionRules.trigger and resetRules.trigger must be switch IDs from switchRegistry.",
-                "- Never use state ids as triggers.",
-                "- Built-in timer switches available: timer_100ms and timer_1s.",
-                "Only output the current patch keys listed above.",
-                "For wiring tasks, always generate complete arrays in logicDocPatch for any lists you modify.",
-                "When wiring a target to light when hit, ensure all of these are present:",
-                "1) switchRegistry row mapping trigger switch id/sourceElementId",
-                "2) stateTable bool state (example: target_id_lit)",
-                "3) lampBindings row with lampId and expr = that state id",
-                "4) actionRules row triggered by switch id, sets state true.",
-                "If asked for timeout behavior, only implement it when a real timer/tick-like switch already exists in switchRegistry; never invent synthetic timeout trigger ids.",
-                "For timeout behavior, prefer this valid pattern: int counter state + timer_1s add rule + threshold condition rule + drain/collect reset rule clearing counter/state.",
-                "Keep existing unrelated logic rows unchanged.",
-                "Do not include markdown.",
-                "Respect feature-first logic authoring.",
+                "Return JSON patch only.",
+                "Allowed keys: tablePatch, addElements, patchElements, removeElements, addFeatures, patchFeatures, removeFeatures, logicDocPatch.",
                 "Task:",
                 safeString(task),
                 "Table context:",
@@ -656,7 +677,7 @@
             ].join("\n");
         }
 
-        function requestPatch(taskText, repairNote) {
+        function requestPatch(taskText, repairNote, trace) {
             const ready = ensureProviderReady();
             if (!ready.ok) return Promise.resolve({ ok: false, message: ready.message });
             const settings = ready.settings;
@@ -675,18 +696,38 @@
                     }
                 ]
             };
-            const headers = {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + safeString(settings.apiKey).trim()
+            const headers = { "Content-Type": "application/json" };
+            const apiKey = safeString(settings.apiKey).trim();
+            if (apiKey) headers.Authorization = "Bearer " + apiKey;
+            const traceMeta = {
+                flow: trace && trace.flow ? trace.flow : "unknown",
+                attempt: trace && trace.attempt ? trace.attempt : 1,
+                maxSteps: trace && trace.maxSteps ? trace.maxSteps : Number((state.settings && state.settings.maxSteps) || 4),
+                endpoint: endpoint,
+                model: settings.model
             };
+            appendLogData("provider_request", {
+                meta: traceMeta,
+                body: body
+            });
             return fetch(endpoint, {
                 method: "POST",
                 headers: headers,
                 body: JSON.stringify(body)
-            }).then(function parseResponse(response) {
+            }).then(function onHttp(response) {
+                appendLogData("provider_http", {
+                    meta: traceMeta,
+                    status: response.status,
+                    ok: !!response.ok
+                });
                 if (!response.ok) throw new Error("HTTP " + response.status + " from " + endpoint);
                 return response.json();
-            }).then(function parsePayload(payload) {
+            }).then(function parseResponse(response) {
+                const payload = response;
+                appendLogData("provider_response_raw", {
+                    meta: traceMeta,
+                    payload: payload
+                });
                 const content = payload &&
                     payload.choices &&
                     payload.choices[0] &&
@@ -696,10 +737,20 @@
                     : "";
                 const patch = extractPatchJson(content);
                 if (!patch || typeof patch !== "object") {
+                    appendLogData("provider_parse_failed", {
+                        meta: traceMeta,
+                        message: "Model response did not include valid patch JSON.",
+                        raw: content
+                    });
                     return { ok: false, message: "Model response did not include valid patch JSON.", raw: content };
                 }
                 const contract = validatePatchContract(patch);
                 if (!contract.ok) {
+                    appendLogData("provider_contract_failed", {
+                        meta: traceMeta,
+                        issues: contract.issues,
+                        raw: content
+                    });
                     return {
                         ok: false,
                         message: "Patch contract validation failed.",
@@ -707,9 +758,18 @@
                         raw: content
                     };
                 }
+                appendLogData("provider_patch_ok", {
+                    meta: traceMeta,
+                    patch: patch
+                });
                 return { ok: true, patch: patch, raw: content };
             }).catch(function onError(err) {
-                return { ok: false, message: err && err.message ? String(err.message) : "Patch request failed." };
+                const message = err && err.message ? String(err.message) : "Patch request failed.";
+                appendLogData("provider_request_failed", {
+                    meta: traceMeta,
+                    message: message
+                });
+                return { ok: false, message: message };
             });
         }
 
@@ -743,10 +803,25 @@
                     "Previous patch failed validation. Fix these issues and return a full corrected patch JSON.\n" +
                     lastFailure
                 ) : "";
-                return requestPatch(taskText, repairNote).then(function onPatch(result) {
+                appendLogData("attempt_start", {
+                    flow: state.agenticRunning ? "agentic" : "chat",
+                    attempt: attempt,
+                    maxSteps: maxSteps,
+                    repairNote: repairNote || ""
+                });
+                return requestPatch(taskText, repairNote, {
+                    flow: state.agenticRunning ? "agentic" : "chat",
+                    attempt: attempt,
+                    maxSteps: maxSteps
+                }).then(function onPatch(result) {
                     if (!result.ok) {
                         if (Array.isArray(result.contractIssues) && result.contractIssues.length) {
                             lastFailure = result.contractIssues.join("\n");
+                            appendLogData("attempt_contract_retry", {
+                                attempt: attempt,
+                                maxSteps: maxSteps,
+                                issues: result.contractIssues
+                            });
                             if (attempt < maxSteps) return iterate();
                             return {
                                 ok: false,
@@ -755,14 +830,30 @@
                                 raw: result.raw
                             };
                         }
+                        appendLogData("attempt_failed", {
+                            attempt: attempt,
+                            maxSteps: maxSteps,
+                            message: result.message || "Patch request failed."
+                        });
                         return result;
                     }
                     const preview = options && options.previewPatch ? options.previewPatch(result.patch) : { ok: true, issuesCount: 0 };
                     result.preview = preview;
+                    appendLogData("preview_result", {
+                        attempt: attempt,
+                        maxSteps: maxSteps,
+                        preview: preview
+                    });
                     if (preview && preview.ok && Number(preview.issuesCount || 0) === 0) {
+                        appendLogData("attempt_success", { attempt: attempt, maxSteps: maxSteps });
                         return result;
                     }
                     lastFailure = summarizePreviewIssues(preview) || (preview && preview.error) || "Unknown preview failure.";
+                    appendLogData("attempt_preview_retry", {
+                        attempt: attempt,
+                        maxSteps: maxSteps,
+                        lastFailure: lastFailure
+                    });
                     if (attempt >= maxSteps) {
                         return {
                             ok: false,
@@ -781,6 +872,7 @@
             if (!state.draft.trim()) return;
             const task = state.draft.trim();
             state.messages.push({ role: "user", content: task });
+            appendLogData("chat_user_task", { task: task });
             state.busy = true;
             state.error = "";
             refresh();
@@ -800,10 +892,10 @@
                 state.lastPatchSummary = summarizePatch(result.patch);
                 const status = preview.ok ? "Patch ready." : ("Patch generated with preview errors (" + (preview.error || "unknown") + ").");
                 state.messages.push({ role: "assistant", content: status + " Review the Proposed Patch panel and click Apply." });
-                appendLog("chat_patch", JSON.stringify({
+                appendLogData("chat_patch", {
                     summary: state.lastPatchSummary,
                     preview: preview
-                }));
+                });
             }).finally(function done() {
                 state.draft = "";
                 state.busy = false;
@@ -813,6 +905,7 @@
         function runAgentic() {
             const task = safeString(state.agenticDraft).trim();
             if (!task || state.busy || state.agenticRunning) return;
+            appendLogData("agentic_task", { task: task });
             state.busy = true;
             state.agenticRunning = true;
             state.error = "";
@@ -835,7 +928,7 @@
                         summary: summary,
                         preview: preview
                     });
-                    appendLog("agentic_pending", JSON.stringify({ summary: summary, preview: preview }));
+                    appendLogData("agentic_pending", { summary: summary, preview: preview, patch: result.patch });
                     return;
                 }
                 const applyResult = options && options.applyPatch ? options.applyPatch(result.patch) : { ok: false, message: "No applyPatch callback." };
@@ -847,7 +940,7 @@
                     error: applyResult.ok ? "" : (applyResult.message || "Apply failed")
                 });
                 if (!applyResult.ok) state.error = applyResult.message || "Apply failed.";
-                appendLog("agentic_apply", JSON.stringify(applyResult));
+                appendLogData("agentic_apply", { applyResult: applyResult, patch: result.patch, preview: preview });
             }).finally(function done() {
                 state.busy = false;
                 state.agenticRunning = false;
@@ -858,6 +951,7 @@
             state.agenticStopRequested = true;
             state.agenticRunning = false;
             state.busy = false;
+            appendLogData("agentic_stop", { reason: "manual stop requested" });
             refresh();
         }
         function applyAgenticPendingPatch() {
@@ -877,27 +971,32 @@
             } else {
                 state.error = applyResult.message || "Apply failed.";
             }
+            appendLogData("agentic_apply_pending", { applyResult: applyResult, patch: patch });
             refresh();
             return applyResult;
         }
         function rejectAgenticPendingPatch() {
             if (!state.agenticPendingPatch) return { ok: false, message: "No pending patch." };
+            const rejectedPatch = state.agenticPendingPatch;
             state.agenticBatches.push({
                 status: "rejected",
                 at: new Date().toISOString(),
-                summary: summarizePatch(state.agenticPendingPatch)
+                summary: summarizePatch(rejectedPatch)
             });
             state.agenticPendingPatch = null;
             state.agenticPendingBatchId = "";
+            appendLogData("agentic_reject_pending", { summary: summarizePatch(rejectedPatch), patch: rejectedPatch });
             refresh();
             return { ok: true };
         }
         function quickPrompt() {}
         function applyLastPatch() {
             if (!state.lastPatch) return { ok: false, message: "No assistant patch to apply." };
-            const result = options && options.applyPatch ? options.applyPatch(state.lastPatch) : { ok: false, message: "No applyPatch callback." };
+            const patch = state.lastPatch;
+            const result = options && options.applyPatch ? options.applyPatch(patch) : { ok: false, message: "No applyPatch callback." };
             if (!result.ok) state.error = result.message || "Patch apply failed.";
             if (result.ok) state.lastPatch = null;
+            appendLogData("chat_apply_patch", { result: result, patch: patch });
             refresh();
             return result;
         }

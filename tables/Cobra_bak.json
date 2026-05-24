@@ -1,7 +1,7 @@
 {
   "version": 1,
   "tableVersion": "1.0",
-  "date": "2026-05-22T18:15:39.993Z",
+  "date": "2026-05-17",
   "name": "Cobra",
   "playfield": {
     "width": 500,
@@ -10,16 +10,7 @@
     "gravity": 0.2,
     "friction": 0.999,
     "restitution": 0.55,
-    "maxSpeed": 24,
-    "realTimeScale": 0.75,
-    "tilt": {
-      "enabled": true,
-      "impulseX": 0,
-      "impulseY": -8,
-      "cooldownSeconds": 0.35,
-      "warningWindowSeconds": 2,
-      "warningLimit": 3
-    }
+    "maxSpeed": 24
   },
   "rules": {
     "balls": 3,
@@ -2482,7 +2473,7 @@
         "x": 108.31990374837318,
         "y": 750.0826304395376
       },
-      "length": 103,
+      "length": 98,
       "restAngle": 0.55,
       "activeAngle": -0.75,
       "flipSpeed": 54,
@@ -2506,7 +2497,7 @@
         "x": 370,
         "y": 750
       },
-      "length": 103,
+      "length": 98,
       "restAngle": 2.5915926535,
       "activeAngle": 3.8915926535,
       "flipSpeed": 54,

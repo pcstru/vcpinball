@@ -3,7 +3,23 @@
     Pin.presets.cyberpin = {
         version: 1,
         name: "Neon Cyberpin",
-        playfield: { width: 500, height: 880, gravity: 0.35, friction: 0.999, restitution: 0.55, maxSpeed: 24 },
+        playfield: {
+            width: 500,
+            height: 880,
+            gravity: 0.35,
+            friction: 0.999,
+            restitution: 0.55,
+            maxSpeed: 24,
+            realTimeScale: 1,
+            tilt: {
+                enabled: true,
+                impulseX: 0,
+                impulseY: -8,
+                cooldownSeconds: 0.35,
+                warningWindowSeconds: 2,
+                warningLimit: 3
+            }
+        },
         rules: { balls: 3, highScoreKey: "cyberpinHighScore" },
         launcher: { x: 439, y: 710, dir: { x: 0, y: -1 }, maxPower: 42 },
         elements: [

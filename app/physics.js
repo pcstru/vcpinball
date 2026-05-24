@@ -6,6 +6,59 @@
  * deterministic and auditable across table features and element modules.
  */
 (function initPhysics(Pin) {
+    function getTiltSettings(world) {
+        if (!Pin.table || !Pin.table.getTiltSettings) return null;
+        const playfield = world && world.table && world.table.playfield;
+        return Pin.table.getTiltSettings(playfield);
+    }
+
+    function getTiltState(world) {
+        world.tiltState = world.tiltState || {
+            lockout: false,
+            cooldownUntil: 0,
+            recentTimes: []
+        };
+        if (!Array.isArray(world.tiltState.recentTimes)) world.tiltState.recentTimes = [];
+        return world.tiltState;
+    }
+
+    /*
+     * What: Apply one player tilt impulse when allowed by table rules.
+     * Why: play controls need a deterministic table bump with cooldown and
+     * lockout accounting so aggressive nudging can be penalized.
+     */
+    function applyTilt(world) {
+        const tilt = getTiltSettings(world);
+        if (!tilt || !tilt.enabled) return false;
+        const tiltState = getTiltState(world);
+        const now = world.physicsTime || 0;
+        if (tiltState.lockout) return false;
+        if (now < (tiltState.cooldownUntil || 0)) return false;
+        tiltState.recentTimes = tiltState.recentTimes.filter(function keep(time) {
+            return now - time <= tilt.warningWindowSeconds;
+        });
+        tiltState.recentTimes.push(now);
+        tiltState.cooldownUntil = now + tilt.cooldownSeconds;
+        if (tiltState.recentTimes.length >= tilt.warningLimit) {
+            tiltState.lockout = true;
+            if (Pin.events) Pin.events.emit(world, { type: "tiltLockout", sourceId: "playfield", elementType: "playfield" });
+            return false;
+        }
+        (world.balls || []).forEach(function each(ball) {
+            if (!ball || ball.drained || ball.inLaunchLane) return;
+            ball.vx += tilt.impulseX;
+            ball.vy += tilt.impulseY;
+        });
+        if (Pin.events) Pin.events.emit(world, { type: "tilt", sourceId: "playfield", elementType: "playfield" });
+        return true;
+    }
+
+    function clearTiltLockout(world) {
+        const tiltState = getTiltState(world);
+        tiltState.lockout = false;
+        tiltState.cooldownUntil = 0;
+        tiltState.recentTimes.length = 0;
+    }
     function closestPointOnSegment(px, py, x1, y1, x2, y2) {
         const dx = x2 - x1;
         const dy = y2 - y1;
@@ -1041,6 +1094,8 @@
         queryBroadPhase: queryBroadPhase,
         getLauncherConfig: getLauncherConfig,
         releaseLauncher: releaseLauncher,
+        applyTilt: applyTilt,
+        clearTiltLockout: clearTiltLockout,
         processSensors: processSensors,
         stepWorld: stepWorld
     };

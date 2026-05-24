@@ -4,7 +4,7 @@
  * path as the game runtime so manual tuning matches automated checks.
  */
 (function initPhysicsHarness(Pin) {
-    const FIXED_DT = 1 / 120;
+    const BASE_FIXED_DT = 1 / 120;
     const DEFAULT_PLAYFIELD = Object.assign({
         width: 500,
         height: 880,
@@ -78,6 +78,18 @@
 
     function clone(value) {
         return JSON.parse(JSON.stringify(value));
+    }
+
+    /*
+     * What: Resolve the harness world fixed timestep from table playfield data.
+     * Why: harness scenarios and lab simulation must follow the same slow-motion
+     * policy as play mode to keep tuning and regression checks aligned.
+     */
+    function fixedDtForWorld(world) {
+        if (Pin.table && Pin.table.getFixedPhysicsDt) {
+            return Pin.table.getFixedPhysicsDt(world && world.table && world.table.playfield);
+        }
+        return BASE_FIXED_DT;
     }
 
     function round(value, digits) {
@@ -316,16 +328,16 @@
             runtimeRamps: [],
             physicsTick: 0,
             physicsTime: 0,
-            lastPhysicsDt: FIXED_DT
+            lastPhysicsDt: fixedDtForWorld({ table: table })
         };
         refreshRuntime(world);
         return world;
     }
 
     function stepWorld(world) {
-        world.lastPhysicsDt = FIXED_DT;
+        world.lastPhysicsDt = fixedDtForWorld(world);
         refreshRuntime(world);
-        Pin.physics.stepWorld(world, FIXED_DT);
+        Pin.physics.stepWorld(world, world.lastPhysicsDt);
     }
 
     function primeHeldFlipper(world, ticks) {
@@ -684,7 +696,7 @@
     }
 
     Pin.physicsHarness = {
-        fixedDt: FIXED_DT,
+        fixedDt: BASE_FIXED_DT,
         defaultTuning: clone(DEFAULT_TUNING),
         tuningFields: clone(TUNING_FIELDS),
         scenarios: SCENARIOS.map(function map(entry) {

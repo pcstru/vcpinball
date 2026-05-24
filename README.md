@@ -66,6 +66,13 @@ The intent is deliberately narrow: this is not trying to decide whether a table 
 
 The Physics Lab screenshot shows the current evaluation workflow: table controls on the left, the live table sandbox in the center, and metrics/export/detail panes on the right. Evaluation checks produce PASS / WARN / FAIL rows; selecting a row draws the related diagnostic overlay on the table. In the shown reachability case, colored probe paths represent simulated ball trajectories from the real physics path, with warnings recorded when probes appear stuck, fail to drain, or do not reach a configured flipper/target condition within the selected limits.
 
+Designer handoff:
+
+- In `#design`, use the `Lab` button in the top tab bar to open `physics-lab.html#sandbox`.
+- The current designer table is written to a one-shot localStorage handoff payload (`pin.physicsLab.handoff`) and consumed by Physics Lab on load.
+- On conflict, the Designer handoff table is preferred over prior lab state.
+- Physics Lab top-bar navigation (`Selector`, `Play`, `Design`, `Logic`) writes current lab table state to `autosave` before route change so the main app surfaces reopen on the same table context.
+
 The lab currently supports:
 
 - loading bundled table JSON from the table catalog
@@ -110,6 +117,15 @@ The assistant contract is intentionally constrained. It should produce JSON patc
 The app validates and previews patches before applying them. The design goal is to make AI useful inside the product without letting it freely mutate arbitrary application state.
 
 In this static build, provider settings and assistant UI are local/browser-side. External AI execution depends on configured provider endpoints.
+
+Important split:
+
+- Browser Physics Lab `AI-Lab` does not read process environment variables or `.env` files.
+- Node `eval-agent` reads process environment variables (for example via shell-exported vars or `.env` loaders you run externally).
+- Both paths use the same patch/eval contract and physics runtime behavior; configuration transport is different by runtime.
+
+Physics Lab provider setup is now available in the `AI-Lab` tab itself (`Provider label`, `Base URL`, `Model`, `API key`, then `Save Provider`). Values are stored in browser `localStorage` under `pin.assistant.settings`.
+When `Base URL` and `API key` are present, use `Load Models` to query the provider `/models` endpoint and select a returned model. This reduces `400` failures caused by invalid or unavailable model IDs.
 
 In Physics Lab `AI-Lab`, provider status is shown directly in the panel:
 
@@ -238,13 +254,22 @@ Optional review/scoring provider:
 - `PIN_AI_REVIEW_API_KEY`
 - `PIN_AI_REVIEW_MODEL`
 
+Optional GEPA reflection provider:
+
+- `PIN_REFLECTION_BASE_URL`
+- `PIN_REFLECTION_API_KEY`
+- `PIN_REFLECTION_MODEL`
+
 The CLI emits machine-readable JSON output. Dataset rows include contract issues, validation issues, eval summary/check failures, acceptance flag, and runtime metadata so generated examples can be filtered for fine-tuning workflows.
 
 ### Environment setup and secret hygiene
 
 - Copy `.env.example` to `.env` and fill in real provider values for local use.
 - `.env` and `.env.*` are git-ignored; `.env.example` stays committed as the template.
+- `tools/RunGepa.ps1` is git-ignored on purpose. Copy `tools/RunGepa.template.ps1` to `tools/RunGepa.ps1` for local GEPA runs.
+- If `PIN_REFLECTION_*` is blank, the GEPA launcher falls back to `PIN_AI_*`.
 - Do not place real keys in table JSON, patch JSON, or committed docs.
+- `.env` values apply to Node tooling such as `npm run eval-agent` and the local GEPA launcher; they are not consumed directly by browser Physics Lab.
 
 PowerShell session example (no file loader required):
 

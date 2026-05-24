@@ -32,8 +32,20 @@
             minDwellMs: 1800
         }, options || {});
 
-        const fullQuality = { glowScale: 1, reducedEffects: false };
-        const reducedQuality = { glowScale: 0.55, reducedEffects: true };
+        const fullQuality = {
+            glowScale: 1,
+            reducedEffects: false,
+            pixelRatioScale: 1,
+            sparkLimit: 220,
+            trailEnabled: true
+        };
+        const reducedQuality = {
+            glowScale: 0.55,
+            reducedEffects: true,
+            pixelRatioScale: 0.72,
+            sparkLimit: 90,
+            trailEnabled: false
+        };
         let mode = "full";
         let modeChangedAt = 0;
         let pressureSince = 0;

@@ -115,6 +115,87 @@
         return out;
     }
 
+    /*
+     * What: Render a searchable model picker backed by provider-discovered models.
+     * Why: Some providers return long model lists; search keeps selection usable while
+     *      preserving a separate free-text model field for manual overrides.
+     * Correctness: Selecting an option writes directly to assistant settings `model`,
+     *              which remains the single source of truth used by Save Provider.
+     */
+    function appendSearchableModelPicker(container, labelText, models, selectedValue, onChoose) {
+        const row = document.createElement("div");
+        row.className = "field-row";
+        const label = document.createElement("span");
+        label.className = "field-label";
+        label.textContent = labelText;
+        row.appendChild(label);
+
+        const pickerWrap = document.createElement("div");
+        pickerWrap.style.display = "flex";
+        pickerWrap.style.flexDirection = "column";
+        pickerWrap.style.gap = "6px";
+
+        const searchInput = document.createElement("input");
+        searchInput.type = "text";
+        searchInput.placeholder = "Search discovered models";
+        searchInput.value = "";
+
+        const select = document.createElement("select");
+
+        function refreshOptions() {
+            const search = String(searchInput.value || "").trim().toLowerCase();
+            const filtered = (models || []).filter(function keep(item) {
+                const id = String(item && item.id || "");
+                const labelText = String(item && (item.label || item.id) || "");
+                if (!search) return true;
+                return id.toLowerCase().indexOf(search) >= 0 || labelText.toLowerCase().indexOf(search) >= 0;
+            });
+
+            const previousValue = select.value || "";
+            select.innerHTML = "";
+            if (!filtered.length) {
+                const none = document.createElement("option");
+                none.value = "";
+                none.textContent = "(no matching discovered models)";
+                select.appendChild(none);
+                select.disabled = true;
+                return;
+            }
+
+            select.disabled = false;
+            const blank = document.createElement("option");
+            blank.value = "";
+            blank.textContent = "(choose discovered model)";
+            select.appendChild(blank);
+            filtered.forEach(function each(item) {
+                const option = document.createElement("option");
+                option.value = String(item.id || "");
+                option.textContent = String(item.label || item.id || "");
+                select.appendChild(option);
+            });
+
+            const current = selectedValue == null ? "" : String(selectedValue);
+            if (current && filtered.some(function has(item) { return String(item.id || "") === current; })) {
+                select.value = current;
+            } else if (previousValue && filtered.some(function has(item) { return String(item.id || "") === previousValue; })) {
+                select.value = previousValue;
+            } else {
+                select.value = "";
+            }
+        }
+
+        searchInput.oninput = refreshOptions;
+        select.onchange = function chooseModel() {
+            onChoose(select.value);
+        };
+
+        refreshOptions();
+        pickerWrap.appendChild(searchInput);
+        pickerWrap.appendChild(select);
+        row.appendChild(pickerWrap);
+        container.appendChild(row);
+    }
+
     function elementDisplayName(element) {
         if (!element) return "";
         const custom = element.name || element.label || "";
@@ -533,7 +614,8 @@
                 card.className = "assistant-log-entry";
                 const meta = document.createElement("div");
                 meta.className = "assistant-log-meta";
-                meta.textContent = entry.at + " - " + entry.stage;
+                const eventKind = entry.kind || entry.stage || "event";
+                meta.textContent = entry.at + " - " + eventKind;
                 const detail = document.createElement("pre");
                 detail.className = "assistant-log-detail";
                 detail.textContent = entry.detail || "";
@@ -612,7 +694,7 @@
         button.setAttribute("aria-label", label || name);
     }
 
-    function renderTabBar(container, activeTab, onSetTab, onPlay, onLogic) {
+    function renderTabBar(container, activeTab, onSetTab, onPlay, onLogic, onLab) {
         const tabs = document.createElement("div");
         tabs.className = "sidebar-tabs";
         [
@@ -638,6 +720,12 @@
             logicButton.textContent = "Logic";
             logicButton.onclick = onLogic;
             tabs.appendChild(logicButton);
+        }
+        if (onLab) {
+            const labButton = document.createElement("button");
+            labButton.textContent = "Lab";
+            labButton.onclick = onLab;
+            tabs.appendChild(labButton);
         }
         container.appendChild(tabs);
     }
@@ -708,7 +796,14 @@
     function renderInspector(container, model) {
         container.innerHTML = "";
         const activeTab = model.activeTab || "properties";
-        renderTabBar(container, activeTab, model.onSetTab || function noop() {}, model.onTestPlay, model.onOpenLogicStudio);
+        renderTabBar(
+            container,
+            activeTab,
+            model.onSetTab || function noop() {},
+            model.onTestPlay,
+            model.onOpenLogicStudio,
+            model.onOpenPhysicsLab
+        );
 
         function renderTableTab() {
         const tableSection = appendSection(container, "Table");
@@ -723,6 +818,13 @@
             "playfield.friction",
             "playfield.restitution",
             "playfield.maxSpeed",
+            "playfield.realTimeScale",
+            "playfield.tilt.enabled",
+            "playfield.tilt.impulseX",
+            "playfield.tilt.impulseY",
+            "playfield.tilt.cooldownSeconds",
+            "playfield.tilt.warningWindowSeconds",
+            "playfield.tilt.warningLimit",
             "rules.balls"
         ];
         const tableDraftKey = "table:main";
@@ -850,9 +952,24 @@
         appendSmallText(settingsSection, "Status: " + (assistantState.connectionStatus || "Not tested"));
         appendField(settingsSection, "providerLabel", settingsDraftState.value.providerLabel || "", function patch(value) { patchDraftValue(model, settingsKey, "providerLabel", value); });
         appendField(settingsSection, "baseUrl", settingsDraftState.value.baseUrl || "", function patch(value) { patchDraftValue(model, settingsKey, "baseUrl", value); });
-        appendField(settingsSection, "model", settingsDraftState.value.model || "", function patch(value) { patchDraftValue(model, settingsKey, "model", value); }, optionList((assistantState.availableModels || []).map(function map(item) {
+        appendField(settingsSection, "model", settingsDraftState.value.model || "", function patch(value) { patchDraftValue(model, settingsKey, "model", value); });
+        const discoveredModels = optionList((assistantState.availableModels || []).map(function map(item) {
             return { value: item.id, label: item.label || item.id };
-        }), true));
+        }), false);
+        if (discoveredModels.length) {
+            appendSearchableModelPicker(
+                settingsSection,
+                "modelDropdown",
+                discoveredModels,
+                settingsDraftState.value.model || "",
+                function chooseDiscoveredModel(value) {
+                    if (!value) return;
+                    patchDraftValue(model, settingsKey, "model", value);
+                }
+            );
+        } else {
+            appendSmallText(settingsSection, "No discovered models loaded. Use Load Models to fetch provider model IDs.");
+        }
         appendField(settingsSection, "apiKey", settingsDraftState.value.apiKey || "", function patch(value) { patchDraftValue(model, settingsKey, "apiKey", value); });
         appendField(settingsSection, "maxSteps", typeof settingsDraftState.value.maxSteps === "number" ? settingsDraftState.value.maxSteps : 4, function patch(value) { patchDraftValue(model, settingsKey, "maxSteps", value); });
         appendDraftActions(settingsSection, settingsKey, settingsDraftState.dirty, function saveSettings() {

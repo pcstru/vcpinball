@@ -383,6 +383,128 @@ function testNarrowLauncherPlayabilityWarnsBeforeNormalize() {
     }), "validatePlayability should warn about raw narrow launcher lanes");
 }
 
+function testTableRealTimeScaleDefaultsAndValidation() {
+    const tableApi = loadTableModule();
+    const normalized = tableApi.normalizeTable({
+        version: 1,
+        name: "Slow Mo Default",
+        playfield: {},
+        rules: { balls: 3 },
+        elements: []
+    });
+    assert.strictEqual(normalized.playfield.realTimeScale, 1, "normalizeTable should default realTimeScale to 1");
+    assert.strictEqual(tableApi.getFixedPhysicsDt(normalized.playfield), 1 / 120, "realTimeScale=1 should preserve the base fixed dt");
+
+    const slowMo = tableApi.normalizeTable({
+        version: 1,
+        name: "Slow Mo Half",
+        playfield: { realTimeScale: 0.5 },
+        rules: { balls: 3 },
+        elements: []
+    });
+    assert.strictEqual(tableApi.getFixedPhysicsDt(slowMo.playfield), 1 / 240, "realTimeScale=0.5 should halve fixed dt");
+
+    const invalid = tableApi.validateTable({
+        version: 1,
+        name: "Invalid Scale",
+        playfield: {
+            width: 500,
+            height: 880,
+            ballRadius: 8,
+            gravity: 0.35,
+            friction: 0.999,
+            restitution: 0.55,
+            maxSpeed: 24,
+            realTimeScale: 0
+        },
+        rules: { balls: 3, highScoreKey: "pinball.invalid" },
+        elements: []
+    });
+    assert.strictEqual(invalid.ok, false, "non-positive realTimeScale should fail validation");
+
+    assert(normalized.playfield.tilt && normalized.playfield.tilt.enabled === true, "normalizeTable should default tilt settings");
+    assert.strictEqual(normalized.playfield.tilt.warningLimit, 3, "normalizeTable should default tilt warning limit");
+
+    const invalidTilt = tableApi.validateTable({
+        version: 1,
+        name: "Invalid Tilt",
+        playfield: {
+            width: 500,
+            height: 880,
+            ballRadius: 8,
+            gravity: 0.35,
+            friction: 0.999,
+            restitution: 0.55,
+            maxSpeed: 24,
+            realTimeScale: 1,
+            tilt: { warningLimit: 0 }
+        },
+        rules: { balls: 3, highScoreKey: "pinball.invalid.tilt" },
+        elements: []
+    });
+    assert.strictEqual(invalidTilt.ok, false, "tilt warningLimit below 1 should fail validation");
+}
+
+function testPhysicsTiltAppliesImpulseAndLocksOutUntilCleared() {
+    const tableApi = loadTableModule();
+    const pin = {
+        table: tableApi,
+        events: { emit: function emit() {} },
+        render: {
+            emitCollisionSparks: function emitCollisionSparks() {},
+            emitBallTrail: function emitBallTrail() {},
+            updateSparks: function updateSparks() {}
+        }
+    };
+    const physics = loadPhysicsModuleHarness(pin);
+    const world = {
+        table: tableApi.normalizeTable({
+            version: 1,
+            name: "Tilt Test",
+            playfield: {
+                gravity: 0,
+                friction: 1,
+                restitution: 0.5,
+                maxSpeed: 100,
+                width: 300,
+                height: 500,
+                tilt: {
+                    enabled: true,
+                    impulseX: 1,
+                    impulseY: -4,
+                    cooldownSeconds: 0.25,
+                    warningWindowSeconds: 2,
+                    warningLimit: 3
+                }
+            },
+            rules: { balls: 1, highScoreKey: "pinball.tilt.test" },
+            elements: []
+        }),
+        balls: [{ x: 100, y: 100, vx: 0, vy: 0, radius: 8, level: 0 }],
+        staticSegments: [],
+        staticCircles: [],
+        dynamicSegments: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        physicsTime: 1
+    };
+
+    assert.strictEqual(physics.applyTilt(world), true, "first tilt should apply");
+    assert.strictEqual(world.balls[0].vx, 1, "tilt should apply configured x impulse");
+    assert.strictEqual(world.balls[0].vy, -4, "tilt should apply configured y impulse");
+
+    assert.strictEqual(physics.applyTilt(world), false, "cooldown should block immediate repeated tilt");
+    world.physicsTime = 1.3;
+    assert.strictEqual(physics.applyTilt(world), true, "tilt should apply after cooldown expires");
+    world.physicsTime = 1.6;
+    assert.strictEqual(physics.applyTilt(world), false, "third tilt in warning window should trigger lockout");
+    assert(world.tiltState && world.tiltState.lockout, "warning limit should lock out controls");
+
+    physics.clearTiltLockout(world);
+    assert.strictEqual(world.tiltState.lockout, false, "clearTiltLockout should remove lockout");
+    assert.strictEqual(world.tiltState.recentTimes.length, 0, "clearTiltLockout should clear warning history");
+}
+
 function testFlipperAngleStaysWithinAuthoredBounds() {
     // What: Run rapid press/release transitions through production flipper compile.
     // Why: Angle should never leave the authored motion interval.
@@ -1102,6 +1224,8 @@ function testAdaptiveQualityControllerIgnoresSingleSpike() {
     const result = runQualityControllerFrames(controller, frames);
     assert.strictEqual(result.output.reducedEffects, false, "single-frame pressure spikes should not degrade quality");
     assert.strictEqual(result.output.glowScale, 1, "single-frame pressure spikes should keep full glow scale");
+    assert.strictEqual(result.output.pixelRatioScale, 1, "single-frame pressure spikes should keep full render resolution");
+    assert.strictEqual(result.output.trailEnabled, true, "single-frame pressure spikes should keep trail effects");
 }
 
 function testAdaptiveQualityControllerDropsOnSustainedPressure() {
@@ -1114,6 +1238,9 @@ function testAdaptiveQualityControllerDropsOnSustainedPressure() {
     const result = runQualityControllerFrames(controller, frames);
     assert.strictEqual(result.output.reducedEffects, true, "sustained pressure should trigger reduced effects");
     assert.strictEqual(result.output.glowScale, 0.55, "sustained pressure should reduce glow scale");
+    assert(result.output.pixelRatioScale < 1, "sustained pressure should reduce render resolution");
+    assert(result.output.sparkLimit < 220, "sustained pressure should reduce spark budget");
+    assert.strictEqual(result.output.trailEnabled, false, "sustained pressure should disable spark trails");
 }
 
 function testAdaptiveQualityControllerNeedsStableRecoveryWindow() {
@@ -1134,6 +1261,9 @@ function testAdaptiveQualityControllerNeedsStableRecoveryWindow() {
     const recovered = runQualityControllerFrames(controller, recoveryWindow, stillReduced.now);
     assert.strictEqual(recovered.output.reducedEffects, false, "quality should recover after sustained stable performance");
     assert.strictEqual(recovered.output.glowScale, 1, "recovered quality should restore full glow scale");
+    assert.strictEqual(recovered.output.pixelRatioScale, 1, "recovered quality should restore full render resolution");
+    assert.strictEqual(recovered.output.sparkLimit, 220, "recovered quality should restore spark budget");
+    assert.strictEqual(recovered.output.trailEnabled, true, "recovered quality should restore spark trails");
 }
 
 function testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad() {
@@ -1154,8 +1284,19 @@ function testPlayLoopSamplesQualityAfterPhysicsCatchup() {
     const source = read("app/main.js");
     const whileIndex = source.indexOf("while (accumulator >= fixedDt)");
     const sampleIndex = source.indexOf("qualityController.sample");
+    const syncIndex = source.lastIndexOf("syncPlayCanvasResolution(qualityProfile.pixelRatioScale)");
     assert(whileIndex >= 0, "play loop should retain fixed-step physics catch-up");
     assert(sampleIndex > whileIndex, "quality sampling should use post-catch-up accumulator backlog");
+    assert(syncIndex > sampleIndex, "play loop should apply backing-scale sync after quality sampling");
+}
+
+function testPlayLoopAppliesTableRealTimeScale() {
+    const source = read("app/main.js");
+    assert(source.indexOf("getFixedPhysicsDt") >= 0, "play loop should derive fixed dt from table timing");
+    assert(source.indexOf("scaledFrameDt") >= 0, "play loop should scale frame dt by table real-time scale");
+    assert(source.indexOf("accumulator + scaledFrameDt") >= 0, "play loop accumulator should consume scaled simulation time");
+    assert(source.indexOf("AltLeft") >= 0 && source.indexOf("AltRight") >= 0, "play mode should map desktop tilt to Alt keys");
+    assert(source.indexOf("devicemotion") >= 0, "play mode should support mobile motion tilt control");
 }
 
 function testSparkHelpersEmitAndExpireParticles() {
@@ -1182,6 +1323,17 @@ function testReducedEffectsSuppressSparkEmission() {
     render.emitBallTrail(world, ball, 1);
     render.emitCollisionSparks(world, ball, { nx: -1, ny: 0, impactSpeed: 20 });
     assert.strictEqual(world.sparkParticles.length, 0, "reduced effects should suppress new spark particles");
+}
+
+function testSparkLimitCanDisableParticlesWithoutReducedEffects() {
+    const render = loadRenderModuleHarness();
+    const world = { sparkParticles: [] };
+    const ball = { x: 50, y: 80, vx: 40, vy: 0, radius: 8, z: 0 };
+
+    render.setQuality({ reducedEffects: false, sparkLimit: 0, trailEnabled: true });
+    render.emitBallTrail(world, ball, 1);
+    render.emitCollisionSparks(world, ball, { nx: -1, ny: 0, impactSpeed: 20 });
+    assert.strictEqual(world.sparkParticles.length, 0, "explicit spark limit should cap particle work at zero");
 }
 
 function testPhysicsCollisionsEmitSparkBurstsWithoutElementHitHandlers() {
@@ -1423,7 +1575,7 @@ function testAssistantLoadModelsRequiresProviderSettings() {
         assert(Array.isArray(models), "loadModels should resolve with an array when settings are missing");
         assert.strictEqual(models.length, 0, "missing provider settings should not produce model options");
         const state = runtime.getState();
-        assert.strictEqual(state.connectionStatus, "Missing required provider settings: baseUrl, apiKey", "missing settings should be explicit in status");
+        assert.strictEqual(state.connectionStatus, "Missing required provider settings: baseUrl", "missing settings should be explicit in status");
     });
 }
 
@@ -1915,6 +2067,8 @@ Promise.resolve()
     .then(function run() { testDrainWithoutTroughIsPlayable(); })
     .then(function run() { testLauncherWidthClampsToBallSafeMinimum(); })
     .then(function run() { testNarrowLauncherPlayabilityWarnsBeforeNormalize(); })
+    .then(function run() { testTableRealTimeScaleDefaultsAndValidation(); })
+    .then(function run() { testPhysicsTiltAppliesImpulseAndLocksOutUntilCleared(); })
     .then(function run() { testFlipperAngleStaysWithinAuthoredBounds(); })
     .then(function run() { testFlipperRoundedEndsUseRadialCollisionNormals(); })
     .then(function run() { testFlipperElbowReleaseDropsStaleSupportedContact(); })
@@ -1931,8 +2085,10 @@ Promise.resolve()
     .then(function run() { testAdaptiveQualityControllerNeedsStableRecoveryWindow(); })
     .then(function run() { testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad(); })
     .then(function run() { testPlayLoopSamplesQualityAfterPhysicsCatchup(); })
+    .then(function run() { testPlayLoopAppliesTableRealTimeScale(); })
     .then(function run() { testSparkHelpersEmitAndExpireParticles(); })
     .then(function run() { testReducedEffectsSuppressSparkEmission(); })
+    .then(function run() { testSparkLimitCanDisableParticlesWithoutReducedEffects(); })
     .then(function run() { testPhysicsCollisionsEmitSparkBurstsWithoutElementHitHandlers(); })
     .then(function run() { testFeatureSchemaNormalizesAndValidates(); })
     .then(function run() { testBundledTableImagePathsExist(); })

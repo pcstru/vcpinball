@@ -1613,6 +1613,20 @@
                     model.syncLauncherConfig(state.table);
                     location.hash = "#logic&t=" + Pin.storage.url.encode(state.table);
                 },
+                onOpenPhysicsLab: function openPhysicsLab() {
+                    flushPersistedDrafts();
+                    model.syncLauncherConfig(state.table);
+                    Pin.storage.local.save("autosave", state.table);
+                    try {
+                        localStorage.setItem("pin.physicsLab.handoff", JSON.stringify({
+                            source: "design",
+                            at: Date.now(),
+                            table: state.table
+                        }));
+                    } catch (error) {}
+                    const next = new URL("physics-lab.html#sandbox", location.href);
+                    location.href = next.href;
+                },
                 onLoadSlot1: function loadSlot1() {
                     const t = Pin.storage.local.load("slot1");
                     if (t) {
