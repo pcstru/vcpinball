@@ -1,12 +1,13 @@
 # Pinball
 
-Pinball started as a static browser "vibe code" experiment and then made the mildly inconvenient decision to become real software. It is still an AI-assisted, no-build browser project, but it now has a table designer, a logic authoring surface, a physics lab, structured assistant tooling, and enough tests to make the phrase "just vibe it" sound irresponsible in the funny way, not the catastrophic way.
+Pinball is a static browser "vibe code" experiment built for amusement, with education as a useful side effect when the machine happens to throw off sparks. It is still an AI-assisted, no-build browser project, but it now has a table designer, a logic authoring surface, a physics lab, structured assistant tooling, and enough tests to make the phrase "just vibe it" sound irresponsible in the funny way, not the catastrophic way.
 
 The app is both a small pinball game and a design laboratory. It explores:
 - how far an AI-assisted coding loop can take a custom browser game without a framework or build step
 - how an in-app assistant can help design table geometry and gameplay rules
 - how to make complex state-machine authoring understandable for humans
 - where AI-generated implementation helps, where it adds cruft, and where the code needs pruning
+- how different agents, prompts, and orchestration harnesses behave when given the same deterministic codebase and the same requested change
 
 ## What It Is
 
@@ -34,6 +35,12 @@ Current engineering posture:
 - choose simple code over clever compression; "shorter" is not a quality metric by itself
 
 The house style is not anti-snark, only anti-hand-waving. If a comment, test, or prompt can say the precise thing with a bit of bite, that is acceptable. If it tries to substitute attitude for clarity, it is not.
+
+## Agent Harness Research
+
+Pinball is also useful as shared code collateral for comparing agentic development systems. The same base version can be presented to different agents, prompts, harnesses, and orchestration layers, then judged by how they handle the same requested change: what they inspect, what they break, what they test, and whether they can explain the result without pretending the diff is magic.
+
+That works because the project gives AI systems a deterministic world to interact with. There is table JSON, schema validation, logic simulation, physics stepping, canvas-visible behavior, smoke tests, eval-agent scoring, and GEPA prompt optimization. The result is not a perfect benchmark, which is good because perfect benchmarks tend to become games. It is a practical one: repeatable enough to compare behavior, complex enough to expose weak orchestration, and amusing enough that running another experiment does not feel like eating a spreadsheet.
 
 ## Designer Screen
 
@@ -343,7 +350,7 @@ Image path rules for hosted table JSON:
 
 ## Project Status
 
-This is still an active experimental codebase, not a polished engine, but it is no longer an excuse for sloppy work. The more accurate description is: a vibe-code project that survived long enough to develop opinions, infrastructure, and a test suite.
+This is still an active experimental codebase, not a polished engine, and entertainment remains the point. The useful accident is that a sufficiently overbuilt toy can also develop opinions, infrastructure, and a test suite.
 
 That turns out to be a surprisingly good fit for pinball. Pinball is all geometry, timing, authored rules, and immediate feedback. In other words: an excellent domain for finding out whether the code, the tools, and the prompts are actually coherent, or merely enthusiastic.[^codex-note]
 
