@@ -1,0 +1,3 @@
+{"table":"tables/DefTable.json","task":"Create 12 light elements evenly spaced around center x=250, y=300 with radius 90. Use deterministic local tool requests if exact placement helps. Do not add gameplay logic."}
+{"table":"tables/DefTable.json","task":"Add 8 light elements on a circle centered at x=180, y=260 with radius 64. Keep the patch limited to geometry and lamp elements."}
+{"table":"tables/DefTable.json","task":"Place 6 evenly spaced light elements around center x=320, y=420 with radius 72 and color #66ddff. Use local numeric tools when needed, and do not modify logicDocument."}

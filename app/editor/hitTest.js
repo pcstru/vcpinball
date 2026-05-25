@@ -140,6 +140,63 @@
         ctx.restore();
     }
 
+    /*
+     * What: Compute flipper opening sweep from rest to active blade angles.
+     * Why: Designer needs a visible opening envelope and a direct handle target.
+     */
+    function flipperOpeningArc(el) {
+        const rest = typeof el.restAngle === "number" ? el.restAngle : 0;
+        const active = typeof el.activeAngle === "number" ? el.activeAngle : rest;
+        const signedSpan = normalizeAngleDelta(active - rest);
+        return {
+            rest: rest,
+            active: rest + signedSpan,
+            signedSpan: signedSpan
+        };
+    }
+
+    /*
+     * What: Draw flipper opening arc and rays for rest/active states.
+     * Why: Makes authored travel angle visible while selecting a flipper.
+     */
+    function drawFlipperOpeningArc(ctx, el, view) {
+        if (!el || el.type !== "flipper" || !el.pivot) return;
+        const length = Math.max(12, typeof el.length === "number" ? el.length : 95);
+        const arc = flipperOpeningArc(el);
+        const center = Pin.editorTools.worldToScreen({ x: el.pivot.x, y: el.pivot.y }, view);
+        const radius = Math.max(12, length * view.zoom);
+        const rest = Pin.editorTools.worldToScreen({
+            x: el.pivot.x + Math.cos(arc.rest) * length,
+            y: el.pivot.y + Math.sin(arc.rest) * length
+        }, view);
+        const active = Pin.editorTools.worldToScreen({
+            x: el.pivot.x + Math.cos(arc.active) * length,
+            y: el.pivot.y + Math.sin(arc.active) * length
+        }, view);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(255,180,88,0.92)";
+        ctx.fillStyle = "rgba(255,180,88,0.14)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(center.x, center.y);
+        ctx.arc(center.x, center.y, radius, arc.rest, arc.active, arc.signedSpan < 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = "rgba(255,255,255,0.58)";
+        ctx.beginPath();
+        ctx.moveTo(center.x, center.y);
+        ctx.lineTo(rest.x, rest.y);
+        ctx.moveTo(center.x, center.y);
+        ctx.lineTo(active.x, active.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
+
     function isPivotGate(el) {
         return el && el.type === "gate" && typeof el.x === "number" && typeof el.y === "number";
     }
@@ -303,6 +360,58 @@
         return bounds;
     }
 
+    function pointInRectBounds(x, y, rect) {
+        return x >= rect.minX && x <= rect.maxX && y >= rect.minY && y <= rect.maxY;
+    }
+
+    function rectsOverlap(a, b) {
+        if (!a || !b) return false;
+        return a.minX <= b.maxX && a.maxX >= b.minX && a.minY <= b.maxY && a.maxY >= b.minY;
+    }
+
+    function orientation(ax, ay, bx, by, cx, cy) {
+        const value = (by - ay) * (cx - bx) - (bx - ax) * (cy - by);
+        if (Math.abs(value) < 1e-9) return 0;
+        return value > 0 ? 1 : -1;
+    }
+
+    function onSegment(ax, ay, bx, by, cx, cy) {
+        return bx <= Math.max(ax, cx) + 1e-9 &&
+            bx >= Math.min(ax, cx) - 1e-9 &&
+            by <= Math.max(ay, cy) + 1e-9 &&
+            by >= Math.min(ay, cy) - 1e-9;
+    }
+
+    function segmentsIntersect(a1x, a1y, a2x, a2y, b1x, b1y, b2x, b2y) {
+        const o1 = orientation(a1x, a1y, a2x, a2y, b1x, b1y);
+        const o2 = orientation(a1x, a1y, a2x, a2y, b2x, b2y);
+        const o3 = orientation(b1x, b1y, b2x, b2y, a1x, a1y);
+        const o4 = orientation(b1x, b1y, b2x, b2y, a2x, a2y);
+        if (o1 !== o2 && o3 !== o4) return true;
+        if (o1 === 0 && onSegment(a1x, a1y, b1x, b1y, a2x, a2y)) return true;
+        if (o2 === 0 && onSegment(a1x, a1y, b2x, b2y, a2x, a2y)) return true;
+        if (o3 === 0 && onSegment(b1x, b1y, a1x, a1y, b2x, b2y)) return true;
+        if (o4 === 0 && onSegment(b1x, b1y, a2x, a2y, b2x, b2y)) return true;
+        return false;
+    }
+
+    function segmentIntersectsRect(x1, y1, x2, y2, rect) {
+        if (pointInRectBounds(x1, y1, rect) || pointInRectBounds(x2, y2, rect)) return true;
+        if (!rectsOverlap(rect, boundsFromPoints([{ x: x1, y: y1 }, { x: x2, y: y2 }]))) return false;
+        return segmentsIntersect(x1, y1, x2, y2, rect.minX, rect.minY, rect.maxX, rect.minY) ||
+            segmentsIntersect(x1, y1, x2, y2, rect.maxX, rect.minY, rect.maxX, rect.maxY) ||
+            segmentsIntersect(x1, y1, x2, y2, rect.maxX, rect.maxY, rect.minX, rect.maxY) ||
+            segmentsIntersect(x1, y1, x2, y2, rect.minX, rect.maxY, rect.minX, rect.minY);
+    }
+
+    function circleIntersectsRect(x, y, radius, rect) {
+        const nearestX = Math.max(rect.minX, Math.min(x, rect.maxX));
+        const nearestY = Math.max(rect.minY, Math.min(y, rect.maxY));
+        const dx = x - nearestX;
+        const dy = y - nearestY;
+        return dx * dx + dy * dy <= radius * radius;
+    }
+
     function getElementBounds(el, runtime) {
         if (isPivotGate(el)) {
             const x = el.x || 0;
@@ -358,6 +467,47 @@
         return null;
     }
 
+    function elementIntersectsRect(el, rect, runtime) {
+        if (!el || !rect) return false;
+        const bounds = getElementBounds(el, runtime);
+        if (!rectsOverlap(rect, bounds)) return false;
+
+        if (runtime && Array.isArray(runtime.segments) && runtime.segments.length) {
+            if (runtime.segments.some(function some(seg) {
+                return segmentIntersectsRect(seg.x1, seg.y1, seg.x2, seg.y2, rect);
+            })) return true;
+        }
+        if (runtime && Array.isArray(runtime.circles) && runtime.circles.length) {
+            if (runtime.circles.some(function some(circle) {
+                return circleIntersectsRect(circle.x, circle.y, circle.radius || 0, rect);
+            })) return true;
+        }
+
+        if (typeof el.x === "number" && typeof el.y === "number") {
+            if (typeof el.radius === "number") return circleIntersectsRect(el.x, el.y, el.radius, rect);
+            return pointInRectBounds(el.x, el.y, rect);
+        }
+        if (el.type === "path" && Array.isArray(el.anchors)) {
+            const pathSegments = Pin.geometry.pathToSegments(el.anchors, !!el.closed, 0.8);
+            return pathSegments.some(function some(seg) {
+                return segmentIntersectsRect(seg.x1, seg.y1, seg.x2, seg.y2, rect);
+            });
+        }
+        if (el.type === "ramp") {
+            const leftSegments = Pin.geometry.pathToSegments(el.leftAnchors || [], false, 0.8);
+            const rightSegments = Pin.geometry.pathToSegments(el.rightAnchors || [], false, 0.8);
+            return leftSegments.concat(rightSegments).some(function some(seg) {
+                return segmentIntersectsRect(seg.x1, seg.y1, seg.x2, seg.y2, rect);
+            });
+        }
+        if (el.type === "flipper" && el.pivot && typeof el.length === "number") {
+            const tipX = el.pivot.x + Math.cos(el.restAngle || 0) * el.length;
+            const tipY = el.pivot.y + Math.sin(el.restAngle || 0) * el.length;
+            return segmentIntersectsRect(el.pivot.x, el.pivot.y, tipX, tipY, rect);
+        }
+        return false;
+    }
+
     function forElement(el, world, view, runtime) {
         const screenTol = 10;
         const tolWorld = screenTol / view.zoom;
@@ -382,8 +532,12 @@
             const tipX = el.pivot.x + Math.cos(el.restAngle) * el.length;
             const tipY = el.pivot.y + Math.sin(el.restAngle) * el.length;
             const rot = rotatePoint(el.pivot.x, el.pivot.y, el.length * 0.58, -24, el.restAngle);
+            const opening = flipperOpeningArc(el);
+            const activeTipX = el.pivot.x + Math.cos(opening.active) * el.length;
+            const activeTipY = el.pivot.y + Math.sin(opening.active) * el.length;
             handles.push({ kind: "pivot", x: el.pivot.x, y: el.pivot.y });
             handles.push({ kind: "tip", x: tipX, y: tipY });
+            handles.push({ kind: "activeAngle", x: activeTipX, y: activeTipY });
             handles.push({ kind: "rotate", x: rot.x, y: rot.y });
         }
         if (isPivotGate(el)) {
@@ -595,6 +749,12 @@
             }
             return;
         }
+        if (handle.kind === "activeAngle") {
+            if (el.type === "flipper" && el.pivot) {
+                el.activeAngle = Math.atan2(world.y - el.pivot.y, world.x - el.pivot.x);
+            }
+            return;
+        }
         if (handle.kind === "swingEnd") {
             if (isPivotGate(el)) {
                 syncGateStartAngle(el);
@@ -800,11 +960,20 @@
             drawGhostHandle(el.x, el.y, rot.x, rot.y);
             drawCircle(rot.x, rot.y, 5, false);
         } else if (el.type === "flipper" && el.pivot) {
-            const tipX = el.pivot.x + Math.cos(el.restAngle) * el.length;
-            const tipY = el.pivot.y + Math.sin(el.restAngle) * el.length;
+            const opening = flipperOpeningArc(el);
+            const tipX = el.pivot.x + Math.cos(opening.rest) * el.length;
+            const tipY = el.pivot.y + Math.sin(opening.rest) * el.length;
+            const activeTipX = el.pivot.x + Math.cos(opening.active) * el.length;
+            const activeTipY = el.pivot.y + Math.sin(opening.active) * el.length;
             const rot = rotatePoint(el.pivot.x, el.pivot.y, el.length * 0.58, -24, el.restAngle);
+            drawFlipperOpeningArc(ctx, el, view);
             drawCircle(el.pivot.x, el.pivot.y, 5, true);
             drawCircle(tipX, tipY, 5, false);
+            ctx.save();
+            ctx.strokeStyle = "rgba(255,180,88,0.98)";
+            ctx.fillStyle = "rgba(255,180,88,0.24)";
+            drawCircle(activeTipX, activeTipY, 7, true);
+            ctx.restore();
             drawGhostHandle(el.pivot.x, el.pivot.y, rot.x, rot.y);
             drawCircle(rot.x, rot.y, 5, false);
         } else if (el.type === "spinner") {
@@ -875,6 +1044,8 @@
     Pin.editorHitTest = {
         forElement: forElement,
         applyHandleDrag: applyHandleDrag,
+        getElementBounds: getElementBounds,
+        elementIntersectsRect: elementIntersectsRect,
         drawHandles: drawHandles,
         shiftElement: shiftElement
     };

@@ -190,8 +190,19 @@ function loadAssistantModule(storage, injectedFetch) {
     };
     ctx.Pin = ctx.window.Pin;
     vm.createContext(ctx);
+    vm.runInContext(read("app/editor/model.js"), ctx, { filename: "app/editor/model.js" });
+    vm.runInContext(read("app/editor/assistantTools.js"), ctx, { filename: "app/editor/assistantTools.js" });
     vm.runInContext(read("app/editor/assistant.js"), ctx, { filename: "app/editor/assistant.js" });
     return ctx.window.Pin.editorAssistant;
+}
+
+function loadAssistantToolsModule() {
+    const ctx = { window: { Pin: {} } };
+    ctx.Pin = ctx.window.Pin;
+    vm.createContext(ctx);
+    vm.runInContext(read("app/editor/model.js"), ctx, { filename: "app/editor/model.js" });
+    vm.runInContext(read("app/editor/assistantTools.js"), ctx, { filename: "app/editor/assistantTools.js" });
+    return ctx.window.Pin.editorAssistantTools;
 }
 
 function loadHighScoreModule(storage) {
@@ -285,6 +296,8 @@ function testIndexScriptsExistAndOrderCoreBeforeMain() {
     assert(sources.indexOf("app/table.js") >= 0, "index.html should load app/table.js");
     assert(sources.indexOf("app/elements/index.js") > sources.indexOf("app/table.js"), "elements registry should load after table helpers");
     assert(sources.indexOf("app/tableCatalog.js") > sources.indexOf("app/storage.js"), "table catalog should load after storage helpers");
+    assert(sources.indexOf("app/editor/assistantTools.js") > sources.indexOf("app/editor/model.js"), "assistant tools should load after editor model");
+    assert(sources.indexOf("app/editor/assistant.js") > sources.indexOf("app/editor/assistantTools.js"), "assistant runtime should load after assistant tools");
     assert(sources.indexOf("app/performance.js") > sources.indexOf("app/logic/page.js"), "performance helpers should load after logic scripts");
     assert(sources.indexOf("app/performance.js") < sources.indexOf("app/main.js"), "performance helpers should load before app bootstrap");
     assert(sources.indexOf("app/main.js") > sources.indexOf("app/tableCatalog.js"), "table catalog should load before app bootstrap");
@@ -312,6 +325,88 @@ function testPhysicsLabLoadsEvalHarnessScripts() {
     assert(sources.indexOf("app/elements/trough.js") >= 0, "physics-lab should load trough element module");
     assert(sources.indexOf("app/tableEval.js") >= 0, "physics-lab should load app/tableEval.js");
     assert(sources.indexOf("app/tableEval.js") < sources.indexOf("app/tuning/lab.js"), "table eval module should load before lab UI bootstrap");
+}
+
+function testTableEvalAccessibilityHeatmapIsRegistered() {
+    const source = read("app/tableEval.js");
+    assert(/id:\s*"accessibility_heatmap"/.test(source), "tableEval should register accessibility_heatmap check id");
+    assert(/label:\s*"Accessibility Heatmap"/.test(source), "tableEval should expose accessibility heatmap label");
+}
+
+function testTableEvalAccessibilityHeatmapIgnoresGateColliders() {
+    const source = read("app/tableEval.js");
+    assert(/seg\s*&&\s*seg\.role\s*===\s*"gate"/.test(source), "accessibility heatmap should detect gate segments");
+    assert(/ignoredGateHitCount/.test(source), "accessibility heatmap should track ignored gate contacts");
+}
+
+function testLabDiagnosticOverlayRendersHeatmap() {
+    const source = read("app/tuning/lab.js");
+    assert(/diagnostics\.heatmap/.test(source), "lab diagnostic overlay should consume heatmap diagnostics");
+    assert(/fillRect\(col \* cellSize,\s*row \* cellSize,\s*cellSize,\s*cellSize\)/.test(source), "lab diagnostic overlay should draw heatmap cells");
+}
+
+function testTableEvalAccessibilityModeSupportsPhysics() {
+    const source = read("app/tableEval.js");
+    assert(/accessibilityRayMode/.test(source), "tableEval accessibility limits should parse accessibilityRayMode");
+    assert(/const rayMode = requestedMode === "physics" \? "physics" : "geometric";/.test(source), "tableEval accessibility should support physics and geometric ray modes");
+    assert(/for \(let p = 1; p < physicsTrace\.path\.length; p\+\+\)\s*\{\s*rasterizeSegmentToHeatmap\(physicsTrace\.path\[p - 1\], physicsTrace\.path\[p\]/.test(source), "physics mode heatmap should rasterize traced path segments, not only a straight endpoint segment");
+    assert(/let nonGateCollisions = 0;/.test(source), "physics mode should track non-gate collisions separately");
+    assert(/reason = "hit";/.test(source), "physics mode should terminate on first non-gate hit");
+    assert(/const defaultMaxRays = rayMode === "physics" \? 320 : 5000;/.test(source), "physics mode should use a lower default ray budget than geometric mode");
+}
+
+function testLabEvalControlsExposeAccessibilityBreadthDepthAndMode() {
+    const source = read("app/tuning/lab.js");
+    assert(/Accessibility mode/.test(source), "lab eval controls should expose accessibility mode");
+    assert(/Accessibility breadth/.test(source), "lab eval controls should expose accessibility breadth");
+    assert(/Accessibility depth/.test(source), "lab eval controls should expose accessibility depth");
+    assert(/Accessibility cell size/.test(source), "lab eval controls should expose accessibility heatmap resolution");
+    assert(/Accessibility speed/.test(source), "lab eval controls should expose accessibility physics initial velocity");
+    assert(/Accessibility max ticks/.test(source), "lab eval controls should expose physics resolution max ticks");
+    assert(/Accessibility max contacts/.test(source), "lab eval controls should expose physics resolution max contacts");
+    assert(/accessibilityRayMode:\s*state\.eval\.accessibilityRayMode/.test(source), "lab eval options should pass accessibility mode");
+    assert(/accessibilityBranchRays:\s*state\.eval\.accessibilityBranchRays/.test(source), "lab eval options should pass accessibility breadth");
+    assert(/accessibilityMaxDepth:\s*state\.eval\.accessibilityMaxDepth/.test(source), "lab eval options should pass accessibility depth");
+    assert(/accessibilityCellSize:\s*state\.eval\.accessibilityCellSize/.test(source), "lab eval options should pass accessibility cell size");
+    assert(/accessibilityRaySpeed:\s*state\.eval\.accessibilityRaySpeed/.test(source), "lab eval options should pass accessibility ray speed");
+    assert(/accessibilityMaxTicks:\s*state\.eval\.accessibilityMaxTicks/.test(source), "lab eval options should pass accessibility physics max ticks");
+    assert(/accessibilityMaxCollisions:\s*state\.eval\.accessibilityMaxCollisions/.test(source), "lab eval options should pass accessibility physics max contacts");
+}
+
+function testLabSupportsLiveAccessibilityProgressOverlay() {
+    const source = read("app/tuning/lab.js");
+    assert(/liveCheck:\s*null/.test(source), "lab eval state should include liveCheck for in-progress diagnostics");
+    assert(/progress\.phase === "accessibility" && progress\.check/.test(source), "lab progress handler should accept accessibility partial checks");
+    assert(/if \(state\.eval\.running && state\.eval\.liveCheck\) return state\.eval\.liveCheck;/.test(source), "overlay selection should prefer live check while evaluation is running");
+}
+
+function testTableEvalEmitsAccessibilityProgress() {
+    const source = read("app/tableEval.js");
+    assert(/phase:\s*"accessibility"/.test(source), "tableEval should emit accessibility progress phase");
+    assert(/message:\s*"Accessibility rays "/.test(source), "tableEval should emit incremental accessibility progress messages");
+    assert(/check:\s*\{\s*id:\s*"accessibility_heatmap"/.test(source), "tableEval accessibility progress should include a drawable check payload");
+}
+
+function testPhysicsLabSupportsDynamicPlayfieldSizing() {
+    const labJs = read("app/tuning/lab.js");
+    const labCss = read("app/tuning/lab.css");
+    const harness = read("app/physicsHarness.js");
+    assert(/function syncCanvasPlayfield\(/.test(labJs), "lab should define a playfield->canvas sync helper");
+    assert(/canvas\.style\.aspectRatio = width \+ \" \/ \" \+ height/.test(labJs), "lab should apply dynamic aspect ratio from playfield dimensions");
+    assert(/state\.sandbox\.playfield\.width/.test(labJs), "lab should store sandbox playfield width");
+    assert(/state\.sandbox\.playfield\.height/.test(labJs), "lab should store sandbox playfield height");
+    assert(/includeDefaultBounds:\s*includeDefaultSandboxBounds\(\)/.test(labJs), "lab sandbox simulation should disable default bounds when a table is loaded");
+    assert(/playfield:\s*clone\(state\.sandbox\.playfield\)/.test(labJs), "sandbox simulation should receive authored playfield dimensions");
+    assert(!/aspect-ratio:\s*500\s*\/\s*880/.test(labCss), "lab CSS should not hard-code 500/880 aspect ratio");
+    assert(/function buildSandboxBounds\(playfield\)/.test(harness), "physics harness should build sandbox bounds from playfield dimensions");
+    assert(/includeDefaultBounds !== false/.test(harness), "physics harness should support disabling default sandbox bounds");
+    assert(/function buildSandboxDrain\(playfield\)/.test(harness), "physics harness should build sandbox drain from playfield dimensions");
+}
+
+function testEditorFlipperAnglesAreEditableInDegrees() {
+    const source = read("app/editor/panels.js");
+    assert(/rest angle\|active angle/.test(source), "editor angle field detection should include flipper label text");
+    assert(/Number\(numberInput\.value\) \* Math\.PI \/ 180/.test(source), "editor angle inputs should convert degree entry back to radians");
 }
 
 function testTableCatalogRefsExistAndAreStaticJson() {
@@ -1420,6 +1515,35 @@ function testEditorLauncherWidthUsesSharedClamp() {
     assert(/clampLauncherWidths/.test(modelSource), "editor launcher sync should clamp saved launcher widths");
 }
 
+function testEditorFlipperOpeningAngleHandleIsVisibleAndDraggable() {
+    const hitTestSource = read("app/editor/hitTest.js");
+    const editorSource = read("app/editor/editor.js");
+    assert(/drawFlipperOpeningArc/.test(hitTestSource), "editor hit-test drawing should render a flipper opening arc");
+    assert(/kind:\s*"activeAngle"/.test(hitTestSource), "editor hit-test should expose an active-angle flipper handle");
+    assert(/handle\.kind === "activeAngle"/.test(hitTestSource), "flipper active-angle handle should be applied during drag");
+    assert(/drag\.handle\.kind === "activeAngle"/.test(editorSource), "editor drag snapping should keep active-angle handle unsnapped");
+}
+
+function testEditorMultiSelectMoveContracts() {
+    // What: Keep the designer multi-select implementation anchored to visible
+    // element bounds and shared movement helpers.
+    // Why: group selection should move authored objects together without adding
+    // a second geometry model beside editor hit testing.
+    const hitTest = loadEditorHitTestHarness();
+    const hitTestSource = read("app/editor/hitTest.js");
+    const editorSource = read("app/editor/editor.js");
+    assert.strictEqual(typeof hitTest.getElementBounds, "function", "editor hit-test should expose element bounds for marquee selection");
+    assert.strictEqual(typeof hitTest.elementIntersectsRect, "function", "editor hit-test should expose geometric marquee overlap checks");
+    assert(/getElementBounds:\s*getElementBounds/.test(hitTestSource), "editor hit-test public API should export getElementBounds");
+    assert(/elementIntersectsRect:\s*elementIntersectsRect/.test(hitTestSource), "editor hit-test public API should export elementIntersectsRect");
+    assert(/selectedIds/.test(editorSource), "editor should track a group selection list");
+    assert(/kind:\s*"marquee"/.test(editorSource), "blank canvas drag should start a marquee selection");
+    assert(/groupIds/.test(editorSource), "dragging selected objects should carry group ids");
+    assert(/getVisibleEditorElements\(\)\.forEach/.test(editorSource), "marquee selection should use visible editor elements");
+    assert(/Pin\.editorHitTest\.elementIntersectsRect\(/.test(editorSource), "marquee selection should use geometry overlap, not bounds-only selection");
+    assert(/Pin\.editorHitTest\.shiftElement\(element, dx, dy\)/.test(editorSource), "group drag should move elements through shared shiftElement");
+}
+
 function testHighScoresAreTableScopedSortedAndCapped() {
     const highScores = loadHighScoreModule(memoryStorage());
     const alpha = { name: "Alpha Table", rules: { highScoreKey: "pinball.generic.highscore" } };
@@ -1675,6 +1799,110 @@ function testAssistantChatUsesProviderPath() {
         const lamps = state.lastPatch.logicDocPatch.lampBindings || [];
         assert(rules.some(function some(rule) { return rule && rule.trigger === "dt_left"; }), "chat/provider patch should include hit rule for drop target");
         assert(lamps.some(function some(binding) { return binding && binding.lampId === "dt_left"; }), "chat/provider patch should include lamp binding for drop target");
+    });
+}
+
+function testAssistantToolsRadialLayout() {
+    const tools = loadAssistantToolsModule();
+    const catalog = tools.describeTools();
+    assert.strictEqual(Array.isArray(catalog), true, "assistant tools should expose a tool catalog");
+    assert(catalog.some(function some(entry) { return entry && entry.name === "radialLayout"; }), "assistant tool catalog should describe radialLayout");
+    const result = tools.runToolRequest({
+        tool: "radialLayout",
+        args: {
+            elementType: "light",
+            count: 12,
+            radius: 90,
+            center: { x: 200, y: 300 }
+        }
+    }, { table: { elements: [] }, selected: null });
+    assert.strictEqual(result.ok, true, "radialLayout should succeed with explicit numeric args");
+    assert.strictEqual(result.patch.addElements.length, 12, "radialLayout should generate the requested count");
+    const first = result.patch.addElements[0];
+    assert(Math.abs(first.x - 200) < 0.001, "first radial element should align on start angle x");
+    assert(Math.abs(first.y - 210) < 0.001, "first radial element should align on start angle y");
+}
+
+function testAssistantExecutesToolRequestsBeforePatch() {
+    const storage = memoryStorage();
+    let call = 0;
+    const requestBodies = [];
+    const assistantApi = loadAssistantModule(storage, function mockFetch(endpoint, options) {
+        call += 1;
+        requestBodies.push(JSON.parse(options.body));
+        if (call === 1) {
+            return Promise.resolve({
+                ok: true,
+                json: function json() {
+                    return Promise.resolve({
+                        choices: [{
+                            message: {
+                                content: JSON.stringify({
+                                    toolRequests: [{
+                                        tool: "radialLayout",
+                                        args: { elementType: "light", count: 12, radius: 60, centerElementId: "center_a" }
+                                    }]
+                                })
+                            }
+                        }]
+                    });
+                }
+            });
+        }
+        return Promise.resolve({
+            ok: true,
+            json: function json() {
+                return Promise.resolve({
+                    choices: [{
+                        message: {
+                            content: JSON.stringify({
+                                addElements: [{
+                                    id: "light_mock",
+                                    type: "light",
+                                    level: 0,
+                                    x: 10,
+                                    y: 20,
+                                    radius: 8,
+                                    lampId: "light_mock"
+                                }]
+                            })
+                        }
+                    }]
+                });
+            }
+        });
+    });
+    const table = {
+        version: 1,
+        name: "Tool Flow",
+        playfield: {},
+        rules: {},
+        elements: [{ id: "center_a", type: "bumper", x: 250, y: 400, radius: 20 }],
+        logicDocument: { logicVersion: 1, switchRegistry: [], stateTable: [], computedState: [], lampBindings: [], actionRules: [], resetRules: [] }
+    };
+    const runtime = assistantApi.create({
+        getTable: function getTable() { return table; },
+        getSelected: function getSelected() { return table.elements[0]; },
+        previewPatch: function previewPatch() { return { ok: true, issuesCount: 0, issues: [] }; },
+        applyPatch: function applyPatch() { return { ok: true }; },
+        refresh: function refresh() {}
+    });
+    runtime.setSettings({
+        providerLabel: "Local",
+        baseUrl: "http://localhost:1234/v1",
+        model: "test-model",
+        apiKey: "secret",
+        maxSteps: 4
+    });
+    runtime.setDraft("Create 12 lights around selected bumper.");
+    return runtime.send().then(function done() {
+        const state = runtime.getState();
+        assert.strictEqual(call, 2, "assistant should run a second provider pass after local tool execution");
+        const firstPrompt = requestBodies[0].messages[1].content;
+        assert(/Available local tools/.test(firstPrompt), "assistant prompt should advertise the local tool catalog");
+        const secondPrompt = requestBodies[1].messages[1].content;
+        assert(/Tool results from local deterministic functions/.test(secondPrompt), "second provider prompt should include tool results");
+        assert(state.lastPatch && Array.isArray(state.lastPatch.addElements), "assistant should finish with a patch response");
     });
 }
 
@@ -2062,6 +2290,15 @@ Promise.resolve()
     .then(function run() { testIndexScriptsExistAndOrderCoreBeforeMain(); })
     .then(function run() { testIndexLocalAssetsAreVersioned(); })
     .then(function run() { testPhysicsLabLoadsEvalHarnessScripts(); })
+    .then(function run() { testTableEvalAccessibilityHeatmapIsRegistered(); })
+    .then(function run() { testTableEvalAccessibilityHeatmapIgnoresGateColliders(); })
+    .then(function run() { testTableEvalAccessibilityModeSupportsPhysics(); })
+    .then(function run() { testLabDiagnosticOverlayRendersHeatmap(); })
+    .then(function run() { testLabEvalControlsExposeAccessibilityBreadthDepthAndMode(); })
+    .then(function run() { testLabSupportsLiveAccessibilityProgressOverlay(); })
+    .then(function run() { testTableEvalEmitsAccessibilityProgress(); })
+    .then(function run() { testPhysicsLabSupportsDynamicPlayfieldSizing(); })
+    .then(function run() { testEditorFlipperAnglesAreEditableInDegrees(); })
     .then(function run() { testTableCatalogRefsExistAndAreStaticJson(); })
     .then(function run() { testDefaultTableNormalizesAndValidates(); })
     .then(function run() { testDrainWithoutTroughIsPlayable(); })
@@ -2096,6 +2333,8 @@ Promise.resolve()
     .then(function run() { testEditorCarriesTableAssetBaseIntoRendering(); })
     .then(function run() { testPlayControlsCanBeHiddenFromKeyboard(); })
     .then(function run() { testEditorLauncherWidthUsesSharedClamp(); })
+    .then(function run() { testEditorFlipperOpeningAngleHandleIsVisibleAndDraggable(); })
+    .then(function run() { testEditorMultiSelectMoveContracts(); })
     .then(function run() { testHighScoresAreTableScopedSortedAndCapped(); })
     .then(function run() { testHighScoresUseExplicitKeyAndThreeInitials(); })
     .then(function run() { testStorageClearsOnlyPinLocalState(); })
@@ -2105,6 +2344,8 @@ Promise.resolve()
     .then(function run() { return testAssistantConnectionRequiresBaseUrlAndApiKeyOnly(); })
     .then(function run() { return testAssistantLoadModelsRequiresProviderSettings(); })
     .then(function run() { return testAssistantChatUsesProviderPath(); })
+    .then(function run() { testAssistantToolsRadialLayout(); })
+    .then(function run() { return testAssistantExecutesToolRequestsBeforePatch(); })
     .then(function run() { return testAgenticBypassesShortcutAndRequiresProvider(); })
     .then(function run() { return testAssistantRepairsPatchAcrossAttempts(); })
     .then(function run() { return testAssistantRepairsContractValidationFailures(); })

@@ -180,6 +180,8 @@ function loadPinRuntime() {
         "app/elements/trough.js",
         "app/elements/light.js",
         "app/elements/ramp.js",
+        "app/editor/model.js",
+        "app/editor/assistantTools.js",
         "app/rules.js",
         "app/physics.js",
         "app/aiPromptContract.js",
@@ -396,7 +398,22 @@ function compactPromptContext(table, evalReport) {
     };
 }
 
-function buildCandidatePatchPrompt(candidateText, task, context, repairNote) {
+function buildToolPromptInstruction(pin) {
+    const toolsApi = pin && pin.editorAssistantTools;
+    const toolList = toolsApi && typeof toolsApi.describeTools === "function"
+        ? toolsApi.describeTools()
+        : [];
+    if (!toolList.length) return "";
+    return [
+        "You may request deterministic local tools when exact numbers or geometry would improve the patch.",
+        "If you need a tool, return JSON only in this shape: {\"toolRequests\":[{\"tool\":\"toolName\",\"args\":{...}}]}",
+        "After tool results are provided in a repair note, use them and return final patch JSON.",
+        "Available local tools:",
+        JSON.stringify(toolList)
+    ].join("\n");
+}
+
+function buildCandidatePatchPrompt(candidateText, task, context, repairNote, pin) {
     /*
      * What: Render a GEPA prompt candidate into a concrete patch-generation prompt.
      * Why: GEPA should mutate the schema instructions while the task/context envelope
@@ -404,15 +421,33 @@ function buildCandidatePatchPrompt(candidateText, task, context, repairNote) {
      * Correctness: The evaluator always appends the same task, context, and repair fields,
      * so score changes are attributable to the candidate instructions.
      */
+    const toolInstruction = buildToolPromptInstruction(pin);
     const out = [
         String(candidateText || "").trim(),
+        toolInstruction,
         "Task:",
         String(task || "").trim(),
         "Table context:",
         JSON.stringify(context || {})
-    ];
+    ].filter(function filter(line) { return !!line; });
     if (repairNote) out.push("Repair note:\n" + repairNote);
     return out.join("\n");
+}
+
+function executeToolRequests(pin, table, toolRequests) {
+    const toolsApi = pin && pin.editorAssistantTools;
+    if (!toolsApi || typeof toolsApi.runToolRequests !== "function") {
+        return { ok: false, message: "Local assistant tool runtime is unavailable." };
+    }
+    return toolsApi.runToolRequests(toolRequests, {
+        table: table || {},
+        selected: null
+    });
+}
+
+function toolRepairNote(toolExec) {
+    return "Tool results from local deterministic functions. Use these results directly and return final patch JSON only.\n" +
+        JSON.stringify({ toolResults: toolExec.toolResults || [] });
 }
 
 function appendDatasetRecord(filePath, record) {
@@ -591,12 +626,35 @@ async function main() {
         for (let step = 1; step <= maxSteps; step++) {
             const fullPrompt =
                 "Return JSON patch only using keys: tablePatch, addElements, patchElements, removeElements, addFeatures, patchFeatures, removeFeatures, logicDocPatch.\n" +
+                buildToolPromptInstruction(pin) + "\n" +
                 "Task:\n" + prompt + "\n" +
                 (repair ? ("\nRepair previous issues:\n" + repair + "\n") : "");
             const raw = await callProvider(fullPrompt, process.env);
             const patch = parsePatchJson(raw);
             if (!patch) {
                 repair = "Response was not valid JSON patch.";
+                continue;
+            }
+            if (Array.isArray(patch.toolRequests)) {
+                const toolExec = executeToolRequests(pin, table, patch.toolRequests);
+                finalPayload = {
+                    attempt: step,
+                    accepted: false,
+                    patch: null,
+                    toolRequests: patch.toolRequests,
+                    toolResults: toolExec.toolResults || [],
+                    contractIssues: toolExec.ok ? [] : [toolExec.message || "Tool execution failed."],
+                    validationIssues: [],
+                    evalReport: null,
+                    contractVersion: 0,
+                    runtimeFingerprint: "",
+                    physicsContract: ""
+                };
+                if (!toolExec.ok) {
+                    repair = "Tool execution failed: " + (toolExec.message || "unknown");
+                    continue;
+                }
+                repair = toolRepairNote(toolExec);
                 continue;
             }
             const result = evaluatePatch(pin, table, patch, {});
@@ -672,7 +730,7 @@ async function main() {
         let finalPayload = null;
         for (let step = 1; step <= maxSteps; step++) {
             const context = compactPromptContext(table, lastEvalReport);
-            const prompt = buildCandidatePatchPrompt(candidateText, task, context, repair);
+            const prompt = buildCandidatePatchPrompt(candidateText, task, context, repair, pin);
             const raw = await callProvider(prompt, process.env);
             const patch = parsePatchJson(raw);
             if (!patch) {
@@ -690,6 +748,29 @@ async function main() {
                     physicsContract: ""
                 };
                 repair = "Response was not valid JSON patch. Return only one JSON object using the supported patch keys.";
+                continue;
+            }
+            if (Array.isArray(patch.toolRequests)) {
+                const toolExec = executeToolRequests(pin, table, patch.toolRequests);
+                finalPayload = {
+                    attempt: step,
+                    accepted: false,
+                    score: 0,
+                    patch: null,
+                    toolRequests: patch.toolRequests,
+                    toolResults: toolExec.toolResults || [],
+                    contractIssues: toolExec.ok ? [] : [toolExec.message || "Tool execution failed."],
+                    validationIssues: [],
+                    evalReport: null,
+                    contractVersion: 0,
+                    runtimeFingerprint: "",
+                    physicsContract: ""
+                };
+                if (!toolExec.ok) {
+                    repair = "Tool execution failed: " + (toolExec.message || "unknown");
+                    continue;
+                }
+                repair = toolRepairNote(toolExec);
                 continue;
             }
             const result = evaluatePatch(pin, table, patch, evalChecks ? { evalChecks: evalChecks } : {});
@@ -756,5 +837,7 @@ module.exports = {
     evaluatePatch: evaluatePatch,
     compactPromptContext: compactPromptContext,
     buildCandidatePatchPrompt: buildCandidatePatchPrompt,
+    buildToolPromptInstruction: buildToolPromptInstruction,
+    executeToolRequests: executeToolRequests,
     scorePromptResult: scorePromptResult
 };

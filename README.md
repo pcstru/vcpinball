@@ -1,6 +1,6 @@
 # Pinball
 
-Pinball is a static browser pinball project built as a "vibe code" exploration: using Codex to iteratively design, implement, critique, and simplify a bespoke application while keeping the result usable as software.
+Pinball started as a static browser "vibe code" experiment and then made the mildly inconvenient decision to become real software. It is still an AI-assisted, no-build browser project, but it now has a table designer, a logic authoring surface, a physics lab, structured assistant tooling, and enough tests to make the phrase "just vibe it" sound irresponsible in the funny way, not the catastrophic way.
 
 The app is both a small pinball game and a design laboratory. It explores:
 - how far an AI-assisted coding loop can take a custom browser game without a framework or build step
@@ -19,6 +19,21 @@ The project has three main browser surfaces:
 `#logicstudio` is currently an alias for `#logic`.
 
 The current design direction is intentionally current-schema only. Old table compatibility and previous `rulesEngine` compatibility paths have been removed. New table logic lives directly in `table.logicDocument`.
+
+## Engineering Standards
+
+This repo is not trying to prove that generated code should remain untouched. It is trying to prove that AI-assisted development becomes much more useful once the humans insist on standards.
+
+Current engineering posture:
+
+- comment code like the next reader will be tired, busy, and slightly suspicious
+- prefer explicit contracts, validation, and named rules over "the model probably meant this"
+- keep one current schema instead of dragging old compatibility branches around forever
+- use AI where it is bounded by structure, preview, validation, and deterministic helpers
+- keep physics, diagnostics, and evaluation tied to the real runtime rather than a friendlier fake
+- choose simple code over clever compression; "shorter" is not a quality metric by itself
+
+The house style is not anti-snark, only anti-hand-waving. If a comment, test, or prompt can say the precise thing with a bit of bite, that is acceptable. If it tries to substitute attitude for clarity, it is not.
 
 ## Designer Screen
 
@@ -116,7 +131,9 @@ The assistant contract is intentionally constrained. It should produce JSON patc
 
 The app validates and previews patches before applying them. The design goal is to make AI useful inside the product without letting it freely mutate arbitrary application state.
 
-In this static build, provider settings and assistant UI are local/browser-side. External AI execution depends on configured provider endpoints.
+The browser assistant can also use a small deterministic local tool layer before it returns a final patch. The important design is not one specific tool but the pattern: the model can decide it needs exact numeric help, request a whitelisted local tool, receive the computed result, and then produce a normal structured patch. `radialLayout` is simply the first concrete tool in that registry. This keeps exact geometry in browser-side code rather than trusting the model to do arithmetic accurately.
+
+In this static build, provider settings, assistant execution, and local numeric tools are browser-side. External model calls still depend on configured provider endpoints, but layout/numeric helper execution happens locally in the browser through a fixed tool registry rather than a backend server.
 
 Important split:
 
@@ -137,6 +154,7 @@ In Physics Lab `AI-Lab`, provider status is shown directly in the panel:
 The `Check Provider` button triggers the live probe. Opening the `AI-Lab` tab also performs a lightweight refresh and periodic probe.
 
 The project also includes a Node `eval-agent` loop for automation and dataset building. It shares the same patch/eval contract used by browser AI-Lab so interactive and batch workflows stay aligned.
+`eval-agent prompt-eval` also understands the browser-style `toolRequests` loop, so GEPA prompt optimization can validate when the model should ask for deterministic local geometry help before returning a final patch.
 
 ## Current Table Schema
 
@@ -228,7 +246,16 @@ Run the smoke suite:
 npm test
 ```
 
-The tests check script ordering, table validation, bundled image paths, assistant patch behavior, logic simulation, high scores, runtime split behavior, and eval-agent contract/evaluation smoke behavior.
+The tests check script ordering, table validation, bundled image paths, assistant patch behavior, assistant local tool behavior, logic simulation, high scores, runtime split behavior, and eval-agent contract/evaluation smoke behavior.
+
+This is, objectively, a funny kind of project to test seriously: browser pinball physics, authored rule graphs, structured AI patch generation, and a prompt optimizer that is allowed to improve instructions but not rewrite reality. That is also exactly why the tests matter. The parts most likely to drift into nonsense are the parts that need a harness.
+
+In practice the testing posture is:
+
+- smoke the browser runtime as loaded, because script order still matters in a no-build app
+- validate table and logic contracts before pretending the model "basically got it"
+- keep eval-agent and GEPA tied to the same patch/eval pipeline as the browser assistant
+- treat deterministic numeric/tool behavior as testable product behavior, not a prompt anecdote
 
 ## Eval-Agent CLI
 
@@ -316,7 +343,9 @@ Image path rules for hosted table JSON:
 
 ## Project Status
 
-This is an active experimental codebase, not a polished engine. The goal is to keep the application useful while learning from the AI-assisted development process.
+This is still an active experimental codebase, not a polished engine, but it is no longer an excuse for sloppy work. The more accurate description is: a vibe-code project that survived long enough to develop opinions, infrastructure, and a test suite.
+
+That turns out to be a surprisingly good fit for pinball. Pinball is all geometry, timing, authored rules, and immediate feedback. In other words: an excellent domain for finding out whether the code, the tools, and the prompts are actually coherent, or merely enthusiastic.[^codex-note]
 
 Current priorities:
 
@@ -325,3 +354,5 @@ Current priorities:
 - use AI patching where structured validation can keep it bounded
 - preserve a fast play loop on older PCs
 - prefer surgical, simple code over speculative framework-style abstractions
+
+[^codex-note]: Codex note: this is exactly the kind of project where "AI can code now" has to stop being a slogan and start submitting to ball physics, schema validators, UI state, stale prompts, and tests that remember what you broke. A pinball editor is a good choice because it is playful enough to keep the work human, and unforgiving enough to expose nonsense quickly. That is the useful version of vibe coding: not replacing engineering judgment, but giving it more mistakes to inspect at higher speed.

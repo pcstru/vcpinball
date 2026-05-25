@@ -1,7 +1,7 @@
 (function initEditorPanels(Pin) {
     function isAngleField(labelText) {
         return /(^|\.)(restAngle|activeAngle|angle|maxAngle|swingStartAngle|swingEndAngle|swingAngle)$/i.test(labelText) ||
-            /^(swing start angle|swing end angle|swing limit|opening angle)$/i.test(labelText);
+            /^(rest angle|active angle|swing start angle|swing end angle|swing limit|opening angle)$/i.test(labelText);
     }
 
     function isColorField(labelText) {
@@ -986,7 +986,7 @@
 
         if ((model.assistantSubtab || "chat") === "agentic") {
         const agenticSection = appendSection(container, "Agentic");
-        appendSmallText(agenticSection, "Multi-step flow for feature-first table logic and design edits. It can stage pending patch batches or auto-apply when enabled.");
+        appendSmallText(agenticSection, "Multi-step flow for feature-first table logic and design edits. It can use provider-backed structured patches, stage pending batches, or auto-apply when enabled.");
         const agenticKey = "assistant:agentic";
         const agenticDraftState = getDraftState(model, agenticKey, {
             fullyAuto: assistantState.agenticFullyAuto !== false,
@@ -1005,7 +1005,7 @@
         });
         const agenticComposer = document.createElement("textarea");
         agenticComposer.className = "assistant-composer";
-        agenticComposer.placeholder = "Describe a feature-first logic or table-editing task for the planned Agentic loop.";
+        agenticComposer.placeholder = "Describe a feature-first logic or table-editing task for the Agentic loop.";
         agenticComposer.value = assistantState.agenticDraft || "";
         agenticComposer.oninput = function updateAgenticDraft() {
             if (model.onSetAgenticDraft) model.onSetAgenticDraft(agenticComposer.value);

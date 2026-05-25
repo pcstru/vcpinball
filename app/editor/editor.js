@@ -55,6 +55,7 @@
 
         const view = Pin.editorTools.createView();
         let selectedId = state.selected ? state.selected.id : null;
+        let selectedIds = selectedId ? [selectedId] : [];
         let hoveredId = null;
         let dashTick = 0;
         let activeTool = "select";
@@ -172,6 +173,54 @@
             return state.table.elements.find(function find(el) { return el.id === id; }) || null;
         }
 
+        function setSelectedIds(ids, primaryId) {
+            // What: Keep primary inspector selection and canvas group selection coherent.
+            // Why: multi-select is transient editor state, while existing panels still
+            // expect one primary element for property editing.
+            const unique = [];
+            (ids || []).forEach(function each(id) {
+                if (!id || unique.indexOf(id) >= 0 || !getElementById(id)) return;
+                unique.push(id);
+            });
+            selectedIds = unique;
+            selectedId = primaryId && unique.indexOf(primaryId) >= 0 ? primaryId : (unique[unique.length - 1] || null);
+        }
+
+        function selectOnlyElement(id) {
+            setSelectedIds(id ? [id] : [], id || null);
+        }
+
+        function isElementSelected(id) {
+            return !!id && selectedIds.indexOf(id) >= 0;
+        }
+
+        function makePrimarySelection(id) {
+            if (!id) {
+                selectOnlyElement(null);
+                return;
+            }
+            if (selectedIds.indexOf(id) < 0) selectedIds.push(id);
+            setSelectedIds(selectedIds, id);
+        }
+
+        function toggleElementSelection(id) {
+            if (!id) {
+                selectOnlyElement(null);
+                return;
+            }
+            if (selectedIds.indexOf(id) >= 0) {
+                selectedIds = selectedIds.filter(function keep(existingId) { return existingId !== id; });
+                setSelectedIds(selectedIds, selectedId === id ? selectedIds[selectedIds.length - 1] : selectedId);
+                return;
+            }
+            selectedIds.push(id);
+            setSelectedIds(selectedIds, id);
+        }
+
+        function getSelectedElements() {
+            return selectedIds.map(getElementById).filter(Boolean);
+        }
+
         function normalizeInput(v) {
             if (typeof v === "number") return Number.isFinite(v) ? v : 0;
             if (typeof v === "string") {
@@ -191,7 +240,7 @@
         function getSnapWorld(evt, world, drag) {
             if (!snapEnabled || evt.ctrlKey || evt.metaKey) return world;
             if (!drag || !drag.handle) return snapPoint(world, true);
-            if (drag.handle.kind === "in" || drag.handle.kind === "out" || drag.handle.kind === "rotate" || drag.handle.kind === "swingEnd") return world;
+            if (drag.handle.kind === "in" || drag.handle.kind === "out" || drag.handle.kind === "rotate" || drag.handle.kind === "swingEnd" || drag.handle.kind === "activeAngle") return world;
             const startHandle = drag.startHandleWorld || drag.startWorld;
             const targetHandle = {
                 x: world.x - (drag.pointerOffset ? drag.pointerOffset.x : 0),
@@ -420,7 +469,7 @@
             getLogicGraphs: getLogicGraphs,
             findElementForSwitchId: findElementForSwitchId,
             findElementForLampId: findElementForLampId,
-            setSelectedId: function setSelectedId(next) { selectedId = next; },
+            setSelectedId: function setSelectedId(next) { selectOnlyElement(next); },
             setSelectedRuleId: function setSelectedRuleId(next) { selectedRuleId = next; },
             setSelectedLogicNode: function setSelectedLogicNode(next) { selectedLogicNode = next; },
             setSelectedGraphId: function setSelectedGraphId(next) { selectedGraphId = next; },
@@ -847,12 +896,15 @@
 
         function deleteElementById(id) {
             editorActions.deleteElementById(id);
-            if (selectedId === id) selectedId = null;
+            if (selectedIds.indexOf(id) >= 0) {
+                selectedIds = selectedIds.filter(function keep(existingId) { return existingId !== id; });
+                setSelectedIds(selectedIds, selectedId === id ? selectedIds[selectedIds.length - 1] : selectedId);
+            }
         }
 
         function duplicateSelected() {
             const copy = editorActions.duplicateSelected();
-            if (copy) selectedId = copy.id;
+            if (copy) selectOnlyElement(copy.id);
         }
 
         function moveElementById(id, delta) {
@@ -1065,7 +1117,7 @@
 
         function setHint(extra) {
             hintBar.textContent = activeTool +
-                " | wheel zoom | Space drag pan | G snap | arrows nudge | Delete remove | D duplicate" +
+                " | wheel zoom | Space drag pan | Shift-click add | blank drag select | G snap | arrows nudge | Delete remove | D duplicate" +
                 (extra ? " | " + extra : "");
         }
 
@@ -1261,6 +1313,15 @@
             if (tableLayerCanvas) ctx.drawImage(tableLayerCanvas, 0, 0);
             ctx.setTransform(1, 0, 0, 1, 0, 0);
 
+            getSelectedElements().forEach(function each(selectedElement) {
+                if (!selectedElement || selectedElement.id === selectedId) return;
+                Pin.editorHitTest.drawHandles(ctx, selectedElement, true, view, 0, {
+                    strokeStyle: "rgba(255,255,255,0.72)",
+                    fillStyle: "rgba(0,255,200,0.55)",
+                    lineWidth: 1.2,
+                    boundsStrokeStyle: "rgba(0,255,200,0.55)"
+                });
+            });
             const selected = getSelected();
             if (selected) {
                 Pin.editorHitTest.drawHandles(ctx, selected, true, view, dashTick);
@@ -1273,7 +1334,7 @@
                     });
                 }
             }
-            if (hoveredId && hoveredId !== selectedId) {
+            if (hoveredId && !isElementSelected(hoveredId)) {
                 const hovered = state.table.elements.find(function find(el) { return el.id === hoveredId; });
                 if (hovered && model.isElementVisibleInEditor(state.table, hovered)) {
                     Pin.editorHitTest.drawHandles(ctx, hovered, true, view, 0);
@@ -1293,6 +1354,21 @@
                 ctx.stroke();
                 ctx.restore();
             }
+            if (dragState && dragState.kind === "marquee") {
+                const p1 = Pin.editorTools.worldToScreen(dragState.startWorld, view);
+                const p2 = Pin.editorTools.worldToScreen(dragState.currentWorld, view);
+                const x = Math.min(p1.x, p2.x);
+                const y = Math.min(p1.y, p2.y);
+                const width = Math.abs(p2.x - p1.x);
+                const height = Math.abs(p2.y - p1.y);
+                ctx.save();
+                ctx.fillStyle = "rgba(0,255,200,0.12)";
+                ctx.strokeStyle = "rgba(0,255,200,0.9)";
+                ctx.setLineDash([5, 4]);
+                ctx.fillRect(x, y, width, height);
+                ctx.strokeRect(x, y, width, height);
+                ctx.restore();
+            }
             setHint(penState ? "Pen anchors: " + penState.path.anchors.length : "");
             perfEnd("editor.refreshCanvas", startedAt);
         }
@@ -1310,7 +1386,7 @@
                     placeNewElementInView(el);
                     pushUndo();
                     state.table.elements.push(el);
-                    selectedId = el.id;
+                    selectOnlyElement(el.id);
                     activeTool = type === "path" ? "pen" : "select";
                     paletteDirty = true;
                     if (activeTool === "pen") {
@@ -1752,6 +1828,38 @@
             return null;
         }
 
+        function normalizedWorldRect(a, b) {
+            return {
+                minX: Math.min(a.x, b.x),
+                minY: Math.min(a.y, b.y),
+                maxX: Math.max(a.x, b.x),
+                maxY: Math.max(a.y, b.y)
+            };
+        }
+
+        function selectElementsInRect(startWorld, currentWorld) {
+            // What: Select visible design elements whose authored geometry intersects the drag box.
+            // Why: bounds-only overlap can select nearby objects that never physically enter the marquee.
+            getEditorRuntime();
+            const rect = normalizedWorldRect(startWorld, currentWorld);
+            const ids = [];
+            getVisibleEditorElements().forEach(function each(el) {
+                if (Pin.editorHitTest.elementIntersectsRect(el, rect, runtimeByIdCache ? runtimeByIdCache[el.id] : null)) ids.push(el.id);
+            });
+            setSelectedIds(ids, ids[ids.length - 1] || null);
+        }
+
+        function restoreDragSnapshot(el, snapshot) {
+            if (!el || !snapshot) return;
+            Object.assign(el, Pin.editorTools.clone(snapshot));
+        }
+
+        function syncLauncherConfigForElements(elements) {
+            if ((elements || []).some(function some(el) { return el && el.type === "launcher"; })) {
+                model.syncLauncherConfig(state.table);
+            }
+        }
+
         function closePenPathIfNearStart(path) {
             const anchors = path && path.anchors;
             if (!anchors || anchors.length < 3) return false;
@@ -1800,7 +1908,7 @@
                     applyPenStyleToPath(path);
                     path.anchors = [{ x: penWorld.x, y: penWorld.y }];
                     state.table.elements.push(path);
-                    selectedId = path.id;
+                    selectOnlyElement(path.id);
                     penState = { path: path, lastWorld: penWorld };
                     paletteDirty = true;
                     markTableDirty();
@@ -1816,20 +1924,41 @@
             }
             const hit = hitTest(world);
             if (hit) {
-                    selectedId = hit.element.id;
-                    pushUndo();
-                    dragState = {
-                        kind: "drag",
-                        elementId: hit.element.id,
+                if (evt.shiftKey) {
+                    toggleElementSelection(hit.element.id);
+                    refresh("inspector");
+                    refresh("canvas");
+                    return;
+                }
+                const wasSelected = isElementSelected(hit.element.id);
+                if (wasSelected) makePrimarySelection(hit.element.id);
+                else selectOnlyElement(hit.element.id);
+                const selectedForDrag = getSelectedElements();
+                const canGroupMove = wasSelected && selectedForDrag.length > 1 && hit.handle && hit.handle.kind === "move";
+                pushUndo();
+                dragState = {
+                    kind: "drag",
+                    elementId: hit.element.id,
                     handle: hit.handle,
                     startWorld: world,
                     startHandleWorld: hit.handle ? { x: hit.handle.x, y: hit.handle.y } : world,
                     pointerOffset: hit.handle ? { x: world.x - hit.handle.x, y: world.y - hit.handle.y } : { x: 0, y: 0 },
-                    startSnapshot: Pin.editorTools.clone(hit.element)
+                    startSnapshot: Pin.editorTools.clone(hit.element),
+                    groupIds: canGroupMove ? selectedForDrag.map(function map(el) { return el.id; }) : null,
+                    groupSnapshots: canGroupMove ? selectedForDrag.reduce(function reduce(acc, el) {
+                        acc[el.id] = Pin.editorTools.clone(el);
+                        return acc;
+                    }, {}) : null
                 };
                 canvas.classList.add("dragging");
             } else {
-                selectedId = null;
+                dragState = {
+                    kind: "marquee",
+                    startWorld: world,
+                    currentWorld: world,
+                    startClientX: evt.clientX,
+                    startClientY: evt.clientY
+                };
             }
             refresh("inspector");
             refresh("canvas");
@@ -1853,11 +1982,32 @@
             if (dragState && dragState.kind === "drag") {
                 const el = state.table.elements.find(function find(e) { return e.id === dragState.elementId; });
                 if (!el) return;
-                Object.assign(el, Pin.editorTools.clone(dragState.startSnapshot));
                 const moved = getSnapWorld(evt, world, dragState);
+                if (dragState.groupIds && dragState.groupSnapshots) {
+                    const movedElements = [];
+                    const dx = moved.x - dragState.startWorld.x;
+                    const dy = moved.y - dragState.startWorld.y;
+                    dragState.groupIds.forEach(function each(id) {
+                        const element = getElementById(id);
+                        if (!element) return;
+                        restoreDragSnapshot(element, dragState.groupSnapshots[id]);
+                        Pin.editorHitTest.shiftElement(element, dx, dy);
+                        movedElements.push(element);
+                    });
+                    syncLauncherConfigForElements(movedElements);
+                    markTableDirty();
+                    refresh("canvas");
+                    return;
+                }
+                restoreDragSnapshot(el, dragState.startSnapshot);
                 Pin.editorHitTest.applyHandleDrag(el, dragState.handle, moved, dragState.startWorld, { table: state.table, altKey: evt.altKey });
                 if (el.type === "launcher") model.syncLauncherConfig(state.table);
                 markTableDirty();
+                refresh("canvas");
+                return;
+            }
+            if (dragState && dragState.kind === "marquee") {
+                dragState.currentWorld = world;
                 refresh("canvas");
                 return;
             }
@@ -1869,13 +2019,23 @@
             }
         });
 
-        on(window, "mouseup", function onMouseUp() {
+        on(window, "mouseup", function onMouseUp(evt) {
             if (panelResizeState) {
                 setRightPanelWidth(panelResizeState.currentWidth || panelResizeState.startWidth, true);
                 panelResizeState = null;
                 document.body.classList.remove("resizing-panel");
             }
             if (dragState) {
+                if (dragState.kind === "marquee") {
+                    dragState.currentWorld = Pin.editorTools.screenToWorld(canvas, evt, view);
+                    if (Math.hypot(evt.clientX - dragState.startClientX, evt.clientY - dragState.startClientY) < 4) {
+                        selectOnlyElement(null);
+                    } else {
+                        selectElementsInRect(dragState.startWorld, dragState.currentWorld);
+                    }
+                    refresh("inspector");
+                    refresh("canvas");
+                }
                 dragState = null;
                 canvas.classList.remove("dragging");
             }
@@ -1971,8 +2131,11 @@
             if (nudgeMap[evt.key]) {
                 evt.preventDefault();
                 pushUndo();
-                Pin.editorHitTest.shiftElement(selected, nudgeMap[evt.key][0], nudgeMap[evt.key][1]);
-                if (selected.type === "launcher") model.syncLauncherConfig(state.table);
+                const nudgedElements = getSelectedElements();
+                nudgedElements.forEach(function each(el) {
+                    Pin.editorHitTest.shiftElement(el, nudgeMap[evt.key][0], nudgeMap[evt.key][1]);
+                });
+                syncLauncherConfigForElements(nudgedElements);
                 markTableDirty();
                 refresh("inspector");
                 refresh("canvas");

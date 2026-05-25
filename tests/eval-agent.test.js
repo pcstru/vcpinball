@@ -28,4 +28,25 @@ const pin = evalAgent.loadPinRuntime();
     assert.strictEqual(result.evalReport.tableName, "Untitled Table", "evaluatePatch should preserve normalized table identity");
 }
 
+{
+    const toolInstruction = evalAgent.buildToolPromptInstruction(pin);
+    assert(/Available local tools/.test(toolInstruction), "eval-agent prompt instructions should advertise local tools");
+    assert(/radialLayout/.test(toolInstruction), "eval-agent tool instructions should include radialLayout");
+}
+
+{
+    const table = pin.table.createEmptyTable();
+    const toolResult = evalAgent.executeToolRequests(pin, table, [{
+        tool: "radialLayout",
+        args: {
+            elementType: "light",
+            count: 12,
+            radius: 90,
+            center: { x: 250, y: 300 }
+        }
+    }]);
+    assert.strictEqual(toolResult.ok, true, "eval-agent should execute browser-local assistant tools");
+    assert.strictEqual(toolResult.toolResults[0].patch.addElements.length, 12, "eval-agent radial tool should generate requested light count");
+}
+
 console.log("eval-agent smoke ok");

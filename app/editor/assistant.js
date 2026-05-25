@@ -1,7 +1,7 @@
 /*
- * What: Minimal assistant state container for table/design guidance.
- * Why: Chat and Agentic UI currently provide local guidance while external AI
- *      execution remains disabled in this static build.
+ * What: Assistant state container for provider-backed table/design guidance.
+ * Why: Chat and Agentic flows coordinate browser-local settings, deterministic
+ *      local tool calls, and structured patch preview/apply behavior.
  */
 (function initEditorAssistant(Pin) {
     const SETTINGS_KEY = "pin.assistant.settings";
@@ -575,6 +575,21 @@
             appendLog(kind, detail);
         }
 
+        function createToolInstruction() {
+            const toolRuntime = Pin.editorAssistantTools;
+            const toolList = toolRuntime && typeof toolRuntime.describeTools === "function"
+                ? toolRuntime.describeTools()
+                : [];
+            if (!toolList.length) return "";
+            return [
+                "You may request deterministic local tools when exact numbers or geometry would improve the patch.",
+                "If you need a tool, return JSON only in this shape: {\"toolRequests\":[{\"tool\":\"toolName\",\"args\":{...}}]}",
+                "After tool results are provided in a repair note, use them and return final patch JSON.",
+                "Available local tools:",
+                JSON.stringify(toolList)
+            ].join("\n");
+        }
+
         function summarizePatch(patch) {
             const out = [];
             if (!patch || typeof patch !== "object") return out;
@@ -661,15 +676,17 @@
             const shared = Pin.aiPromptContract && typeof Pin.aiPromptContract.buildPatchPrompt === "function"
                 ? Pin.aiPromptContract
                 : null;
+            const toolInstruction = createToolInstruction();
             if (shared) {
                 return shared.buildPatchPrompt({
                     task: safeString(task),
                     context: compact
-                });
+                }) + (toolInstruction ? ("\n" + toolInstruction) : "");
             }
             return [
                 "Return JSON patch only.",
                 "Allowed keys: tablePatch, addElements, patchElements, removeElements, addFeatures, patchFeatures, removeFeatures, logicDocPatch.",
+                toolInstruction,
                 "Task:",
                 safeString(task),
                 "Table context:",
@@ -744,6 +761,13 @@
                     });
                     return { ok: false, message: "Model response did not include valid patch JSON.", raw: content };
                 }
+                if (Array.isArray(patch.toolRequests)) {
+                    appendLogData("provider_tool_requests", {
+                        meta: traceMeta,
+                        toolRequests: patch.toolRequests
+                    });
+                    return { ok: true, toolRequests: patch.toolRequests, raw: content };
+                }
                 const contract = validatePatchContract(patch);
                 if (!contract.ok) {
                     appendLogData("provider_contract_failed", {
@@ -791,6 +815,7 @@
             const maxSteps = Math.max(1, Number((state.settings && state.settings.maxSteps) || 4));
             let attempt = 0;
             let lastFailure = "";
+            let toolContextNote = "";
 
             function failureMessage(kind) {
                 const label = kind || "validation";
@@ -799,10 +824,20 @@
 
             function iterate() {
                 attempt += 1;
-                const repairNote = lastFailure ? (
-                    "Previous patch failed validation. Fix these issues and return a full corrected patch JSON.\n" +
-                    lastFailure
-                ) : "";
+                const repairParts = [];
+                if (lastFailure) {
+                    repairParts.push(
+                        "Previous patch failed validation. Fix these issues and return a full corrected patch JSON.\n" +
+                        lastFailure
+                    );
+                }
+                if (toolContextNote) {
+                    repairParts.push(
+                        "Tool results from local deterministic functions. Use these results directly and return final patch JSON only.\n" +
+                        toolContextNote
+                    );
+                }
+                const repairNote = repairParts.join("\n\n");
                 appendLogData("attempt_start", {
                     flow: state.agenticRunning ? "agentic" : "chat",
                     attempt: attempt,
@@ -814,6 +849,30 @@
                     attempt: attempt,
                     maxSteps: maxSteps
                 }).then(function onPatch(result) {
+                    if (Array.isArray(result.toolRequests)) {
+                        const toolRuntime = Pin.editorAssistantTools;
+                        if (!toolRuntime || typeof toolRuntime.runToolRequests !== "function") {
+                            return { ok: false, message: "Model requested tools, but tool runtime is unavailable in this build." };
+                        }
+                        const toolExec = toolRuntime.runToolRequests(result.toolRequests, {
+                            table: options && options.getTable ? options.getTable() : {},
+                            selected: options && options.getSelected ? options.getSelected() : null
+                        });
+                        if (!toolExec.ok) {
+                            return { ok: false, message: toolExec.message || "Tool execution failed." };
+                        }
+                        toolContextNote = JSON.stringify({ toolResults: toolExec.toolResults });
+                        lastFailure = "";
+                        appendLogData("attempt_tool_results", {
+                            attempt: attempt,
+                            maxSteps: maxSteps,
+                            toolResults: toolExec.toolResults
+                        });
+                        if (attempt >= maxSteps) {
+                            return { ok: false, message: failureMessage("tool execution") };
+                        }
+                        return iterate();
+                    }
                     if (!result.ok) {
                         if (Array.isArray(result.contractIssues) && result.contractIssues.length) {
                             lastFailure = result.contractIssues.join("\n");

@@ -4,7 +4,7 @@
 
 Assistant and Agentic support must treat the current logic system as feature-first authoring, not as a raw rulesEngine editor.
 
-The browser build currently keeps external AI execution disabled. The visible Assistant and Agentic tabs are UI placeholders/guidance surfaces. Any future agentic execution must work through structured, validated table patches and must preserve the current user-facing model:
+The browser build now supports provider-backed Assistant and Agentic execution through structured, validated table patches. Any agentic execution must continue to preserve the current user-facing model:
 
 - table geometry is edited in `#design`
 - gameplay logic is authored in `#logic`
@@ -188,22 +188,22 @@ Reset: drain resets volatile target state.
 
 ## Assistant Chat Behavior
 
-Current static build:
+Current browser build:
 
-- Chat stores local transcript only.
-- External provider/model calls are disabled.
-- Patch application is disabled.
-- Chat response should point users to `#logic` for feature-first authoring.
+- Chat stores a local transcript and can call configured provider endpoints.
+- Chat may decide it needs deterministic browser-local tool help for exact numbers or geometry, request one or more whitelisted tools, then return a final structured patch.
+- Patch preview and patch application are active runtime paths.
+- Chat response should still respect `#logic` as the feature-first authoring surface for gameplay logic.
 
 Do not state that logic is removed. The current logic system is active and feature-first.
 
 ## Agentic UI Behavior
 
-Current static build:
+Current browser build:
 
-- Agentic controls are visible as planned execution UI.
-- Run/stop/apply are disabled/no-op in runtime.
-- Copy must describe Agentic as planned/disabled, not as a working executor.
+- Agentic controls are active runtime UI.
+- Run/stop/apply/pending-review behavior is implemented through the same structured patch contract used by chat.
+- Agentic copy should describe the actual guarded execution flow: provider request, validation, preview, pending patch when needed, and apply/reject controls.
 
 When implementation resumes, agentic execution should be feature-aware and should not resurrect old sequence-rule-first language.
 

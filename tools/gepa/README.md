@@ -5,6 +5,8 @@ Why: schema misunderstandings should be reduced by repeatable prompt evaluation 
 
 GEPA is useful here because the project already emits actionable feedback: contract issues, logic/table validation issues, and table-eval failures. The optimizer can mutate only the prompt text while `tools/eval-agent.js` keeps the patch contract and physics/evaluation runtime fixed.
 
+`eval-agent prompt-eval` now also supports the browser-style `toolRequests` loop. That means GEPA can tune prompts against both direct patch generation and the intermediate "ask for deterministic local numbers, then return a final patch" behavior.
+
 ## Workflow
 
 1. Collect JSONL cases with `table` and `task` fields.
@@ -44,6 +46,12 @@ The committed launcher defaults are intentionally cheap and specific:
 - cases: `tools/gepa/cases.a_targ_grpb.jsonl`
 - target task: wire `A-Targ` Group B drop targets to light on hit and reset on drain
 - evaluation profile: fast logic/schema checks, not the expensive ray/reachability gauntlet
+
+For validating numeric/local-tool behavior specifically, use:
+
+- cases: `tools/gepa/cases.layout_tools.jsonl`
+- target task family: exact geometry placement where the model may choose `toolRequests`
+- evaluation goal: verify the prompt teaches the model when to ask for deterministic numbers instead of hallucinating coordinates
 
 OpenRouter reflection example:
 
