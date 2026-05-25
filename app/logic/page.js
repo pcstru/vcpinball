@@ -527,6 +527,7 @@
             var world = buildSimulatorPreviewWorld();
             var preview = document.createElement("div");
             preview.className = "logic-visual-preview";
+            preview.style.aspectRatio = String(world.table.playfield.width) + " / " + String(world.table.playfield.height);
             var canvas = document.createElement("canvas");
             canvas.className = "logic-visual-canvas";
             canvas.width = world.table.playfield.width;
@@ -2306,6 +2307,7 @@
             card.appendChild(score);
             var shell = document.createElement("div");
             shell.className = "logic-sim-preview";
+            shell.style.aspectRatio = String(world.table.playfield.width) + " / " + String(world.table.playfield.height);
             var canvas = document.createElement("canvas");
             canvas.className = "logic-sim-canvas";
             canvas.width = world.table.playfield.width;

@@ -15,6 +15,7 @@
         { id: "numeric_fields", label: "Numeric Field Validation", category: "static" },
         { id: "bounds", label: "Playfield Bounds", category: "static" },
         { id: "compilation", label: "Runtime Compilation", category: "static" },
+        { id: "accessibility_heatmap", label: "Accessibility Heatmap", category: "reachability" },
         { id: "launcher_rays", label: "Launcher Reachability Rays", category: "stuck" },
         { id: "flipper_reachability", label: "Flipper Reachability Rays", category: "reachability" },
         { id: "target_to_flipper_reachability", label: "Target To Flipper Reachability", category: "reachability" },
@@ -1109,6 +1110,426 @@
         };
     }
 
+    function accessibilityHeatmapLimits(options) {
+        const requestedMode = String((options && options.accessibilityRayMode) || "geometric").toLowerCase();
+        const rayMode = requestedMode === "physics" ? "physics" : "geometric";
+        const defaultMaxRays = rayMode === "physics" ? 320 : 5000;
+        const defaultMaxTicks = rayMode === "physics" ? 420 : 2400;
+        const defaultMaxCollisions = rayMode === "physics" ? 1 : 80;
+        return {
+            rayMode: rayMode,
+            maxDepth: normalizedProbeLimit(options && options.accessibilityMaxDepth, 3, 0, 8),
+            branchRays: normalizedProbeLimit(options && options.accessibilityBranchRays, 16, 1, 64),
+            cellSize: normalizedProbeLimit(options && options.accessibilityCellSize, 32, 8, 128),
+            maxRays: normalizedProbeLimit(options && options.accessibilityMaxRays, defaultMaxRays, 1, 50000),
+            speed: normalizedFloatLimit(options && options.accessibilityRaySpeed, 15, 1, 60),
+            maxTicks: normalizedProbeLimit(options && options.accessibilityMaxTicks, defaultMaxTicks, 60, 20000),
+            maxCollisions: normalizedProbeLimit(options && options.accessibilityMaxCollisions, defaultMaxCollisions, 1, 5000)
+        };
+    }
+
+    function normalizeVector(x, y) {
+        const len = Math.sqrt(x * x + y * y);
+        if (!(len > 0.000001)) return null;
+        return { x: x / len, y: y / len };
+    }
+
+    function raycastCircle(origin, dir, maxDistance, circle, inflateBy) {
+        if (!circle || !isFiniteNumber(circle.x) || !isFiniteNumber(circle.y) || !hasPositiveNumber(circle.radius)) return null;
+        const radius = circle.radius + Math.max(0, inflateBy || 0);
+        const ox = origin.x - circle.x;
+        const oy = origin.y - circle.y;
+        const b = ox * dir.x + oy * dir.y;
+        const c = ox * ox + oy * oy - radius * radius;
+        const disc = b * b - c;
+        if (disc < 0) return null;
+        const sqrtDisc = Math.sqrt(disc);
+        const t1 = -b - sqrtDisc;
+        const t2 = -b + sqrtDisc;
+        const t = t1 > 0.0001 ? t1 : (t2 > 0.0001 ? t2 : Infinity);
+        if (!Number.isFinite(t) || t > maxDistance) return null;
+        return t;
+    }
+
+    function raycastSegment(origin, dir, maxDistance, seg, inflateBy) {
+        if (!seg || !isFiniteNumber(seg.x1) || !isFiniteNumber(seg.y1) || !isFiniteNumber(seg.x2) || !isFiniteNumber(seg.y2)) return null;
+        const thickness = Math.max(0, (hasPositiveNumber(seg.thickness) ? seg.thickness : 0) + Math.max(0, inflateBy || 0));
+        const vx = seg.x2 - seg.x1;
+        const vy = seg.y2 - seg.y1;
+        const wx = origin.x - seg.x1;
+        const wy = origin.y - seg.y1;
+        const segLenSq = vx * vx + vy * vy;
+        let closestX = seg.x1;
+        let closestY = seg.y1;
+        if (segLenSq > 0.000001) {
+            let u = (wx * vx + wy * vy) / segLenSq;
+            u = Math.max(0, Math.min(1, u));
+            closestX = seg.x1 + vx * u;
+            closestY = seg.y1 + vy * u;
+        }
+        const nx = closestX - origin.x;
+        const ny = closestY - origin.y;
+        const proj = nx * dir.x + ny * dir.y;
+        if (proj < 0) return null;
+        const perpSq = (nx * nx + ny * ny) - proj * proj;
+        const radSq = thickness * thickness;
+        if (perpSq > radSq + 0.0001) return null;
+        const offset = Math.sqrt(Math.max(0, radSq - Math.max(0, perpSq)));
+        const t = Math.max(0, proj - offset);
+        if (t > maxDistance) return null;
+        return t;
+    }
+
+    function raycastBounds(origin, dir, width, height) {
+        let best = Infinity;
+        if (Math.abs(dir.x) > 0.000001) {
+            const tx0 = (0 - origin.x) / dir.x;
+            const tx1 = (width - origin.x) / dir.x;
+            if (tx0 > 0.0001) best = Math.min(best, tx0);
+            if (tx1 > 0.0001) best = Math.min(best, tx1);
+        }
+        if (Math.abs(dir.y) > 0.000001) {
+            const ty0 = (0 - origin.y) / dir.y;
+            const ty1 = (height - origin.y) / dir.y;
+            if (ty0 > 0.0001) best = Math.min(best, ty0);
+            if (ty1 > 0.0001) best = Math.min(best, ty1);
+        }
+        return Number.isFinite(best) ? best : 0;
+    }
+
+    function rasterizeSegmentToHeatmap(origin, target, heatmap, cellSize, width, height) {
+        const dx = target.x - origin.x;
+        const dy = target.y - origin.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (!(len > 0.000001)) return;
+        const steps = Math.max(1, Math.ceil(len / Math.max(2, cellSize * 0.5)));
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const x = origin.x + dx * t;
+            const y = origin.y + dy * t;
+            if (x < 0 || y < 0 || x > width || y > height) continue;
+            const cx = Math.max(0, Math.min(heatmap.cols - 1, Math.floor(x / cellSize)));
+            const cy = Math.max(0, Math.min(heatmap.rows - 1, Math.floor(y / cellSize)));
+            const idx = cy * heatmap.cols + cx;
+            heatmap.values[idx] += 1;
+        }
+    }
+
+    function estimateLauncherExitOrigin(table, world) {
+        const launcher = Pin.physics && Pin.physics.getLauncherConfig ? Pin.physics.getLauncherConfig(world) : null;
+        if (!launcher || !hasPositiveNumber(launcher.width) || !isFiniteNumber(launcher.x) || !isFiniteNumber(launcher.top)) return null;
+        const playfield = (table && table.playfield) || {};
+        const radius = hasPositiveNumber(playfield.ballRadius) ? playfield.ballRadius : 8;
+        return {
+            x: launcher.x,
+            y: launcher.top - radius - 2
+        };
+    }
+
+    /*
+     * What: Trace one accessibility ray with full physics stepping.
+     * Why: this mode trades throughput for realism by using production collision
+     * and response logic instead of direct geometric intersection tests.
+     */
+    function traceAccessibilityRayPhysics(table, origin, dir, limits, width, height, ballRadius) {
+        const world = buildEvalWorld(table);
+        world.physicsCollisionCount = 0;
+        world.balls = [{
+            x: origin.x,
+            y: origin.y,
+            radius: ballRadius,
+            vx: dir.x * limits.speed,
+            vy: dir.y * limits.speed,
+            level: 0
+        }];
+        const path = [{ x: origin.x, y: origin.y }];
+        let ignoredGateHitCount = 0;
+        let hitCount = 0;
+        let nonGateCollisions = 0;
+        let reason = "ticks";
+        for (let i = 0; i < limits.maxTicks; i++) {
+            stepEvalWorld(world);
+            const ball = world.balls && world.balls[0];
+            if (!ball) {
+                reason = "none";
+                break;
+            }
+            if (!Number.isFinite(ball.x) || !Number.isFinite(ball.y) || !Number.isFinite(ball.vx) || !Number.isFinite(ball.vy)) {
+                reason = "invalid";
+                break;
+            }
+            if (i < 60 || i % 6 === 0) path.push({ x: ball.x, y: ball.y });
+            if (ball.drained) {
+                reason = "drained";
+                break;
+            }
+            if (ball.x < 0 || ball.y < 0 || ball.x > width || ball.y > height) {
+                reason = "bounds";
+                break;
+            }
+            const last = world.lastPhysicsCollision || null;
+            if (last && last.elementType === "gate") ignoredGateHitCount += 1;
+            if (last && last.elementType && last.elementType !== "gate") {
+                hitCount += 1;
+                nonGateCollisions += 1;
+                reason = "hit";
+                path.push({ x: ball.x, y: ball.y });
+                break;
+            }
+            if (nonGateCollisions > limits.maxCollisions) {
+                reason = "collisions";
+                break;
+            }
+        }
+        const endPoint = path[path.length - 1] || { x: origin.x, y: origin.y };
+        return {
+            endPoint: endPoint,
+            path: path,
+            hitCount: hitCount,
+            ignoredGateHitCount: ignoredGateHitCount,
+            nonGateCollisions: nonGateCollisions,
+            reason: reason
+        };
+    }
+
+    function checkAccessibilityHeatmap(table, report, options, onProgress) {
+        const limits = accessibilityHeatmapLimits(options);
+        const world = buildEvalWorld(table);
+        const playfield = (table && table.playfield) || {};
+        const width = hasPositiveNumber(playfield.width) ? playfield.width : 0;
+        const height = hasPositiveNumber(playfield.height) ? playfield.height : 0;
+        if (!(width > 0) || !(height > 0)) {
+            addCheck(report, {
+                id: "accessibility_heatmap",
+                category: "reachability",
+                status: "warn",
+                message: "Accessibility heatmap skipped: playfield bounds are invalid.",
+                objects: [],
+                diagnostics: {}
+            });
+            return;
+        }
+        const origin = estimateLauncherExitOrigin(table, world);
+        if (!origin) {
+            addCheck(report, {
+                id: "accessibility_heatmap",
+                category: "reachability",
+                status: "warn",
+                message: "Accessibility heatmap skipped: no launcher exit origin.",
+                objects: [],
+                diagnostics: {}
+            });
+            return;
+        }
+
+        const cellSize = limits.cellSize;
+        const cols = Math.max(1, Math.ceil(width / cellSize));
+        const rows = Math.max(1, Math.ceil(height / cellSize));
+        const heatmap = {
+            cellSize: cellSize,
+            cols: cols,
+            rows: rows,
+            values: new Array(cols * rows).fill(0)
+        };
+        const diagnosticsSegments = [];
+        const queue = [{
+            x: origin.x,
+            y: origin.y,
+            dx: 0,
+            dy: -1,
+            depth: 0
+        }];
+        const runtimeSegments = world.runtimeSegments || [];
+        const runtimeCircles = world.runtimeCircles || [];
+        const ballRadius = hasPositiveNumber(playfield.ballRadius) ? playfield.ballRadius : 8;
+        const maxDistance = Math.sqrt(width * width + height * height) + 8;
+        let rayCount = 0;
+        let hitCount = 0;
+        let depthLimitCount = 0;
+        let ignoredGateHitCount = 0;
+
+        let lastProgressMs = 0;
+        while (queue.length && rayCount < limits.maxRays) {
+            const node = queue.shift();
+            const dir = normalizeVector(node.dx, node.dy);
+            if (!dir) continue;
+            let endPoint = { x: node.x, y: node.y };
+            let physicsTrace = null;
+            if (limits.rayMode === "physics") {
+                physicsTrace = traceAccessibilityRayPhysics(table, { x: node.x, y: node.y }, dir, limits, width, height, ballRadius);
+                endPoint = physicsTrace.endPoint;
+                ignoredGateHitCount += physicsTrace.ignoredGateHitCount;
+                hitCount += physicsTrace.hitCount;
+                if (diagnosticsSegments.length < 450 && Array.isArray(physicsTrace.path) && physicsTrace.path.length > 1) {
+                    const maxSegmentsPerRay = 8;
+                    const pathSegments = physicsTrace.path.length - 1;
+                    const step = Math.max(1, Math.ceil(pathSegments / maxSegmentsPerRay));
+                    for (let p = step; p < physicsTrace.path.length; p += step) {
+                        const a = physicsTrace.path[Math.max(0, p - step)];
+                        const b = physicsTrace.path[p];
+                        diagnosticsSegments.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
+                        if (diagnosticsSegments.length >= 450) break;
+                    }
+                }
+                if (Array.isArray(physicsTrace.path) && physicsTrace.path.length > 1) {
+                    for (let p = 1; p < physicsTrace.path.length; p++) {
+                        rasterizeSegmentToHeatmap(physicsTrace.path[p - 1], physicsTrace.path[p], heatmap, cellSize, width, height);
+                    }
+                } else {
+                    rasterizeSegmentToHeatmap({ x: node.x, y: node.y }, endPoint, heatmap, cellSize, width, height);
+                }
+            } else {
+                const boundsT = raycastBounds({ x: node.x, y: node.y }, dir, width, height);
+                if (!(boundsT > 0.0001)) continue;
+                let nearest = boundsT;
+                let nearestType = "bounds";
+
+                runtimeSegments.forEach(function each(seg) {
+                    const isGate = seg && seg.role === "gate";
+                    const t = raycastSegment({ x: node.x, y: node.y }, dir, nearest, seg, isGate ? 0 : ballRadius);
+                    if (!Number.isFinite(t)) return;
+                    if (isGate) {
+                        ignoredGateHitCount += 1;
+                        return;
+                    }
+                    if (t < nearest) {
+                        nearest = t;
+                        nearestType = "block";
+                    }
+                });
+                runtimeCircles.forEach(function each(circle) {
+                    const t = raycastCircle({ x: node.x, y: node.y }, dir, nearest, circle, ballRadius);
+                    if (!Number.isFinite(t)) return;
+                    if (t < nearest) {
+                        nearest = t;
+                        nearestType = "block";
+                    }
+                });
+                endPoint = {
+                    x: node.x + dir.x * nearest,
+                    y: node.y + dir.y * nearest
+                };
+                rasterizeSegmentToHeatmap({ x: node.x, y: node.y }, endPoint, heatmap, cellSize, width, height);
+                if (diagnosticsSegments.length < 450) {
+                    diagnosticsSegments.push({ x1: node.x, y1: node.y, x2: endPoint.x, y2: endPoint.y });
+                }
+                if (nearestType === "block") hitCount += 1;
+            }
+            rayCount += 1;
+
+            if (typeof onProgress === "function") {
+                const now = Date.now();
+                if (rayCount === 1 || rayCount % 24 === 0 || now - lastProgressMs > 120) {
+                    lastProgressMs = now;
+                    onProgress({
+                        phase: "accessibility",
+                        done: rayCount,
+                        total: limits.maxRays,
+                        message: "Accessibility rays " + rayCount + " / " + limits.maxRays,
+                        check: {
+                            id: "accessibility_heatmap",
+                            category: "reachability",
+                            status: "warn",
+                            message: "Accessibility search in progress...",
+                            objects: [],
+                            diagnostics: {
+                                heatmap: heatmap,
+                                segments: diagnosticsSegments.slice(-220),
+                                points: [{ x: origin.x, y: origin.y }],
+                                labels: [{
+                                    text: "Mode " + limits.rayMode + " | rays " + rayCount + " | hits " + hitCount + " | ignored gates " + ignoredGateHitCount,
+                                    x: 16,
+                                    y: 34
+                                }]
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (node.depth >= limits.maxDepth) {
+                depthLimitCount += 1;
+                continue;
+            }
+            let mid = {
+                x: node.x + (endPoint.x - node.x) * 0.5,
+                y: node.y + (endPoint.y - node.y) * 0.5
+            };
+            if (limits.rayMode === "physics" && physicsTrace && Array.isArray(physicsTrace.path) && physicsTrace.path.length) {
+                mid = physicsTrace.path[Math.floor(physicsTrace.path.length * 0.5)] || mid;
+            }
+            for (let i = 0; i < limits.branchRays; i++) {
+                const angle = (i / limits.branchRays) * Math.PI * 2;
+                queue.push({
+                    x: mid.x,
+                    y: mid.y,
+                    dx: Math.cos(angle),
+                    dy: Math.sin(angle),
+                    depth: node.depth + 1
+                });
+                if ((queue.length + rayCount) >= limits.maxRays) break;
+            }
+        }
+
+        let accessibleCells = 0;
+        heatmap.values.forEach(function each(value) {
+            if (value > 0) accessibleCells += 1;
+        });
+        const totalCells = heatmap.values.length || 1;
+        report.metrics.accessibleCells = accessibleCells;
+        report.metrics.totalCells = totalCells;
+        report.metrics.accessibleCoverageRatio = accessibleCells / totalCells;
+        report.metrics.accessibilityRayCount = rayCount;
+        report.metrics.accessibilityHitCount = hitCount;
+        report.metrics.ignoredGateHitCount = ignoredGateHitCount;
+        report.metrics.accessibilityDepthLimitCount = depthLimitCount;
+
+        addCheck(report, {
+            id: "accessibility_heatmap",
+            category: "reachability",
+            status: rayCount > 0 ? "pass" : "warn",
+            message: rayCount > 0 ?
+                ("Accessibility heatmap covered " + accessibleCells + " / " + totalCells + " cells (" + ((accessibleCells / totalCells) * 100).toFixed(1) + "%).") :
+                "Accessibility heatmap produced no rays.",
+            objects: [],
+            diagnostics: {
+                heatmap: heatmap,
+                segments: diagnosticsSegments,
+                points: [{ x: origin.x, y: origin.y }],
+                labels: [{
+                    text: "Mode " + limits.rayMode + " | rays " + rayCount + " | hits " + hitCount + " | ignored gates " + ignoredGateHitCount,
+                    x: 16,
+                    y: 34
+                }]
+            }
+        });
+        if (typeof onProgress === "function") {
+            onProgress({
+                phase: "accessibility",
+                done: rayCount,
+                total: limits.maxRays,
+                message: "Accessibility search complete",
+                check: {
+                    id: "accessibility_heatmap",
+                    category: "reachability",
+                    status: "pass",
+                    message: "Accessibility search complete.",
+                    objects: [],
+                    diagnostics: {
+                        heatmap: heatmap,
+                        segments: diagnosticsSegments.slice(-260),
+                        points: [{ x: origin.x, y: origin.y }],
+                        labels: [{
+                            text: "Mode " + limits.rayMode + " | rays " + rayCount + " | hits " + hitCount + " | ignored gates " + ignoredGateHitCount,
+                            x: 16,
+                            y: 34
+                        }]
+                    }
+                }
+            });
+        }
+    }
+
     function angleInSweep(angle, fromAngle, toAngle) {
         const span = Math.atan2(Math.sin(toAngle - fromAngle), Math.cos(toAngle - fromAngle));
         const rel = Math.atan2(Math.sin(angle - fromAngle), Math.cos(angle - fromAngle));
@@ -1792,7 +2213,7 @@
         return defaults;
     }
 
-    function runPreLauncherChecks(context, selectedChecks) {
+    function runPreLauncherChecks(context, selectedChecks, onProgress) {
         const normalized = context.normalized;
         const report = context.report;
         if (!checkCoreShape(normalized, report)) {
@@ -1806,6 +2227,7 @@
         if (selectedChecks.numeric_fields) checkNumericFields(normalized, elements, report);
         if (selectedChecks.bounds) checkBounds(normalized, elements, report);
         if (selectedChecks.compilation) checkCompilation(normalized, report);
+        if (selectedChecks.accessibility_heatmap) checkAccessibilityHeatmap(normalized, report, context.opts, onProgress);
         return true;
     }
 
@@ -1822,7 +2244,7 @@
     function evaluateTable(table, options) {
         const context = createEvaluationContext(table, options);
         const selectedChecks = resolveCheckSelection(context.opts);
-        if (!runPreLauncherChecks(context, selectedChecks)) return context.report;
+        if (!runPreLauncherChecks(context, selectedChecks, null)) return context.report;
         if (selectedChecks.launcher_rays) {
             checkLauncherRayStuck(context.normalized, context.elements, context.report, context.opts);
         }
@@ -1841,7 +2263,7 @@
         const context = createEvaluationContext(table, options);
         const selectedChecks = resolveCheckSelection(context.opts);
         const onProgress = typeof context.opts.onProgress === "function" ? context.opts.onProgress : function noop() {};
-        if (!runPreLauncherChecks(context, selectedChecks)) return Promise.resolve(context.report);
+        if (!runPreLauncherChecks(context, selectedChecks, onProgress)) return Promise.resolve(context.report);
 
         const limits = launcherProbeLimits(context.opts);
         const targetLimits = targetReachabilityLimits(context.opts);

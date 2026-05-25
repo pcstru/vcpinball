@@ -7,6 +7,7 @@
 (function initTableCatalog(Pin) {
     Pin.tableCatalog = {
         tables: [
+            { ref: "tables/2xBig.json" },
             { ref: "tables/3Targ.pin.json" },
             { ref: "tables/A-Targ.json" },
             { ref: "tables/ABC.json" },
@@ -28,3 +29,4 @@
         ]
     };
 })(window.Pin);
+

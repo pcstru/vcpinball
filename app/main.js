@@ -951,17 +951,27 @@
          */
         const pf = table.playfield || Pin.table.DEFAULT_PLAYFIELD;
         const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-        const previewWidth = 240;
-        const scale = Math.max(0.1, previewWidth / Math.max(1, pf.width || previewWidth));
-        const width = Math.max(1, Math.round((pf.width || previewWidth) * scale * dpr));
-        const height = Math.max(1, Math.round((pf.height || 360) * scale * dpr));
+        const pfWidth = Math.max(1, Number(pf.width) || 500);
+        const pfHeight = Math.max(1, Number(pf.height) || 880);
+        const maxPreviewWidth = 240;
+        const maxPreviewHeight = 296;
+        const scale = Math.max(0.1, Math.min(
+            maxPreviewWidth / pfWidth,
+            maxPreviewHeight / pfHeight
+        ));
+        const displayWidth = Math.max(1, Math.round(pfWidth * scale));
+        const displayHeight = Math.max(1, Math.round(pfHeight * scale));
+        const width = Math.max(1, Math.round(displayWidth * dpr));
+        const height = Math.max(1, Math.round(displayHeight * dpr));
         const ctx = canvas.getContext("2d");
         let cancelled = false;
         let redrawRaf = 0;
 
         canvas.width = width;
         canvas.height = height;
-        canvas.style.aspectRatio = String(pf.width || previewWidth) + " / " + String(pf.height || 360);
+        canvas.style.width = String(displayWidth) + "px";
+        canvas.style.height = String(displayHeight) + "px";
+        canvas.style.aspectRatio = String(pfWidth) + " / " + String(pfHeight);
 
         function scheduleRedraw() {
             if (cancelled || redrawRaf) return;

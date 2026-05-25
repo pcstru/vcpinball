@@ -1,0 +1,1293 @@
+{
+  "version": 1,
+  "name": "2Big",
+  "playfield": {
+    "width": 1000,
+    "height": 1760,
+    "ballRadius": 20,
+    "gravity": 0.2,
+    "friction": 0.999,
+    "restitution": 0.55,
+    "maxSpeed": 40,
+    "realTimeScale": 1,
+    "tilt": {
+      "enabled": true,
+      "impulseX": 0,
+      "impulseY": -8,
+      "cooldownSeconds": 0.35,
+      "warningWindowSeconds": 2,
+      "warningLimit": 3
+    }
+  },
+  "rules": {
+    "balls": 3,
+    "highScoreKey": "pinball.generic.highscore"
+  },
+  "logicDocument": {
+    "logicVersion": 1,
+    "switchRegistry": [
+      {
+        "id": "kicker_md8rg3",
+        "name": "kicker_md8rg3",
+        "sourceElementId": "kicker_md8rg3",
+        "kind": "switch"
+      },
+      {
+        "id": "drain_k39xog",
+        "name": "drain_k39xog",
+        "sourceElementId": "drain_k39xog",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_ejzhol",
+        "name": "bumper_ejzhol",
+        "sourceElementId": "bumper_ejzhol",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_yhuy0t",
+        "name": "bumper_ejzhol",
+        "sourceElementId": "bumper_yhuy0t",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_uevmzr",
+        "name": "bumper_ejzhol",
+        "sourceElementId": "bumper_uevmzr",
+        "kind": "switch"
+      },
+      {
+        "id": "dropTarget_agul2o",
+        "name": "GrpA-1",
+        "sourceElementId": "dropTarget_agul2o",
+        "kind": "switch"
+      },
+      {
+        "id": "dropTarget_syk8lp",
+        "name": "GrpA-2",
+        "sourceElementId": "dropTarget_syk8lp",
+        "kind": "switch"
+      },
+      {
+        "id": "dropTarget_s2b8nc",
+        "name": "GrpA-3",
+        "sourceElementId": "dropTarget_s2b8nc",
+        "kind": "switch"
+      },
+      {
+        "id": "kicker_5312ax",
+        "name": "kicker_md8rg3",
+        "sourceElementId": "kicker_5312ax",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_4484te",
+        "name": "bumper_ejzhol",
+        "sourceElementId": "bumper_4484te",
+        "kind": "switch"
+      },
+      {
+        "id": "dropTarget_c42oz6",
+        "name": "GrpB-1",
+        "sourceElementId": "dropTarget_c42oz6",
+        "kind": "switch"
+      },
+      {
+        "id": "dropTarget_gdimrn",
+        "name": "GrpB-2",
+        "sourceElementId": "dropTarget_gdimrn",
+        "kind": "switch"
+      },
+      {
+        "id": "dropTarget_0evc5x",
+        "name": "GrpB-3",
+        "sourceElementId": "dropTarget_0evc5x",
+        "kind": "switch"
+      },
+      {
+        "id": "lane_tz1ymq",
+        "name": "Lane-GrpC-1",
+        "sourceElementId": "lane_tz1ymq",
+        "kind": "switch"
+      },
+      {
+        "id": "lane_dufqo0",
+        "name": "Lane-GrpC-2",
+        "sourceElementId": "lane_dufqo0",
+        "kind": "switch"
+      },
+      {
+        "id": "kicker_ow6q9d",
+        "name": "kicker_md8rg3",
+        "sourceElementId": "kicker_ow6q9d",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_vm2nuc",
+        "name": "bumper_ejzhol",
+        "sourceElementId": "bumper_vm2nuc",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_vj8kqj",
+        "name": "bumper_ejzhol",
+        "sourceElementId": "bumper_vj8kqj",
+        "kind": "switch"
+      },
+      {
+        "id": "bumper_hnpuy5",
+        "name": "bumper_ejzhol",
+        "sourceElementId": "bumper_hnpuy5",
+        "kind": "switch"
+      },
+      {
+        "id": "lane_mu9la9",
+        "name": "RareLane",
+        "sourceElementId": "lane_mu9la9",
+        "kind": "switch"
+      },
+      {
+        "id": "timer_100ms",
+        "name": "Timer 100ms",
+        "kind": "timer",
+        "sourceElementId": "timer_100ms",
+        "intervalMs": 100
+      },
+      {
+        "id": "timer_1s",
+        "name": "Timer 1s",
+        "kind": "timer",
+        "sourceElementId": "timer_1s",
+        "intervalMs": 1000
+      }
+    ],
+    "stateTable": [
+      {
+        "id": "new_visual_feature_lit",
+        "name": "New Visual Feature Lit",
+        "type": "bool",
+        "initial": false,
+        "volatile": true
+      }
+    ],
+    "computedState": [],
+    "lampBindings": [
+      {
+        "lampId": "dropTarget_agul2o",
+        "expr": "new_visual_feature_lit"
+      }
+    ],
+    "actionRules": [
+      {
+        "id": "a_new_visual_feature_trigger",
+        "name": "Light GrpA-1",
+        "trigger": "dropTarget_agul2o",
+        "condition": "!new_visual_feature_lit",
+        "effects": [
+          {
+            "type": "set",
+            "target": "new_visual_feature_lit",
+            "value": true
+          },
+          {
+            "type": "score",
+            "value": 100
+          }
+        ],
+        "enabled": true
+      }
+    ],
+    "resetRules": []
+  },
+  "levels": [
+    {
+      "level": 0,
+      "name": "Playfield",
+      "parentLevel": null,
+      "elevation": 0,
+      "editorVisible": true
+    },
+    {
+      "level": 1,
+      "name": "Upper Level",
+      "parentLevel": 0,
+      "elevation": 48,
+      "editorVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "new_visual_feature",
+      "name": "New Visual Feature",
+      "description": "Generated from Visual Builder: switch lights lamp.",
+      "goal": "Hit trigger to light selected lamp.",
+      "objects": [
+        "dropTarget_agul2o",
+        "dropTarget_agul2o"
+      ],
+      "states": [
+        "new_visual_feature_lit"
+      ],
+      "rules": [
+        "a_new_visual_feature_trigger"
+      ],
+      "lamps": [
+        "dropTarget_agul2o"
+      ]
+    }
+  ],
+  "images": [],
+  "elements": [
+    {
+      "id": "launchLane",
+      "type": "launcher",
+      "level": 0,
+      "x": 960,
+      "top": 1560,
+      "bottom": 1740,
+      "width": 50,
+      "maxPower": 26,
+      "maxRetract": 65,
+      "pullSpeed": 95,
+      "returnSpeed": 220,
+      "springStrength": 1,
+      "name": "launchLane"
+    },
+    {
+      "id": "lf",
+      "type": "flipper",
+      "level": 0,
+      "side": "left",
+      "control": "left",
+      "pivot": {
+        "x": 320,
+        "y": 1520
+      },
+      "length": 150,
+      "restAngle": 0.5235987755982988,
+      "activeAngle": -0.8726646259971648,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#00ddff",
+      "name": "lf"
+    },
+    {
+      "id": "rf",
+      "type": "flipper",
+      "level": 0,
+      "side": "right",
+      "control": "right",
+      "pivot": {
+        "x": 660,
+        "y": 1520
+      },
+      "length": 150,
+      "restAngle": 2.5830872929516078,
+      "activeAngle": 3.9269908169872414,
+      "flipSpeed": 24,
+      "flipAccel": 220,
+      "returnSpeed": 18,
+      "returnAccel": 160,
+      "strikeBoost": 0.52,
+      "surfaceRestitution": 0.28,
+      "surfaceFriction": 0.08,
+      "thickness": 10,
+      "color": "#ff4466",
+      "name": "rf"
+    },
+    {
+      "id": "path_12srvc",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 530,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 1760
+        },
+        {
+          "x": 1000,
+          "y": 1760
+        },
+        {
+          "x": 1000,
+          "y": 0
+        },
+        {
+          "x": 530,
+          "y": 0
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_12srvc"
+    },
+    {
+      "id": "path_5nxnhu",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 920,
+          "y": 1760
+        },
+        {
+          "x": 920,
+          "y": 1360
+        },
+        {
+          "x": 860,
+          "y": 1380
+        },
+        {
+          "x": 840,
+          "y": 1460
+        },
+        {
+          "x": 660,
+          "y": 1500
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_5nxnhu"
+    },
+    {
+      "id": "path_s1m7ft",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 0,
+          "y": 1350
+        },
+        {
+          "x": 320,
+          "y": 1500
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_s1m7ft"
+    },
+    {
+      "id": "kicker_md8rg3",
+      "type": "kicker",
+      "level": 0,
+      "radius": 14,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 5,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 260,
+          "y": 1240
+        },
+        {
+          "x": 130,
+          "y": 1170
+        },
+        {
+          "x": 181.1111111111111,
+          "y": 1123.3333333333333
+        }
+      ],
+      "name": "kicker_md8rg3"
+    },
+    {
+      "id": "path_f6ar2q",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 1000,
+          "y": 990,
+          "inHandle": {
+            "x": 0,
+            "y": 50
+          },
+          "outHandle": {
+            "x": 0,
+            "y": -50
+          }
+        },
+        {
+          "x": 970,
+          "y": 920
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_f6ar2q"
+    },
+    {
+      "id": "drain_k39xog",
+      "type": "drain",
+      "level": 0,
+      "x": 490,
+      "y": 1740,
+      "w": 280,
+      "h": 40,
+      "name": "drain_k39xog"
+    },
+    {
+      "id": "path_rlvuwd",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 520,
+          "y": 0,
+          "outHandle": {
+            "x": 308.0839791014456,
+            "y": 2.4557105912905515
+          },
+          "inHandle": {
+            "x": -308.0839791014456,
+            "y": -2.4557105912905515
+          }
+        },
+        {
+          "x": 1000,
+          "y": 350,
+          "inHandle": {
+            "x": -1.422440432845633,
+            "y": -254.49414610339952
+          },
+          "outHandle": {
+            "x": 1.422440432845633,
+            "y": 254.49414610339952
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_rlvuwd"
+    },
+    {
+      "id": "path_44v4j4",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 435,
+          "y": 0,
+          "inHandle": {
+            "x": 228.12717594446363,
+            "y": -5.632448632767621
+          },
+          "outHandle": {
+            "x": -228.12717594446363,
+            "y": 5.632448632767621
+          }
+        },
+        {
+          "x": 0,
+          "y": 430,
+          "outHandle": {
+            "x": -1.2951291309550332,
+            "y": 413.08316757131786
+          },
+          "inHandle": {
+            "x": 1.2951291309550332,
+            "y": -413.08316757131786
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_44v4j4"
+    },
+    {
+      "id": "path_tndc5b",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 970,
+          "y": 630
+        },
+        {
+          "x": 1000,
+          "y": 540,
+          "inHandle": {
+            "x": 0,
+            "y": 80
+          },
+          "outHandle": {
+            "x": 0,
+            "y": -80
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_tndc5b"
+    },
+    {
+      "id": "bumper_ejzhol",
+      "type": "bumper",
+      "x": 210,
+      "y": 250.00000000000003,
+      "radius": 70.71067811865476,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#a05454",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "bumper_yhuy0t",
+      "type": "bumper",
+      "x": 180,
+      "y": 800,
+      "radius": 70.71067811865476,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#a05454",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "bumper_uevmzr",
+      "type": "bumper",
+      "x": 820,
+      "y": 380,
+      "radius": 70.71067811865476,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#a05454",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "dropTarget_agul2o",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 460,
+      "y": 200,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpA-1"
+    },
+    {
+      "id": "dropTarget_syk8lp",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 460,
+      "y": 260,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpA-2"
+    },
+    {
+      "id": "dropTarget_s2b8nc",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 460,
+      "y": 320,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpA-3"
+    },
+    {
+      "id": "path_1fonc3",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 450,
+          "y": 170
+        },
+        {
+          "x": 480,
+          "y": 170
+        },
+        {
+          "x": 480,
+          "y": 350
+        },
+        {
+          "x": 450,
+          "y": 350
+        },
+        {
+          "x": 450,
+          "y": 360
+        },
+        {
+          "x": 490,
+          "y": 360
+        },
+        {
+          "x": 490,
+          "y": 160
+        },
+        {
+          "x": 450,
+          "y": 150
+        },
+        {
+          "x": 450,
+          "y": 170
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_1fonc3"
+    },
+    {
+      "id": "kicker_5312ax",
+      "type": "kicker",
+      "level": 0,
+      "radius": 14,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 5,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 20,
+          "y": 440
+        },
+        {
+          "x": 20,
+          "y": 650
+        },
+        {
+          "x": 40,
+          "y": 650
+        }
+      ],
+      "name": "kicker_md8rg3"
+    },
+    {
+      "id": "path_mjom3d",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 0,
+          "y": 670
+        },
+        {
+          "x": 50,
+          "y": 670
+        },
+        {
+          "x": 0,
+          "y": 880,
+          "outHandle": {
+            "x": 0,
+            "y": 140
+          },
+          "inHandle": {
+            "x": 0,
+            "y": -140
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_mjom3d"
+    },
+    {
+      "id": "bumper_4484te",
+      "type": "bumper",
+      "x": 360,
+      "y": 560,
+      "radius": 70.71067811865476,
+      "power": 12,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#a05454",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "dropTarget_c42oz6",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 620,
+      "y": 200,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpB-1"
+    },
+    {
+      "id": "dropTarget_gdimrn",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 620,
+      "y": 260,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpB-2"
+    },
+    {
+      "id": "dropTarget_0evc5x",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 620,
+      "y": 320,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpB-3"
+    },
+    {
+      "id": "path_krkl57",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 635.5555555555555,
+          "y": 171.11111111111111
+        },
+        {
+          "x": 605.5555555555555,
+          "y": 171.11111111111111
+        },
+        {
+          "x": 605.5555555555555,
+          "y": 351.1111111111111
+        },
+        {
+          "x": 635.5555555555555,
+          "y": 351.1111111111111
+        },
+        {
+          "x": 635.5555555555555,
+          "y": 361.1111111111111
+        },
+        {
+          "x": 595.5555555555555,
+          "y": 361.1111111111111
+        },
+        {
+          "x": 595.5555555555555,
+          "y": 161.11111111111111
+        },
+        {
+          "x": 635.5555555555555,
+          "y": 151.11111111111111
+        },
+        {
+          "x": 635.5555555555555,
+          "y": 171.11111111111111
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_krkl57"
+    },
+    {
+      "id": "lane_tz1ymq",
+      "type": "lane",
+      "level": 0,
+      "x": 517.8780452550889,
+      "y": 334.24160683357013,
+      "w": 40,
+      "h": 20,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "Lane-GrpC-1"
+    },
+    {
+      "id": "path_sr1ogn",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 543.1271099950967,
+          "y": 306.8616746423406
+        },
+        {
+          "x": 543.5094382625609,
+          "y": 362.0151249261006
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_sr1ogn"
+    },
+    {
+      "id": "lane_dufqo0",
+      "type": "lane",
+      "level": 0,
+      "x": 570.6060034811607,
+      "y": 334.2416068335701,
+      "w": 40,
+      "h": 20,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "Lane-GrpC-2"
+    },
+    {
+      "id": "kicker_ow6q9d",
+      "type": "kicker",
+      "level": 0,
+      "radius": 14,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 5,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 229.8831920650166,
+          "y": 45.65963216234301
+        },
+        {
+          "x": 147.24347347389488,
+          "y": 81.81095038879226
+        },
+        {
+          "x": 97.65964231922183,
+          "y": 127.25832187347135
+        }
+      ],
+      "name": "kicker_md8rg3"
+    },
+    {
+      "id": "bumper_vm2nuc",
+      "type": "bumper",
+      "x": 880,
+      "y": 1270,
+      "radius": 41.23105625617661,
+      "power": 8,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#6954a0",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "bumper_vj8kqj",
+      "type": "bumper",
+      "x": 880,
+      "y": 1180,
+      "radius": 41.23105625617661,
+      "power": 8,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#6954a0",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "bumper_hnpuy5",
+      "type": "bumper",
+      "x": 880,
+      "y": 1090,
+      "radius": 41.23105625617661,
+      "power": 8,
+      "restitution": 0.8,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#6954a0",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "lane_mu9la9",
+      "type": "lane",
+      "level": 0,
+      "x": 894.1546294977779,
+      "y": 1335.8457794346625,
+      "w": 40,
+      "h": 20,
+      "angle": -0.346682220135653,
+      "score": 100,
+      "opacity": 1,
+      "name": "RareLane"
+    },
+    {
+      "id": "path_sumkp8",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 1.1111111111111995,
+          "y": 1224.4444444444443,
+          "outHandle": {
+            "x": -2.4852189431024954,
+            "y": -17.062938014208953
+          },
+          "inHandle": {
+            "x": 2.4852189431024954,
+            "y": 17.062938014208953
+          }
+        },
+        {
+          "x": 40,
+          "y": 1140,
+          "outHandle": {
+            "x": 30.045720157305716,
+            "y": -40.66560889502284
+          },
+          "inHandle": {
+            "x": -30.045720157305716,
+            "y": 40.66560889502284
+          }
+        },
+        {
+          "x": 117.77777777777783,
+          "y": 1071.1111111111113,
+          "outHandle": {
+            "x": 22.268846483014272,
+            "y": -20.371164373725264
+          },
+          "inHandle": {
+            "x": -22.268846483014272,
+            "y": 20.371164373725264
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_sumkp8"
+    },
+    {
+      "id": "path_cy14ee",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 670,
+          "y": 1030
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_cy14ee"
+    },
+    {
+      "id": "path_ftu7qa",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 51.1111111111112,
+          "y": 1254.4444444444443,
+          "outHandle": {
+            "x": -2.4852189431024954,
+            "y": -17.062938014208953
+          },
+          "inHandle": {
+            "x": 2.4852189431024954,
+            "y": 17.062938014208953
+          }
+        },
+        {
+          "x": 81.1111111111112,
+          "y": 1184.4444444444443,
+          "outHandle": {
+            "x": 13.333333333333371,
+            "y": -16.666666666666742
+          },
+          "inHandle": {
+            "x": -13.333333333333371,
+            "y": 16.666666666666742
+          }
+        },
+        {
+          "x": 167.77777777777783,
+          "y": 1101.111111111111,
+          "outHandle": {
+            "x": 22.268846483014272,
+            "y": -20.371164373725264
+          },
+          "inHandle": {
+            "x": -22.268846483014272,
+            "y": 20.371164373725264
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_ftu7qa"
+    },
+    {
+      "id": "path_heo4bc",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 120,
+          "y": 1070
+        },
+        {
+          "x": 0,
+          "y": 870,
+          "outHandle": {
+            "x": 0,
+            "y": -160
+          },
+          "inHandle": {
+            "x": 0,
+            "y": 160
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_heo4bc"
+    },
+    {
+      "id": "kicker_eeeebe",
+      "type": "kicker",
+      "level": 0,
+      "radius": 14,
+      "bandThickness": 6,
+      "restitution": 0.55,
+      "kickPower": 14,
+      "score": 5,
+      "color": "#ffaa66",
+      "closed": true,
+      "anchors": [
+        {
+          "x": 972,
+          "y": 772
+        },
+        {
+          "x": 992,
+          "y": 912
+        },
+        {
+          "x": 992,
+          "y": 662
+        }
+      ],
+      "name": "kicker_md8rg3"
+    },
+    {
+      "id": "path_76cx7z",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 50,
+          "y": 1250
+        },
+        {
+          "x": 50,
+          "y": 1280
+        },
+        {
+          "x": 90,
+          "y": 1280
+        },
+        {
+          "x": 90,
+          "y": 1250
+        },
+        {
+          "x": 210,
+          "y": 1250
+        },
+        {
+          "x": 260,
+          "y": 1260
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_76cx7z"
+    },
+    {
+      "id": "path_dnjeto",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 380,
+          "y": 0,
+          "outHandle": {
+            "x": 120,
+            "y": 0
+          },
+          "inHandle": {
+            "x": -120,
+            "y": 0
+          }
+        },
+        {
+          "x": 540,
+          "y": 20,
+          "outHandle": {
+            "x": 10,
+            "y": 0
+          },
+          "inHandle": {
+            "x": -10,
+            "y": 0
+          }
+        },
+        {
+          "x": 730,
+          "y": 20,
+          "inHandle": {
+            "x": -120,
+            "y": -20
+          },
+          "outHandle": {
+            "x": 120,
+            "y": 20
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_dnjeto"
+    },
+    {
+      "id": "bumper_0jiggd",
+      "type": "bumper",
+      "x": 542.9615058475398,
+      "y": 187.44044562177692,
+      "radius": 5,
+      "power": 2,
+      "restitution": 0.8,
+      "score": 100,
+      "level": 0,
+      "transparency": 1,
+      "color": "#b2ad24",
+      "name": "bumper_0jiggd"
+    },
+    {
+      "id": "scoreZone_xkameg",
+      "type": "scoreZone",
+      "level": 0,
+      "x": 543.2377905207961,
+      "y": 251.1154625435089,
+      "radius": 25.185998467780628,
+      "restitution": 0.55,
+      "score": 500,
+      "name": "SCZ-Lanes"
+    }
+  ],
+  "tableVersion": 0.1,
+  "date": "2026-05-25T11:13:50.829Z"
+}

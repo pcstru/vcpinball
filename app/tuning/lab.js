@@ -199,11 +199,19 @@
                 loadError: "",
                 report: null,
                 selectedCheckIndex: -1,
+                liveCheck: null,
                 launchRayCount: 5,
                 launchMaxCollisions: 400,
                 launchMaxTicks: 10000,
                 targetRayCount: 7,
                 targetMaxBounces: 5,
+                accessibilityRayMode: "geometric",
+                accessibilityBranchRays: 16,
+                accessibilityMaxDepth: 3,
+                accessibilityCellSize: 32,
+                accessibilityRaySpeed: 15,
+                accessibilityMaxTicks: 420,
+                accessibilityMaxCollisions: 1,
                 runChecks: evalRunChecks,
                 selectedChecks: defaultEvalSelection,
                 runId: 0,
@@ -250,6 +258,10 @@
                 selectedElementId: "",
                 dragSelection: null,
                 elements: [],
+                playfield: {
+                    width: defaultPlayfield.width,
+                    height: defaultPlayfield.height
+                },
                 physics: {
                     gravity: defaultPlayfield.gravity,
                     friction: defaultPlayfield.friction,
@@ -366,6 +378,15 @@
         center.appendChild(stage);
         const ctx = canvas.getContext("2d");
 
+        function syncCanvasPlayfield(playfield) {
+            const pf = playfield || {};
+            const width = Number.isFinite(pf.width) && pf.width > 80 ? Math.round(pf.width) : 500;
+            const height = Number.isFinite(pf.height) && pf.height > 120 ? Math.round(pf.height) : 880;
+            if (canvas.width !== width) canvas.width = width;
+            if (canvas.height !== height) canvas.height = height;
+            canvas.style.aspectRatio = width + " / " + height;
+        }
+
         right.appendChild(create("h2", "", "Metrics"));
         const metricsWrap = create("div", "lab-group");
         const runStateSummary = create("div", "lab-eval-summary");
@@ -463,6 +484,78 @@
         targetBounceInput.value = String(state.eval.targetMaxBounces);
         targetBounceInput.className = "lab-number";
         targetBounceRow.appendChild(targetBounceInput);
+        const accessibilityModeRow = create("label", "lab-inline-field");
+        accessibilityModeRow.textContent = "Accessibility mode";
+        const accessibilityModeSelect = document.createElement("select");
+        accessibilityModeSelect.className = "lab-number";
+        ["geometric", "physics"].forEach(function each(mode) {
+            const option = document.createElement("option");
+            option.value = mode;
+            option.textContent = mode;
+            if (state.eval.accessibilityRayMode === mode) option.selected = true;
+            accessibilityModeSelect.appendChild(option);
+        });
+        accessibilityModeRow.appendChild(accessibilityModeSelect);
+        const accessibilityBreadthRow = create("label", "lab-inline-field");
+        accessibilityBreadthRow.textContent = "Accessibility breadth";
+        const accessibilityBreadthInput = document.createElement("input");
+        accessibilityBreadthInput.type = "number";
+        accessibilityBreadthInput.min = "1";
+        accessibilityBreadthInput.max = "64";
+        accessibilityBreadthInput.step = "1";
+        accessibilityBreadthInput.value = String(state.eval.accessibilityBranchRays);
+        accessibilityBreadthInput.className = "lab-number";
+        accessibilityBreadthRow.appendChild(accessibilityBreadthInput);
+        const accessibilityDepthRow = create("label", "lab-inline-field");
+        accessibilityDepthRow.textContent = "Accessibility depth";
+        const accessibilityDepthInput = document.createElement("input");
+        accessibilityDepthInput.type = "number";
+        accessibilityDepthInput.min = "0";
+        accessibilityDepthInput.max = "8";
+        accessibilityDepthInput.step = "1";
+        accessibilityDepthInput.value = String(state.eval.accessibilityMaxDepth);
+        accessibilityDepthInput.className = "lab-number";
+        accessibilityDepthRow.appendChild(accessibilityDepthInput);
+        const accessibilityResolutionRow = create("label", "lab-inline-field");
+        accessibilityResolutionRow.textContent = "Accessibility cell size";
+        const accessibilityResolutionInput = document.createElement("input");
+        accessibilityResolutionInput.type = "number";
+        accessibilityResolutionInput.min = "8";
+        accessibilityResolutionInput.max = "128";
+        accessibilityResolutionInput.step = "1";
+        accessibilityResolutionInput.value = String(state.eval.accessibilityCellSize);
+        accessibilityResolutionInput.className = "lab-number";
+        accessibilityResolutionRow.appendChild(accessibilityResolutionInput);
+        const accessibilitySpeedRow = create("label", "lab-inline-field");
+        accessibilitySpeedRow.textContent = "Accessibility speed";
+        const accessibilitySpeedInput = document.createElement("input");
+        accessibilitySpeedInput.type = "number";
+        accessibilitySpeedInput.min = "1";
+        accessibilitySpeedInput.max = "60";
+        accessibilitySpeedInput.step = "0.5";
+        accessibilitySpeedInput.value = String(state.eval.accessibilityRaySpeed);
+        accessibilitySpeedInput.className = "lab-number";
+        accessibilitySpeedRow.appendChild(accessibilitySpeedInput);
+        const accessibilityTicksRow = create("label", "lab-inline-field");
+        accessibilityTicksRow.textContent = "Accessibility max ticks";
+        const accessibilityTicksInput = document.createElement("input");
+        accessibilityTicksInput.type = "number";
+        accessibilityTicksInput.min = "60";
+        accessibilityTicksInput.max = "20000";
+        accessibilityTicksInput.step = "20";
+        accessibilityTicksInput.value = String(state.eval.accessibilityMaxTicks);
+        accessibilityTicksInput.className = "lab-number";
+        accessibilityTicksRow.appendChild(accessibilityTicksInput);
+        const accessibilityContactsRow = create("label", "lab-inline-field");
+        accessibilityContactsRow.textContent = "Accessibility max contacts";
+        const accessibilityContactsInput = document.createElement("input");
+        accessibilityContactsInput.type = "number";
+        accessibilityContactsInput.min = "1";
+        accessibilityContactsInput.max = "5000";
+        accessibilityContactsInput.step = "1";
+        accessibilityContactsInput.value = String(state.eval.accessibilityMaxCollisions);
+        accessibilityContactsInput.className = "lab-number";
+        accessibilityContactsRow.appendChild(accessibilityContactsInput);
         const evalSummary = create("div", "lab-eval-summary", "No report yet.");
         const evalProgress = create("div", "lab-progress");
         const evalProgressFill = create("div", "lab-progress-fill");
@@ -479,6 +572,13 @@
         evalWrap.appendChild(launchTickRow);
         evalWrap.appendChild(targetRayRow);
         evalWrap.appendChild(targetBounceRow);
+        evalWrap.appendChild(accessibilityModeRow);
+        evalWrap.appendChild(accessibilityBreadthRow);
+        evalWrap.appendChild(accessibilityDepthRow);
+        evalWrap.appendChild(accessibilityResolutionRow);
+        evalWrap.appendChild(accessibilitySpeedRow);
+        evalWrap.appendChild(accessibilityTicksRow);
+        evalWrap.appendChild(accessibilityContactsRow);
         evalWrap.appendChild(evalSummary);
         evalWrap.appendChild(evalProgress);
         evalWrap.appendChild(evalChecks);
@@ -871,6 +971,11 @@
             const launcher = (table.elements || []).find(function find(el) {
                 return el && el.type === "launcher";
             }) || null;
+            const playfieldWidth = Number.isFinite(pf.width) && pf.width > 80 ? pf.width : defaultPlayfield.width;
+            const playfieldHeight = Number.isFinite(pf.height) && pf.height > 120 ? pf.height : defaultPlayfield.height;
+
+            state.sandbox.playfield.width = playfieldWidth;
+            state.sandbox.playfield.height = playfieldHeight;
 
             state.sandbox.physics.gravity = typeof pf.gravity === "number" ? pf.gravity : state.sandbox.physics.gravity;
             state.sandbox.physics.friction = typeof pf.friction === "number" ? pf.friction : state.sandbox.physics.friction;
@@ -881,7 +986,7 @@
             if (launcher && typeof launcher.x === "number" && typeof launcher.top === "number" && typeof launcher.bottom === "number") {
                 const laneY = launcher.bottom - 30;
                 state.sandbox.spawn.x = launcher.x;
-                state.sandbox.spawn.y = clamp(laneY, 40, 840);
+                state.sandbox.spawn.y = clamp(laneY, 40, playfieldHeight - 40);
                 state.sandbox.spawn.useLauncher = true;
             } else {
                 state.sandbox.spawn.useLauncher = false;
@@ -945,6 +1050,7 @@
             if (runId !== state.eval.runId) return;
             state.eval.report = report;
             state.eval.running = false;
+            state.eval.liveCheck = null;
             runSelectedEvalButton.textContent = "Run Selected";
             runAllEvalButton.textContent = "Run All";
             setEvalProgress(1, 1);
@@ -977,6 +1083,7 @@
             runAllEvalButton.textContent = "Running...";
             evalChecks.innerHTML = "";
             evalReport.value = "";
+            state.eval.liveCheck = null;
             setEvalProgress(0, 0);
             setEvalStatus("Starting evaluation (" + (runModeLabel || (hasSelectionArray ? "selected" : "all")) + ")...", "warn");
             updateEvalRunSelectionSummary();
@@ -988,9 +1095,21 @@
                 launchMaxTicks: state.eval.launchMaxTicks,
                 targetRayCount: state.eval.targetRayCount,
                 targetMaxBounces: state.eval.targetMaxBounces,
+                accessibilityRayMode: state.eval.accessibilityRayMode,
+                accessibilityBranchRays: state.eval.accessibilityBranchRays,
+                accessibilityMaxDepth: state.eval.accessibilityMaxDepth,
+                accessibilityCellSize: state.eval.accessibilityCellSize,
+                accessibilityRaySpeed: state.eval.accessibilityRaySpeed,
+                accessibilityMaxTicks: state.eval.accessibilityMaxTicks,
+                accessibilityMaxCollisions: state.eval.accessibilityMaxCollisions,
                 evalChecks: hasSelectionArray ? selectedIds : undefined,
                 onProgress: function onProgress(progress) {
                     if (runId !== state.eval.runId) return;
+                    if (progress && progress.phase === "accessibility" && progress.check) {
+                        state.eval.liveCheck = progress.check;
+                        state.runtime.dirty = true;
+                        render();
+                    }
                     setEvalProgress(progress.done || 0, progress.total || 0);
                     setEvalStatus(progress.message || "Evaluation running...", "warn");
                 }
@@ -1006,6 +1125,7 @@
                 .catch(function failed(error) {
                     if (runId !== state.eval.runId) return;
                     state.eval.running = false;
+                    state.eval.liveCheck = null;
                     runSelectedEvalButton.textContent = "Run Selected";
                     runAllEvalButton.textContent = "Run All";
                     setEvalProgress(0, 0);
@@ -1054,6 +1174,8 @@
         function currentLabTableForNavigation() {
             const base = state.eval.selectedTable ? clone(state.eval.selectedTable) : { name: "Physics Lab Table", playfield: {}, elements: [] };
             base.playfield = base.playfield || {};
+            base.playfield.width = state.sandbox.playfield.width;
+            base.playfield.height = state.sandbox.playfield.height;
             base.playfield.gravity = state.sandbox.physics.gravity;
             base.playfield.friction = state.sandbox.physics.friction;
             base.playfield.restitution = state.sandbox.physics.restitution;
@@ -1554,7 +1676,14 @@
                     launchMaxCollisions: state.eval.launchMaxCollisions,
                     launchMaxTicks: state.eval.launchMaxTicks,
                     targetRayCount: state.eval.targetRayCount,
-                    targetMaxBounces: state.eval.targetMaxBounces
+                    targetMaxBounces: state.eval.targetMaxBounces,
+                    accessibilityRayMode: state.eval.accessibilityRayMode,
+                    accessibilityBranchRays: state.eval.accessibilityBranchRays,
+                    accessibilityMaxDepth: state.eval.accessibilityMaxDepth,
+                    accessibilityCellSize: state.eval.accessibilityCellSize,
+                    accessibilityRaySpeed: state.eval.accessibilityRaySpeed,
+                    accessibilityMaxTicks: state.eval.accessibilityMaxTicks,
+                    accessibilityMaxCollisions: state.eval.accessibilityMaxCollisions
                 };
                 const result = contract.evaluatePatchAttempt(state.eval.selectedTable, patch, evalOptions);
                 aiLabRecordAttempt(result, patch, response.content, { provider: response.provider, model: response.model });
@@ -1618,6 +1747,7 @@
         }
 
         function selectedEvalCheck() {
+            if (state.eval.running && state.eval.liveCheck) return state.eval.liveCheck;
             const report = state.eval.report;
             if (!report || !Array.isArray(report.checks)) return null;
             if (state.eval.selectedCheckIndex < 0 || state.eval.selectedCheckIndex >= report.checks.length) return null;
@@ -1638,6 +1768,33 @@
             ctx.fillStyle = palette.fill;
             ctx.lineWidth = 2;
             ctx.setLineDash([]);
+
+            if (diagnostics.heatmap && Array.isArray(diagnostics.heatmap.values)) {
+                const heat = diagnostics.heatmap;
+                const cellSize = Number(heat.cellSize) || 0;
+                const cols = Number(heat.cols) || 0;
+                const rows = Number(heat.rows) || 0;
+                if (cellSize > 0 && cols > 0 && rows > 0) {
+                    let maxValue = 0;
+                    heat.values.forEach(function each(value) {
+                        const v = Number(value) || 0;
+                        if (v > maxValue) maxValue = v;
+                    });
+                    if (maxValue > 0) {
+                        for (let row = 0; row < rows; row++) {
+                            for (let col = 0; col < cols; col++) {
+                                const idx = row * cols + col;
+                                const value = Number(heat.values[idx]) || 0;
+                                if (value <= 0) continue;
+                                const alpha = Math.min(0.5, 0.08 + (value / maxValue) * 0.42);
+                                ctx.fillStyle = "rgba(84, 224, 160, " + alpha.toFixed(3) + ")";
+                                ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                            }
+                        }
+                    }
+                }
+                ctx.fillStyle = palette.fill;
+            }
 
             (diagnostics.segments || []).forEach(function each(seg) {
                 if (!seg) return;
@@ -1737,6 +1894,7 @@
             });
 
             const hasDrawable =
+                (diagnostics.heatmap && diagnostics.heatmap.values && diagnostics.heatmap.values.length) ||
                 (diagnostics.segments && diagnostics.segments.length) ||
                 (diagnostics.rects && diagnostics.rects.length) ||
                 (diagnostics.circles && diagnostics.circles.length) ||
@@ -1768,10 +1926,22 @@
             };
         }
 
+        /**
+         * Decide when sandbox auto-generated boundary walls should be included.
+         * Why: loaded authored tables already include their own walls, so adding
+         * sandbox defaults creates an incorrect inner duplicate boundary.
+         */
+        function includeDefaultSandboxBounds() {
+            return !state.eval.selectedTable;
+        }
+
         function rebuildSandboxSimulation() {
             state.sandbox.elements.forEach(normalizeSandboxFlipper);
+            syncCanvasPlayfield(state.sandbox.playfield);
             state.sim = Pin.physicsHarness.createSimulation("sandbox", {
                 sandbox: {
+                    includeDefaultBounds: includeDefaultSandboxBounds(),
+                    playfield: clone(state.sandbox.playfield),
                     physics: clone(state.sandbox.physics),
                     elements: clone(state.sandbox.elements),
                     spawn: clone(state.sandbox.spawn)
@@ -1958,12 +2128,15 @@
         function render() {
             if (state.eval.selectedTable && state.scenarioId !== "sandbox") {
                 try {
+                    syncCanvasPlayfield(state.eval.selectedTable && state.eval.selectedTable.playfield);
                     const previewWorld = createEvalPreviewWorld(state.eval.selectedTable);
                     Pin.render.renderWorld(ctx, previewWorld, { showHud: false, showCabinet: true });
                 } catch (error) {
+                    if (state.sim && state.sim.world && state.sim.world.table) syncCanvasPlayfield(state.sim.world.table.playfield);
                     Pin.render.renderWorld(ctx, state.sim.world);
                 }
             } else {
+                if (state.sim && state.sim.world && state.sim.world.table) syncCanvasPlayfield(state.sim.world.table.playfield);
                 Pin.render.renderWorld(ctx, state.sim.world);
             }
             if (state.scenarioId === "sandbox") {
@@ -2187,6 +2360,8 @@
             flippers.forEach(function eachFlipper(flipper) {
                 const probeSim = Pin.physicsHarness.createSimulation("sandbox", {
                     sandbox: {
+                        includeDefaultBounds: includeDefaultSandboxBounds(),
+                        playfield: clone(state.sandbox.playfield),
                         physics: clone(state.sandbox.physics),
                         elements: clone(state.sandbox.elements),
                         spawn: clone(state.sandbox.spawn)
@@ -2198,6 +2373,8 @@
                 for (let i = 0; i < rays; i++) {
                     const sim = Pin.physicsHarness.createSimulation("sandbox", {
                         sandbox: {
+                            includeDefaultBounds: includeDefaultSandboxBounds(),
+                            playfield: clone(state.sandbox.playfield),
                             physics: clone(state.sandbox.physics),
                             elements: clone(state.sandbox.elements),
                             spawn: clone(state.sandbox.spawn)
@@ -2627,6 +2804,48 @@
             const next = Math.round(Number(targetBounceInput.value));
             state.eval.targetMaxBounces = Number.isFinite(next) ? clamp(next, 0, 60) : 5;
             targetBounceInput.value = String(state.eval.targetMaxBounces);
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        accessibilityModeSelect.onchange = function onAccessibilityModeChange() {
+            const next = String(accessibilityModeSelect.value || "geometric").toLowerCase();
+            state.eval.accessibilityRayMode = next === "physics" ? "physics" : "geometric";
+            accessibilityModeSelect.value = state.eval.accessibilityRayMode;
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        accessibilityBreadthInput.onchange = function onAccessibilityBreadthChange() {
+            const next = Math.round(Number(accessibilityBreadthInput.value));
+            state.eval.accessibilityBranchRays = Number.isFinite(next) ? clamp(next, 1, 64) : 16;
+            accessibilityBreadthInput.value = String(state.eval.accessibilityBranchRays);
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        accessibilityDepthInput.onchange = function onAccessibilityDepthChange() {
+            const next = Math.round(Number(accessibilityDepthInput.value));
+            state.eval.accessibilityMaxDepth = Number.isFinite(next) ? clamp(next, 0, 8) : 3;
+            accessibilityDepthInput.value = String(state.eval.accessibilityMaxDepth);
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        accessibilityResolutionInput.onchange = function onAccessibilityResolutionChange() {
+            const next = Math.round(Number(accessibilityResolutionInput.value));
+            state.eval.accessibilityCellSize = Number.isFinite(next) ? clamp(next, 8, 128) : 32;
+            accessibilityResolutionInput.value = String(state.eval.accessibilityCellSize);
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        accessibilitySpeedInput.onchange = function onAccessibilitySpeedChange() {
+            const next = Number(accessibilitySpeedInput.value);
+            state.eval.accessibilityRaySpeed = Number.isFinite(next) ? clamp(next, 1, 60) : 15;
+            accessibilitySpeedInput.value = String(state.eval.accessibilityRaySpeed);
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        accessibilityTicksInput.onchange = function onAccessibilityTicksChange() {
+            const next = Math.round(Number(accessibilityTicksInput.value));
+            state.eval.accessibilityMaxTicks = Number.isFinite(next) ? clamp(next, 60, 20000) : 420;
+            accessibilityTicksInput.value = String(state.eval.accessibilityMaxTicks);
+            if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        accessibilityContactsInput.onchange = function onAccessibilityContactsChange() {
+            const next = Math.round(Number(accessibilityContactsInput.value));
+            state.eval.accessibilityMaxCollisions = Number.isFinite(next) ? clamp(next, 1, 5000) : 1;
+            accessibilityContactsInput.value = String(state.eval.accessibilityMaxCollisions);
             if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
         };
         evalTableSelect.onchange = function onEvalTableChange() {

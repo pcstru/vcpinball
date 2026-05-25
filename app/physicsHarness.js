@@ -152,39 +152,46 @@
         };
     }
 
-    function buildSandboxBounds() {
+    function buildSandboxBounds(playfield) {
+        const pf = playfield || DEFAULT_PLAYFIELD;
+        const width = Number.isFinite(pf.width) && pf.width > 80 ? pf.width : DEFAULT_PLAYFIELD.width;
+        const height = Number.isFinite(pf.height) && pf.height > 120 ? pf.height : DEFAULT_PLAYFIELD.height;
+        const inset = 18;
         return [
             {
                 id: "sandboxWallLeft",
                 type: "path",
                 role: "wall",
                 thickness: 8,
-                anchors: [{ x: 18, y: 18 }, { x: 18, y: 862 }]
+                anchors: [{ x: inset, y: inset }, { x: inset, y: height - inset }]
             },
             {
                 id: "sandboxWallRight",
                 type: "path",
                 role: "wall",
                 thickness: 8,
-                anchors: [{ x: 482, y: 18 }, { x: 482, y: 862 }]
+                anchors: [{ x: width - inset, y: inset }, { x: width - inset, y: height - inset }]
             },
             {
                 id: "sandboxWallBottom",
                 type: "path",
                 role: "wall",
                 thickness: 8,
-                anchors: [{ x: 18, y: 862 }, { x: 482, y: 862 }]
+                anchors: [{ x: inset, y: height - inset }, { x: width - inset, y: height - inset }]
             }
         ];
     }
 
-    function buildSandboxDrain() {
+    function buildSandboxDrain(playfield) {
+        const pf = playfield || DEFAULT_PLAYFIELD;
+        const width = Number.isFinite(pf.width) && pf.width > 80 ? pf.width : DEFAULT_PLAYFIELD.width;
+        const height = Number.isFinite(pf.height) && pf.height > 120 ? pf.height : DEFAULT_PLAYFIELD.height;
         return {
             id: "sandboxDrain",
             type: "drain",
-            x: 250,
-            y: 842,
-            w: 170,
+            x: width * 0.5,
+            y: height - 38,
+            w: Math.max(120, Math.min(220, width * 0.34)),
             h: 24,
             color: "#ff4466"
         };
@@ -197,11 +204,21 @@
             restitution: DEFAULT_PLAYFIELD.restitution,
             maxSpeed: DEFAULT_PLAYFIELD.maxSpeed
         }, options && options.physics);
-        const elements = buildSandboxBounds()
-            .concat([buildSandboxDrain()])
+        const requestedPlayfield = options && options.playfield ? options.playfield : {};
+        const playfield = {
+            width: Number.isFinite(requestedPlayfield.width) && requestedPlayfield.width > 80 ? requestedPlayfield.width : DEFAULT_PLAYFIELD.width,
+            height: Number.isFinite(requestedPlayfield.height) && requestedPlayfield.height > 120 ? requestedPlayfield.height : DEFAULT_PLAYFIELD.height,
+            ballRadius: Number.isFinite(requestedPlayfield.ballRadius) && requestedPlayfield.ballRadius > 0 ? requestedPlayfield.ballRadius : DEFAULT_PLAYFIELD.ballRadius
+        };
+        const includeDefaultBounds = !options || options.includeDefaultBounds !== false;
+        const elements = (includeDefaultBounds ? buildSandboxBounds(playfield) : [])
+            .concat([buildSandboxDrain(playfield)])
             .concat(clone((options && options.elements) || []));
         const table = buildHarnessTable(elements);
         table.name = "Physics Sandbox";
+        table.playfield.width = playfield.width;
+        table.playfield.height = playfield.height;
+        table.playfield.ballRadius = playfield.ballRadius;
         table.playfield.gravity = physics.gravity;
         table.playfield.friction = physics.friction;
         table.playfield.restitution = physics.restitution;
