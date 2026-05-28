@@ -142,11 +142,22 @@
 
         const select = document.createElement("select");
 
+        function modelId(item) {
+            const raw = item && (item.id != null ? item.id : item.value);
+            return raw == null ? "" : String(raw);
+        }
+
+        function modelLabel(item) {
+            if (!item) return "";
+            const label = item.label != null ? item.label : (item.id != null ? item.id : item.value);
+            return label == null ? "" : String(label);
+        }
+
         function refreshOptions() {
             const search = String(searchInput.value || "").trim().toLowerCase();
             const filtered = (models || []).filter(function keep(item) {
-                const id = String(item && item.id || "");
-                const labelText = String(item && (item.label || item.id) || "");
+                const id = modelId(item);
+                const labelText = modelLabel(item);
                 if (!search) return true;
                 return id.toLowerCase().indexOf(search) >= 0 || labelText.toLowerCase().indexOf(search) >= 0;
             });
@@ -169,15 +180,15 @@
             select.appendChild(blank);
             filtered.forEach(function each(item) {
                 const option = document.createElement("option");
-                option.value = String(item.id || "");
-                option.textContent = String(item.label || item.id || "");
+                option.value = modelId(item);
+                option.textContent = modelLabel(item);
                 select.appendChild(option);
             });
 
             const current = selectedValue == null ? "" : String(selectedValue);
-            if (current && filtered.some(function has(item) { return String(item.id || "") === current; })) {
+            if (current && filtered.some(function has(item) { return modelId(item) === current; })) {
                 select.value = current;
-            } else if (previousValue && filtered.some(function has(item) { return String(item.id || "") === previousValue; })) {
+            } else if (previousValue && filtered.some(function has(item) { return modelId(item) === previousValue; })) {
                 select.value = previousValue;
             } else {
                 select.value = "";
@@ -281,7 +292,7 @@
         if (/(^|\.)(color|glowColor|pinColor|label|lampId|bandThickness)$/.test(path)) {
             return "visual";
         }
-        if (/(^|\.)(surfaceRestitution|surfaceFriction|strikeBoost|thickness)$/.test(path)) {
+        if (/(^|\.)(surfaceRestitution|surfaceFriction|strikeBoost|thickness|rootRadius|tipRadius)$/.test(path)) {
             return "contact";
         }
         if (/(^|\.)(flipSpeed|flipAccel|returnSpeed|returnAccel|maxPower|maxRetract|pullSpeed|springStrength|returnStrength|returnDamping|power|kickPower|score|damping|windowSeconds|awardPoints|restitution|holdSeconds|reactivateDelay|ejectPower)$/.test(path)) {
@@ -316,6 +327,8 @@
                 { path: "pivot.y", label: "pivot y", groupKey: "Setup" },
                 { path: "length", label: "length", groupKey: "Blade" },
                 { path: "thickness", label: "thickness", groupKey: "Blade" },
+                { path: "rootRadius", label: "root radius", groupKey: "Blade" },
+                { path: "tipRadius", label: "tip radius", groupKey: "Blade" },
                 { path: "restAngle", label: "rest angle", groupKey: "Blade" },
                 { path: "activeAngle", label: "active angle", groupKey: "Blade" },
                 { path: "flipSpeed", label: "flip speed", groupKey: "Stroke" },
@@ -327,6 +340,12 @@
                 { path: "surfaceFriction", label: "surface friction", groupKey: "Contact" },
                 { path: "color", label: "body color", groupKey: "Appearance" },
                 { path: "glowColor", label: "glow color", groupKey: "Appearance" },
+                { path: "bodyColor", label: "body start color", groupKey: "Appearance" },
+                { path: "tipColor", label: "tip color", groupKey: "Appearance" },
+                { path: "strokeColor", label: "stroke color", groupKey: "Appearance" },
+                { path: "pivotColor", label: "pivot color", groupKey: "Appearance" },
+                { path: "highlightColor", label: "highlight color", groupKey: "Appearance" },
+                { path: "glowStrength", label: "glow strength", groupKey: "Appearance" },
                 { path: "side", label: "side", groupKey: "Setup" },
                 { path: "control", label: "control", groupKey: "Setup" }
             ],
@@ -615,7 +634,16 @@
                 const meta = document.createElement("div");
                 meta.className = "assistant-log-meta";
                 const eventKind = entry.kind || entry.stage || "event";
-                meta.textContent = entry.at + " - " + eventKind;
+                const flow = entry.flow ? (" | flow " + entry.flow) : "";
+                const phase = entry.phase ? (" | phase " + entry.phase) : "";
+                const level = entry.level ? (" | " + entry.level) : "";
+                meta.textContent = entry.at + " - " + eventKind + flow + phase + level;
+                if (entry.summary) {
+                    const summary = document.createElement("div");
+                    summary.className = "small";
+                    summary.textContent = entry.summary;
+                    card.appendChild(summary);
+                }
                 const detail = document.createElement("pre");
                 detail.className = "assistant-log-detail";
                 detail.textContent = entry.detail || "";
@@ -923,10 +951,11 @@
         }
         }
 
-        function renderAssistantTab() {
+    function renderAssistantTab() {
         const assistantSection = appendSection(container, "Assistant");
         appendSmallText(assistantSection, "Assistant can generate structured table/logic patches from provider responses. Current logic workflow remains feature-first in the Logic workspace.");
         const assistantState = model.assistant || { settings: {}, messages: [], draft: "", busy: false, error: "", lastPatch: null };
+        const runStatus = assistantState.runStatus || { flow: "idle", phase: "idle", summary: "Idle", attempt: 0, maxSteps: 0, at: "" };
         const assistantSubtabs = document.createElement("div");
         assistantSubtabs.className = "assistant-subtabs";
         [
@@ -952,7 +981,10 @@
         appendSmallText(settingsSection, "Status: " + (assistantState.connectionStatus || "Not tested"));
         appendField(settingsSection, "providerLabel", settingsDraftState.value.providerLabel || "", function patch(value) { patchDraftValue(model, settingsKey, "providerLabel", value); });
         appendField(settingsSection, "baseUrl", settingsDraftState.value.baseUrl || "", function patch(value) { patchDraftValue(model, settingsKey, "baseUrl", value); });
-        appendField(settingsSection, "model", settingsDraftState.value.model || "", function patch(value) { patchDraftValue(model, settingsKey, "model", value); });
+        appendField(settingsSection, "model", settingsDraftState.value.model || "", function patch(value) {
+            patchDraftValue(model, settingsKey, "model", value);
+            if (model.onAutoSaveAssistantModel) model.onAutoSaveAssistantModel(value);
+        });
         const discoveredModels = optionList((assistantState.availableModels || []).map(function map(item) {
             return { value: item.id, label: item.label || item.id };
         }), false);
@@ -965,11 +997,13 @@
                 function chooseDiscoveredModel(value) {
                     if (!value) return;
                     patchDraftValue(model, settingsKey, "model", value);
+                    if (model.onAutoSaveAssistantModel) model.onAutoSaveAssistantModel(value);
                 }
             );
         } else {
             appendSmallText(settingsSection, "No discovered models loaded. Use Load Models to fetch provider model IDs.");
         }
+        appendSmallText(settingsSection, "Warning: provider settings persist in browser localStorage on this machine.");
         appendField(settingsSection, "apiKey", settingsDraftState.value.apiKey || "", function patch(value) { patchDraftValue(model, settingsKey, "apiKey", value); });
         appendField(settingsSection, "maxSteps", typeof settingsDraftState.value.maxSteps === "number" ? settingsDraftState.value.maxSteps : 4, function patch(value) { patchDraftValue(model, settingsKey, "maxSteps", value); });
         appendDraftActions(settingsSection, settingsKey, settingsDraftState.dirty, function saveSettings() {
@@ -980,6 +1014,9 @@
         appendActionRow(settingsSection, [
             { label: "Test Connection", onClick: model.onTestAssistantConnection, disabled: !!assistantState.busy },
             { label: "Load Models", onClick: model.onLoadAssistantModels, disabled: !!assistantState.busy }
+        ]);
+        appendActionRow(settingsSection, [
+            { label: "Show Log", onClick: model.onOpenAssistantLog, disabled: false }
         ]);
         return;
         }
@@ -1016,6 +1053,11 @@
             { label: "Stop", onClick: model.onStopAgentic, disabled: !assistantState.agenticRunning },
             { label: "Apply Pending", onClick: model.onApplyAgenticPendingPatch, disabled: !assistantState.agenticPendingPatch },
             { label: "Reject Pending", onClick: model.onRejectAgenticPendingPatch, disabled: !assistantState.agenticPendingPatch }
+        ]);
+        appendSmallText(agenticSection, "Run status: " + (runStatus.flow || "agentic") + " | " + (runStatus.phase || "idle") + " | " + (runStatus.summary || "Idle"));
+        if ((runStatus.attempt || 0) > 0) appendSmallText(agenticSection, "Attempts: " + String(runStatus.attempt || 0) + "/" + String(runStatus.maxSteps || 0));
+        appendActionRow(agenticSection, [
+            { label: "Show Log", onClick: model.onOpenAssistantLog, disabled: false }
         ]);
         if (assistantState.agenticPendingPatch) {
             const pendingCard = document.createElement("div");
@@ -1122,6 +1164,8 @@
             { label: "Clear", onClick: model.onClearAssistantConversation, disabled: !!assistantState.busy },
             { label: "Show Log", onClick: model.onOpenAssistantLog, disabled: false }
         ]);
+        appendSmallText(conversationSection, "Run status: " + (runStatus.flow || "chat") + " | " + (runStatus.phase || "idle") + " | " + (runStatus.summary || "Idle"));
+        if ((runStatus.attempt || 0) > 0) appendSmallText(conversationSection, "Attempts: " + String(runStatus.attempt || 0) + "/" + String(runStatus.maxSteps || 0));
 
         const patchSection = appendSection(container, "Proposed Patch");
         if (!assistantState.lastPatch) {

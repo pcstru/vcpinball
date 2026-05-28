@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "name": "2Big",
+  "name": "2xBig",
   "playfield": {
     "width": 1000,
     "height": 1760,
@@ -27,126 +27,6 @@
     "logicVersion": 1,
     "switchRegistry": [
       {
-        "id": "kicker_md8rg3",
-        "name": "kicker_md8rg3",
-        "sourceElementId": "kicker_md8rg3",
-        "kind": "switch"
-      },
-      {
-        "id": "drain_k39xog",
-        "name": "drain_k39xog",
-        "sourceElementId": "drain_k39xog",
-        "kind": "switch"
-      },
-      {
-        "id": "bumper_ejzhol",
-        "name": "bumper_ejzhol",
-        "sourceElementId": "bumper_ejzhol",
-        "kind": "switch"
-      },
-      {
-        "id": "bumper_yhuy0t",
-        "name": "bumper_ejzhol",
-        "sourceElementId": "bumper_yhuy0t",
-        "kind": "switch"
-      },
-      {
-        "id": "bumper_uevmzr",
-        "name": "bumper_ejzhol",
-        "sourceElementId": "bumper_uevmzr",
-        "kind": "switch"
-      },
-      {
-        "id": "dropTarget_agul2o",
-        "name": "GrpA-1",
-        "sourceElementId": "dropTarget_agul2o",
-        "kind": "switch"
-      },
-      {
-        "id": "dropTarget_syk8lp",
-        "name": "GrpA-2",
-        "sourceElementId": "dropTarget_syk8lp",
-        "kind": "switch"
-      },
-      {
-        "id": "dropTarget_s2b8nc",
-        "name": "GrpA-3",
-        "sourceElementId": "dropTarget_s2b8nc",
-        "kind": "switch"
-      },
-      {
-        "id": "kicker_5312ax",
-        "name": "kicker_md8rg3",
-        "sourceElementId": "kicker_5312ax",
-        "kind": "switch"
-      },
-      {
-        "id": "bumper_4484te",
-        "name": "bumper_ejzhol",
-        "sourceElementId": "bumper_4484te",
-        "kind": "switch"
-      },
-      {
-        "id": "dropTarget_c42oz6",
-        "name": "GrpB-1",
-        "sourceElementId": "dropTarget_c42oz6",
-        "kind": "switch"
-      },
-      {
-        "id": "dropTarget_gdimrn",
-        "name": "GrpB-2",
-        "sourceElementId": "dropTarget_gdimrn",
-        "kind": "switch"
-      },
-      {
-        "id": "dropTarget_0evc5x",
-        "name": "GrpB-3",
-        "sourceElementId": "dropTarget_0evc5x",
-        "kind": "switch"
-      },
-      {
-        "id": "lane_tz1ymq",
-        "name": "Lane-GrpC-1",
-        "sourceElementId": "lane_tz1ymq",
-        "kind": "switch"
-      },
-      {
-        "id": "lane_dufqo0",
-        "name": "Lane-GrpC-2",
-        "sourceElementId": "lane_dufqo0",
-        "kind": "switch"
-      },
-      {
-        "id": "kicker_ow6q9d",
-        "name": "kicker_md8rg3",
-        "sourceElementId": "kicker_ow6q9d",
-        "kind": "switch"
-      },
-      {
-        "id": "bumper_vm2nuc",
-        "name": "bumper_ejzhol",
-        "sourceElementId": "bumper_vm2nuc",
-        "kind": "switch"
-      },
-      {
-        "id": "bumper_vj8kqj",
-        "name": "bumper_ejzhol",
-        "sourceElementId": "bumper_vj8kqj",
-        "kind": "switch"
-      },
-      {
-        "id": "bumper_hnpuy5",
-        "name": "bumper_ejzhol",
-        "sourceElementId": "bumper_hnpuy5",
-        "kind": "switch"
-      },
-      {
-        "id": "lane_mu9la9",
-        "name": "RareLane",
-        "sourceElementId": "lane_mu9la9",
-        "kind": "switch"
-      },
-      {
         "id": "timer_100ms",
         "name": "Timer 100ms",
         "kind": "timer",
@@ -161,42 +41,10 @@
         "intervalMs": 1000
       }
     ],
-    "stateTable": [
-      {
-        "id": "new_visual_feature_lit",
-        "name": "New Visual Feature Lit",
-        "type": "bool",
-        "initial": false,
-        "volatile": true
-      }
-    ],
+    "stateTable": [],
     "computedState": [],
-    "lampBindings": [
-      {
-        "lampId": "dropTarget_agul2o",
-        "expr": "new_visual_feature_lit"
-      }
-    ],
-    "actionRules": [
-      {
-        "id": "a_new_visual_feature_trigger",
-        "name": "Light GrpA-1",
-        "trigger": "dropTarget_agul2o",
-        "condition": "!new_visual_feature_lit",
-        "effects": [
-          {
-            "type": "set",
-            "target": "new_visual_feature_lit",
-            "value": true
-          },
-          {
-            "type": "score",
-            "value": 100
-          }
-        ],
-        "enabled": true
-      }
-    ],
+    "lampBindings": [],
+    "actionRules": [],
     "resetRules": []
   },
   "levels": [
@@ -215,27 +63,7 @@
       "editorVisible": true
     }
   ],
-  "features": [
-    {
-      "id": "new_visual_feature",
-      "name": "New Visual Feature",
-      "description": "Generated from Visual Builder: switch lights lamp.",
-      "goal": "Hit trigger to light selected lamp.",
-      "objects": [
-        "dropTarget_agul2o",
-        "dropTarget_agul2o"
-      ],
-      "states": [
-        "new_visual_feature_lit"
-      ],
-      "rules": [
-        "a_new_visual_feature_trigger"
-      ],
-      "lamps": [
-        "dropTarget_agul2o"
-      ]
-    }
-  ],
+  "features": [],
   "images": [],
   "elements": [
     {
@@ -384,12 +212,28 @@
       "closed": false,
       "anchors": [
         {
-          "x": 0,
-          "y": 1350
+          "x": 90,
+          "y": 1390,
+          "outHandle": {
+            "x": -1.1245118142992823,
+            "y": 53.8653842189226
+          },
+          "inHandle": {
+            "x": 1.1245118142992823,
+            "y": -53.8653842189226
+          }
         },
         {
-          "x": 320,
-          "y": 1500
+          "x": 310.1582053147404,
+          "y": 1503.667482990444,
+          "inHandle": {
+            "x": -30,
+            "y": 0
+          },
+          "outHandle": {
+            "x": 30,
+            "y": 0
+          }
         }
       ],
       "color": "#a8b5ea",
@@ -408,16 +252,16 @@
       "closed": true,
       "anchors": [
         {
-          "x": 260,
-          "y": 1240
+          "x": 254.0631899205082,
+          "y": 1235.2177919287894
         },
         {
-          "x": 130,
-          "y": 1170
+          "x": 228.00504023059895,
+          "y": 1160.080756591262
         },
         {
-          "x": 181.1111111111111,
-          "y": 1123.3333333333333
+          "x": 174.0707304072985,
+          "y": 1128.5716772561696
         }
       ],
       "name": "kicker_md8rg3"
@@ -549,19 +393,19 @@
       "closed": false,
       "anchors": [
         {
-          "x": 970,
-          "y": 630
+          "x": 979.071101420768,
+          "y": 646.1540085820159
         },
         {
           "x": 1000,
           "y": 540,
           "inHandle": {
-            "x": 0,
-            "y": 80
+            "x": 1.2291254089170707,
+            "y": 92.3066066975573
           },
           "outHandle": {
-            "x": 0,
-            "y": -80
+            "x": -1.2291254089170707,
+            "y": -92.3066066975573
           }
         }
       ],
@@ -571,10 +415,10 @@
     {
       "id": "bumper_ejzhol",
       "type": "bumper",
-      "x": 210,
-      "y": 250.00000000000003,
+      "x": 140,
+      "y": 290,
       "radius": 70.71067811865476,
-      "power": 12,
+      "power": 8,
       "restitution": 0.8,
       "score": 10,
       "level": 0,
@@ -585,10 +429,10 @@
     {
       "id": "bumper_yhuy0t",
       "type": "bumper",
-      "x": 180,
-      "y": 800,
+      "x": 148.26818150931655,
+      "y": 848.1292076130933,
       "radius": 70.71067811865476,
-      "power": 12,
+      "power": 6,
       "restitution": 0.8,
       "score": 10,
       "level": 0,
@@ -599,10 +443,10 @@
     {
       "id": "bumper_uevmzr",
       "type": "bumper",
-      "x": 820,
-      "y": 380,
+      "x": 710,
+      "y": 550,
       "radius": 70.71067811865476,
-      "power": 12,
+      "power": 7,
       "restitution": 0.8,
       "score": 10,
       "level": 0,
@@ -614,8 +458,8 @@
       "id": "dropTarget_agul2o",
       "type": "dropTarget",
       "level": 0,
-      "x": 460,
-      "y": 200,
+      "x": 510,
+      "y": 190,
       "w": 14,
       "h": 40,
       "angle": 0,
@@ -628,8 +472,8 @@
       "id": "dropTarget_syk8lp",
       "type": "dropTarget",
       "level": 0,
-      "x": 460,
-      "y": 260,
+      "x": 510,
+      "y": 250,
       "w": 14,
       "h": 40,
       "angle": 0,
@@ -642,8 +486,8 @@
       "id": "dropTarget_s2b8nc",
       "type": "dropTarget",
       "level": 0,
-      "x": 460,
-      "y": 320,
+      "x": 510,
+      "y": 310,
       "w": 14,
       "h": 40,
       "angle": 0,
@@ -663,40 +507,40 @@
       "closed": true,
       "anchors": [
         {
-          "x": 450,
-          "y": 170
-        },
-        {
-          "x": 480,
-          "y": 170
-        },
-        {
-          "x": 480,
-          "y": 350
-        },
-        {
-          "x": 450,
-          "y": 350
-        },
-        {
-          "x": 450,
-          "y": 360
-        },
-        {
-          "x": 490,
-          "y": 360
-        },
-        {
-          "x": 490,
+          "x": 500,
           "y": 160
         },
         {
-          "x": 450,
+          "x": 530,
+          "y": 160
+        },
+        {
+          "x": 530,
+          "y": 340
+        },
+        {
+          "x": 500,
+          "y": 340
+        },
+        {
+          "x": 500,
+          "y": 350
+        },
+        {
+          "x": 540,
+          "y": 350
+        },
+        {
+          "x": 540,
           "y": 150
         },
         {
-          "x": 450,
-          "y": 170
+          "x": 500,
+          "y": 140
+        },
+        {
+          "x": 500,
+          "y": 160
         }
       ],
       "color": "#a8b5ea",
@@ -709,7 +553,7 @@
       "radius": 14,
       "bandThickness": 6,
       "restitution": 0.55,
-      "kickPower": 14,
+      "kickPower": 8,
       "score": 5,
       "color": "#ffaa66",
       "closed": true,
@@ -766,8 +610,8 @@
     {
       "id": "bumper_4484te",
       "type": "bumper",
-      "x": 360,
-      "y": 560,
+      "x": 320,
+      "y": 650,
       "radius": 70.71067811865476,
       "power": 12,
       "restitution": 0.8,
@@ -775,14 +619,14 @@
       "level": 0,
       "transparency": 1,
       "color": "#a05454",
-      "name": "bumper_ejzhol"
+      "name": "B1"
     },
     {
       "id": "dropTarget_c42oz6",
       "type": "dropTarget",
       "level": 0,
-      "x": 620,
-      "y": 200,
+      "x": 670,
+      "y": 190,
       "w": 14,
       "h": 40,
       "angle": 0,
@@ -795,8 +639,8 @@
       "id": "dropTarget_gdimrn",
       "type": "dropTarget",
       "level": 0,
-      "x": 620,
-      "y": 260,
+      "x": 670,
+      "y": 250,
       "w": 14,
       "h": 40,
       "angle": 0,
@@ -809,8 +653,8 @@
       "id": "dropTarget_0evc5x",
       "type": "dropTarget",
       "level": 0,
-      "x": 620,
-      "y": 320,
+      "x": 670,
+      "y": 310,
       "w": 14,
       "h": 40,
       "angle": 0,
@@ -830,40 +674,40 @@
       "closed": true,
       "anchors": [
         {
-          "x": 635.5555555555555,
-          "y": 171.11111111111111
-        },
-        {
-          "x": 605.5555555555555,
-          "y": 171.11111111111111
-        },
-        {
-          "x": 605.5555555555555,
-          "y": 351.1111111111111
-        },
-        {
-          "x": 635.5555555555555,
-          "y": 351.1111111111111
-        },
-        {
-          "x": 635.5555555555555,
-          "y": 361.1111111111111
-        },
-        {
-          "x": 595.5555555555555,
-          "y": 361.1111111111111
-        },
-        {
-          "x": 595.5555555555555,
+          "x": 685.5555555555555,
           "y": 161.11111111111111
         },
         {
-          "x": 635.5555555555555,
+          "x": 655.5555555555555,
+          "y": 161.11111111111111
+        },
+        {
+          "x": 655.5555555555555,
+          "y": 341.1111111111111
+        },
+        {
+          "x": 685.5555555555555,
+          "y": 341.1111111111111
+        },
+        {
+          "x": 685.5555555555555,
+          "y": 351.1111111111111
+        },
+        {
+          "x": 645.5555555555555,
+          "y": 351.1111111111111
+        },
+        {
+          "x": 645.5555555555555,
           "y": 151.11111111111111
         },
         {
-          "x": 635.5555555555555,
-          "y": 171.11111111111111
+          "x": 685.5555555555555,
+          "y": 141.11111111111111
+        },
+        {
+          "x": 685.5555555555555,
+          "y": 161.11111111111111
         }
       ],
       "color": "#a8b5ea",
@@ -873,8 +717,8 @@
       "id": "lane_tz1ymq",
       "type": "lane",
       "level": 0,
-      "x": 517.8780452550889,
-      "y": 334.24160683357013,
+      "x": 567.8780452550889,
+      "y": 324.24160683357013,
       "w": 40,
       "h": 20,
       "angle": 1.5707963267948966,
@@ -893,12 +737,12 @@
       "closed": false,
       "anchors": [
         {
-          "x": 543.1271099950967,
-          "y": 306.8616746423406
+          "x": 593.1271099950967,
+          "y": 296.8616746423406
         },
         {
-          "x": 543.5094382625609,
-          "y": 362.0151249261006
+          "x": 593.5094382625609,
+          "y": 352.0151249261006
         }
       ],
       "color": "#a8b5ea",
@@ -908,8 +752,8 @@
       "id": "lane_dufqo0",
       "type": "lane",
       "level": 0,
-      "x": 570.6060034811607,
-      "y": 334.2416068335701,
+      "x": 620.6060034811607,
+      "y": 324.2416068335701,
       "w": 40,
       "h": 20,
       "angle": 1.5707963267948966,
@@ -924,7 +768,7 @@
       "radius": 14,
       "bandThickness": 6,
       "restitution": 0.55,
-      "kickPower": 14,
+      "kickPower": 10,
       "score": 5,
       "color": "#ffaa66",
       "closed": true,
@@ -1010,27 +854,27 @@
       "closed": false,
       "anchors": [
         {
-          "x": 1.1111111111111995,
-          "y": 1224.4444444444443,
+          "x": 0.8287801264446094,
+          "y": 1223.867806912762,
           "outHandle": {
-            "x": -2.4852189431024954,
-            "y": -17.062938014208953
+            "x": -0.46415523936859254,
+            "y": -29.7030114197255
           },
           "inHandle": {
-            "x": 2.4852189431024954,
-            "y": 17.062938014208953
+            "x": 0.46415523936859254,
+            "y": 29.7030114197255
           }
         },
         {
           "x": 40,
           "y": 1140,
           "outHandle": {
-            "x": 30.045720157305716,
-            "y": -40.66560889502284
+            "x": 21.533320777548877,
+            "y": -20.284798092411847
           },
           "inHandle": {
-            "x": -30.045720157305716,
-            "y": 40.66560889502284
+            "x": -21.533320777548877,
+            "y": 20.284798092411847
           }
         },
         {
@@ -1078,32 +922,32 @@
       "closed": false,
       "anchors": [
         {
-          "x": 51.1111111111112,
-          "y": 1254.4444444444443,
+          "x": 54.670787893201286,
+          "y": 1258.21191386682,
           "outHandle": {
-            "x": -2.4852189431024954,
-            "y": -17.062938014208953
+            "x": 0.15356513285862405,
+            "y": -15.834317811639039
           },
           "inHandle": {
-            "x": 2.4852189431024954,
-            "y": 17.062938014208953
+            "x": -0.15356513285862405,
+            "y": 15.834317811639039
           }
         },
         {
-          "x": 81.1111111111112,
-          "y": 1184.4444444444443,
+          "x": 82.52010225531686,
+          "y": 1185.8108235312386,
           "outHandle": {
-            "x": 13.333333333333371,
-            "y": -16.666666666666742
+            "x": 12.99634670232058,
+            "y": -18.564382137328494
           },
           "inHandle": {
-            "x": -13.333333333333371,
-            "y": 16.666666666666742
+            "x": -12.99634670232058,
+            "y": 18.564382137328494
           }
         },
         {
-          "x": 167.77777777777783,
-          "y": 1101.111111111111,
+          "x": 166.8067464182039,
+          "y": 1105.4356082749694,
           "outHandle": {
             "x": 22.268846483014272,
             "y": -20.371164373725264
@@ -1128,8 +972,8 @@
       "closed": false,
       "anchors": [
         {
-          "x": 120,
-          "y": 1070
+          "x": 118.01380324597842,
+          "y": 1070.9657263478691
         },
         {
           "x": 0,
@@ -1154,7 +998,7 @@
       "radius": 14,
       "bandThickness": 6,
       "restitution": 0.55,
-      "kickPower": 14,
+      "kickPower": 8,
       "score": 5,
       "color": "#ffaa66",
       "closed": true,
@@ -1185,16 +1029,40 @@
       "closed": false,
       "anchors": [
         {
-          "x": 50,
-          "y": 1250
+          "x": 55.06933062296548,
+          "y": 1261.61978789459,
+          "outHandle": {
+            "x": 0.3555096512328504,
+            "y": 9.597815795166753
+          },
+          "inHandle": {
+            "x": -0.3555096512328504,
+            "y": -9.597815795166753
+          }
         },
         {
-          "x": 50,
-          "y": 1280
+          "x": 61.698110840292784,
+          "y": 1279.6768637497644,
+          "outHandle": {
+            "x": 4.140212658697486,
+            "y": 6.6818867646061335
+          },
+          "inHandle": {
+            "x": -4.140212658697486,
+            "y": -6.6818867646061335
+          }
         },
         {
-          "x": 90,
-          "y": 1280
+          "x": 88.8427474900845,
+          "y": 1315.6519360747893,
+          "inHandle": {
+            "x": -4.1753922585769345,
+            "y": -1.1708941440040235
+          },
+          "outHandle": {
+            "x": 4.1753922585769345,
+            "y": 1.1708941440040235
+          }
         },
         {
           "x": 90,
@@ -1265,29 +1133,722 @@
     {
       "id": "bumper_0jiggd",
       "type": "bumper",
-      "x": 542.9615058475398,
-      "y": 187.44044562177692,
-      "radius": 5,
-      "power": 2,
-      "restitution": 0.8,
-      "score": 100,
+      "x": 593.858825190378,
+      "y": 177.71271373673704,
+      "radius": 2,
+      "power": 0.5,
+      "restitution": 0.1,
+      "score": 25,
       "level": 0,
       "transparency": 1,
       "color": "#b2ad24",
       "name": "bumper_0jiggd"
     },
     {
-      "id": "scoreZone_xkameg",
-      "type": "scoreZone",
+      "id": "path_tath08",
+      "type": "path",
       "level": 0,
-      "x": 543.2377905207961,
-      "y": 251.1154625435089,
-      "radius": 25.185998467780628,
+      "role": "wall",
+      "thickness": 6,
       "restitution": 0.55,
-      "score": 500,
-      "name": "SCZ-Lanes"
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 115,
+          "y": 695,
+          "outHandle": {
+            "x": -100,
+            "y": 150
+          },
+          "inHandle": {
+            "x": 100,
+            "y": -150
+          }
+        },
+        {
+          "x": 165.12133875422546,
+          "y": 1010.1349862306369,
+          "inHandle": {
+            "x": -78.43685843716298,
+            "y": -46.599158308161805
+          },
+          "outHandle": {
+            "x": 78.43685843716298,
+            "y": 46.599158308161805
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_tath08"
+    },
+    {
+      "id": "path_fidzfp",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 116.66666666666667,
+          "y": 691.6336086897604
+        },
+        {
+          "x": 146.34614615008041,
+          "y": 767.651956243722,
+          "inHandle": {
+            "x": 29.135556059225365,
+            "y": -3.5394854944810277
+          },
+          "outHandle": {
+            "x": -29.135556059225365,
+            "y": 3.5394854944810277
+          }
+        },
+        {
+          "x": 66.01914579987967,
+          "y": 843.0702240876651,
+          "outHandle": {
+            "x": -1.9060644150895172,
+            "y": 54.181354877056606
+          },
+          "inHandle": {
+            "x": 1.9060644150895172,
+            "y": -54.181354877056606
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_fidzfp"
+    },
+    {
+      "id": "path_onxpom",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 165.51822446752885,
+          "y": 1008.7829811719038
+        },
+        {
+          "x": 144.18764539355897,
+          "y": 934.4887774241295,
+          "inHandle": {
+            "x": 37.68402303068018,
+            "y": 0
+          },
+          "outHandle": {
+            "x": -37.68402303068018,
+            "y": 0
+          }
+        },
+        {
+          "x": 65.62001247110321,
+          "y": 836.0222968588974,
+          "outHandle": {
+            "x": -0.7110193024656439,
+            "y": -72.87230511145333
+          },
+          "inHandle": {
+            "x": 0.7110193024656439,
+            "y": 72.87230511145333
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_onxpom"
+    },
+    {
+      "id": "bumper_3wcf7t",
+      "type": "bumper",
+      "x": 200,
+      "y": 480,
+      "radius": 35,
+      "power": 6,
+      "restitution": 0.8,
+      "score": 5,
+      "level": 0,
+      "transparency": 1,
+      "color": "#a05454",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "bumper_ouv4hs",
+      "type": "bumper",
+      "x": 830,
+      "y": 220,
+      "radius": 35,
+      "power": 6,
+      "restitution": 0.8,
+      "score": 5,
+      "level": 0,
+      "transparency": 1,
+      "color": "#a05454",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "dropTarget_9wkibf",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 120,
+      "y": 1270,
+      "w": 20,
+      "h": 40,
+      "angle": 1.5707963267948966,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpC-1"
+    },
+    {
+      "id": "dropTarget_4tehri",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 170,
+      "y": 1270,
+      "w": 20,
+      "h": 40,
+      "angle": 1.5707963267948966,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpC-2"
+    },
+    {
+      "id": "path_n8yzgz",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 200,
+          "y": 1250
+        },
+        {
+          "x": 200,
+          "y": 1280
+        },
+        {
+          "x": 260,
+          "y": 1270
+        },
+        {
+          "x": 260,
+          "y": 1260
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_n8yzgz"
+    },
+    {
+      "id": "path_gxueti",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 0.3208443331094145,
+          "y": 1264.463585167232,
+          "outHandle": {
+            "x": 0.1448563004658039,
+            "y": 33.40095474870304
+          },
+          "inHandle": {
+            "x": -0.1448563004658039,
+            "y": -33.40095474870304
+          }
+        },
+        {
+          "x": 14.89674003365552,
+          "y": 1324.1833278927156
+        },
+        {
+          "x": 1.7428829380407418,
+          "y": 1363.9964897097047,
+          "outHandle": {
+            "x": -2.8440772098626548,
+            "y": 12.08613840872863
+          },
+          "inHandle": {
+            "x": 2.8440772098626548,
+            "y": -12.08613840872863
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_gxueti"
+    },
+    {
+      "id": "path_33xsk4",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 60,
+          "y": 1370
+        },
+        {
+          "x": 60,
+          "y": 1470
+        },
+        {
+          "x": 303.44843841697224,
+          "y": 1530.1844412226496
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_33xsk4"
+    },
+    {
+      "id": "lane_4i8en4",
+      "type": "lane",
+      "level": 0,
+      "x": 30,
+      "y": 1420,
+      "w": 40,
+      "h": 20,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "ExitOpr"
+    },
+    {
+      "id": "path_upxydi",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 0,
+          "y": 1510,
+          "outHandle": {
+            "x": 11.520814194190004,
+            "y": 26.64630943061411
+          },
+          "inHandle": {
+            "x": -11.520814194190004,
+            "y": -26.64630943061411
+          }
+        },
+        {
+          "x": 336.67889214726773,
+          "y": 1636.1949772012033,
+          "outHandle": {
+            "x": 13.377836582207408,
+            "y": 12.167877127449401
+          },
+          "inHandle": {
+            "x": -13.377836582207408,
+            "y": -12.167877127449401
+          }
+        },
+        {
+          "x": 346.6929207529319,
+          "y": 1754.1276214707698
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_upxydi"
+    },
+    {
+      "id": "path_0hdish",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 90,
+          "y": 1390
+        },
+        {
+          "x": 60,
+          "y": 1370
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_0hdish"
+    },
+    {
+      "id": "gate_m97pk4",
+      "type": "gate",
+      "level": 0,
+      "x": 17.47412425153741,
+      "y": 1326.7539664340432,
+      "length": 26.804001088730892,
+      "angle": 0.8065236606077212,
+      "direction": "forward",
+      "open": false,
+      "locked": true,
+      "swingStartAngle": 0.8065236606077212,
+      "swingAngle": 1.1296481163418555,
+      "swingEndAngle": 1.9361717769495765,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff",
+      "name": "DrainGateA"
+    },
+    {
+      "id": "gate_28z87v",
+      "type": "gate",
+      "level": 0,
+      "x": 57.76564915521875,
+      "y": 1364.0956920717624,
+      "length": 27.203263383638063,
+      "angle": -2.466899726935779,
+      "direction": "reverse",
+      "open": false,
+      "locked": true,
+      "swingStartAngle": -2.466899726935779,
+      "swingAngle": -2.1889402623488827,
+      "swingEndAngle": -4.655839989284662,
+      "maxAngle": 1.05,
+      "returnStrength": 24,
+      "returnDamping": 8,
+      "thickness": 3,
+      "restitution": 0.55,
+      "color": "#99ffcc",
+      "pinColor": "#f7fbff",
+      "name": "DrainGateB"
+    },
+    {
+      "id": "bumper_fdevj7",
+      "type": "bumper",
+      "x": 538.858825190378,
+      "y": 42.712713736737044,
+      "radius": 2,
+      "power": 0.025,
+      "restitution": 0.1,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#b2ad24",
+      "name": "bumper_0jiggd"
+    },
+    {
+      "id": "path_110oz2",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 425.55555555555554,
+          "y": 161.1111111111111
+        },
+        {
+          "x": 395.55555555555554,
+          "y": 161.1111111111111
+        },
+        {
+          "x": 395.55555555555554,
+          "y": 341.1111111111111
+        },
+        {
+          "x": 425.55555555555554,
+          "y": 341.1111111111111
+        },
+        {
+          "x": 425.55555555555554,
+          "y": 351.1111111111111
+        },
+        {
+          "x": 385.55555555555554,
+          "y": 351.1111111111111
+        },
+        {
+          "x": 385.55555555555554,
+          "y": 151.1111111111111
+        },
+        {
+          "x": 425.55555555555554,
+          "y": 141.1111111111111
+        },
+        {
+          "x": 425.55555555555554,
+          "y": 161.1111111111111
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_krkl57"
+    },
+    {
+      "id": "path_iksk40",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": true,
+      "anchors": [
+        {
+          "x": 284.4444444444445,
+          "y": 161.11111111111111
+        },
+        {
+          "x": 314.4444444444445,
+          "y": 161.11111111111111
+        },
+        {
+          "x": 314.4444444444445,
+          "y": 341.1111111111111
+        },
+        {
+          "x": 284.4444444444445,
+          "y": 341.1111111111111
+        },
+        {
+          "x": 284.4444444444445,
+          "y": 351.1111111111111
+        },
+        {
+          "x": 324.4444444444445,
+          "y": 351.1111111111111
+        },
+        {
+          "x": 324.4444444444445,
+          "y": 151.11111111111111
+        },
+        {
+          "x": 284.4444444444445,
+          "y": 141.11111111111111
+        },
+        {
+          "x": 284.4444444444445,
+          "y": 161.11111111111111
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_1fonc3"
+    },
+    {
+      "id": "lane_cfpeug",
+      "type": "lane",
+      "level": 0,
+      "x": 355,
+      "y": 310,
+      "w": 40,
+      "h": 20,
+      "angle": 1.5707963267948966,
+      "score": 100,
+      "opacity": 1,
+      "name": "Lane-GrpD"
+    },
+    {
+      "id": "bumper_5ycxzb",
+      "type": "bumper",
+      "x": 900,
+      "y": 360,
+      "radius": 35,
+      "power": 6,
+      "restitution": 0.8,
+      "score": 5,
+      "level": 0,
+      "transparency": 1,
+      "color": "#a05454",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "bumper_xwchg8",
+      "type": "bumper",
+      "x": 880,
+      "y": 500,
+      "radius": 35,
+      "power": 6,
+      "restitution": 0.8,
+      "score": 5,
+      "level": 0,
+      "transparency": 1,
+      "color": "#a05454",
+      "name": "bumper_ejzhol"
+    },
+    {
+      "id": "light_7rtnpo",
+      "type": "light",
+      "level": 0,
+      "x": 320,
+      "y": 560,
+      "radius": 10,
+      "lampId": "",
+      "text": "",
+      "label": "",
+      "color": "#7f390b",
+      "transparency": 1,
+      "name": "B1-L1"
+    },
+    {
+      "id": "path_z90jvs",
+      "type": "path",
+      "level": 0,
+      "role": "wall",
+      "thickness": 6,
+      "restitution": 0.55,
+      "transparency": 1,
+      "closed": false,
+      "anchors": [
+        {
+          "x": 90,
+          "y": 150,
+          "inHandle": {
+            "x": 10,
+            "y": 0
+          },
+          "outHandle": {
+            "x": -10,
+            "y": 0
+          }
+        },
+        {
+          "x": 30,
+          "y": 420,
+          "outHandle": {
+            "x": 70,
+            "y": 140
+          },
+          "inHandle": {
+            "x": -70,
+            "y": -140
+          }
+        }
+      ],
+      "color": "#a8b5ea",
+      "name": "path_z90jvs"
+    },
+    {
+      "id": "dropTarget_7nrkkz",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 410,
+      "y": 190,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpC-1"
+    },
+    {
+      "id": "dropTarget_l5wxol",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 410,
+      "y": 250,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpC-2"
+    },
+    {
+      "id": "dropTarget_jexomx",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 410,
+      "y": 310,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpC-3"
+    },
+    {
+      "id": "dropTarget_obohh2",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 300,
+      "y": 190,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpD-1"
+    },
+    {
+      "id": "dropTarget_qkx48y",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 300,
+      "y": 250,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpD-2"
+    },
+    {
+      "id": "dropTarget_ugbrzm",
+      "type": "dropTarget",
+      "level": 0,
+      "x": 300,
+      "y": 310,
+      "w": 14,
+      "h": 40,
+      "angle": 0,
+      "restitution": 0.55,
+      "score": 250,
+      "transparency": 1,
+      "name": "GrpD-3"
+    },
+    {
+      "id": "bumper_5rrynv",
+      "type": "bumper",
+      "x": 360,
+      "y": 25,
+      "radius": 5.35658256142075,
+      "power": 0.025,
+      "restitution": 0.1,
+      "score": 10,
+      "level": 0,
+      "transparency": 1,
+      "color": "#b2ad24",
+      "name": "bumper_0jiggd"
     }
   ],
   "tableVersion": 0.1,
-  "date": "2026-05-25T11:13:50.829Z"
+  "date": "2026-05-26T16:14:22.401Z"
 }

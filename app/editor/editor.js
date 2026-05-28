@@ -1542,6 +1542,17 @@
                     }
                     assistantRuntime.loadModels().catch(function ignore() {});
                 },
+                onAutoSaveAssistantModel: function autoSaveAssistantModel(value) {
+                    /* What: Persist model selection immediately as the operator types or picks.
+                     * Why: Chat/Agentic/Lab all read persisted assistant settings; unsaved draft
+                     *      model changes must not silently vanish across tabs/routes.
+                     */
+                    const snapshot = assistantRuntime.getState ? assistantRuntime.getState() : { settings: {} };
+                    const current = snapshot && snapshot.settings ? snapshot.settings : {};
+                    assistantRuntime.setSettings(Object.assign({}, current, {
+                        model: value == null ? "" : String(value)
+                    }));
+                },
                 onSetAssistantDraft: function setAssistantDraft(value) {
                     assistantRuntime.setDraft(value);
                 },
@@ -1553,9 +1564,19 @@
                     resetCardDraft(key);
                 },
                 onSendAssistantMessage: function sendAssistantMessage() {
+                    const providerDraft = inspectorDrafts["assistant:settings"];
+                    if (providerDraft && providerDraft.dirty) {
+                        assistantRuntime.setSettings(providerDraft.draft);
+                        resetCardDraft("assistant:settings");
+                    }
                     assistantRuntime.send();
                 },
                 onRunAgentic: function runAgentic() {
+                    const providerDraft = inspectorDrafts["assistant:settings"];
+                    if (providerDraft && providerDraft.dirty) {
+                        assistantRuntime.setSettings(providerDraft.draft);
+                        resetCardDraft("assistant:settings");
+                    }
                     assistantRuntime.runAgentic();
                 },
                 onStopAgentic: function stopAgentic() {

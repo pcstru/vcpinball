@@ -204,6 +204,11 @@ Current browser build:
 - Agentic controls are active runtime UI.
 - Run/stop/apply/pending-review behavior is implemented through the same structured patch contract used by chat.
 - Agentic copy should describe the actual guarded execution flow: provider request, validation, preview, pending patch when needed, and apply/reject controls.
+- Logging is a baseline contract, not an optional debug branch:
+  - Chat and Agentic surfaces show compact inline run status (flow, phase, summary, attempts).
+  - Full request/response/validation/apply trace data is available via the Assistant Log dialog.
+  - Log access is available from Chat, Agentic, and Provider subtabs.
+  - Sensitive fields (API keys, auth headers, tokens) must be redacted before log rendering.
 
 When implementation resumes, agentic execution should be feature-aware and should not resurrect old sequence-rule-first language.
 

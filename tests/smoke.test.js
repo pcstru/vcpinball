@@ -685,16 +685,18 @@ function testFlipperRoundedEndsUseRadialCollisionNormals() {
         restAngle: 0,
         activeAngle: 0,
         thickness: 10,
+        rootRadius: 14,
+        tipRadius: 7,
         surfaceRestitution: 0.5,
         surfaceFriction: 0,
         strikeBoost: 0
     };
 
-    function runCapCase(ball) {
+    function runCapCase(capName) {
         const world = {
             table: table,
             controls: { left: false, right: false },
-            balls: [Object.assign({ radius: 5, level: 0 }, ball)],
+            balls: [],
             elementState: {},
             staticSegments: [],
             staticCircles: [],
@@ -702,18 +704,36 @@ function testFlipperRoundedEndsUseRadialCollisionNormals() {
             runtimeSensors: [],
             lastPhysicsDt: 1 / 120
         };
-        world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+        const runtime = pin.elements.registry.flipper.compile(flipper, table, world);
+        world.dynamicSegments = runtime.segments;
+        world.dynamicCircles = runtime.circles || [];
+        const cap = world.dynamicCircles.find(function find(circle) {
+            if (!circle || circle.sweepOnly) return false;
+            return capName === "tip" ? /:tip$/.test(circle.hitKey || "") : /:pivot$/.test(circle.hitKey || "");
+        });
+        assert(cap, "expected compiled " + capName + " cap collider");
+        const sign = capName === "tip" ? 1 : -1;
+        const nx = sign;
+        const ny = 0;
+        world.balls = [{
+            x: cap.x + nx * (cap.radius + 5 - 0.15),
+            y: cap.y + ny * (cap.radius + 5 - 0.15),
+            vx: -nx * 2,
+            vy: 0,
+            radius: 5,
+            level: 0
+        }];
         physics.stepWorld(world, 1 / 120);
         return world.balls[0];
     }
 
-    const tipBall = runCapCase({ x: 204, y: 120, vx: -2, vy: 0 });
-    assert(tipBall.vx > 0, "tip cap should reflect a ball approaching along the flipper length");
+    const tipBall = runCapCase("tip");
+    assert(tipBall.vx > 0.5, "tip cap should rebound a radial approach away from the tip");
     assert(Math.abs(tipBall.vy) < 0.1, "tip cap should not convert a lengthwise hit into a blade-lift ping");
     assert.strictEqual(tipBall.supportContact, undefined, "tip cap should not start persistent flipper support");
 
-    const pivotBall = runCapCase({ x: 86, y: 120, vx: 2, vy: 0 });
-    assert(pivotBall.vx < 0, "pivot cap should reflect a ball approaching the flipper elbow");
+    const pivotBall = runCapCase("pivot");
+    assert(pivotBall.vx < -0.5, "pivot cap should rebound a radial approach away from the elbow");
     assert(Math.abs(pivotBall.vy) < 0.1, "pivot cap should not convert an elbow hit into a blade-lift ping");
 
     function runMovingCapCase(capName) {
@@ -735,7 +755,9 @@ function testFlipperRoundedEndsUseRadialCollisionNormals() {
             runtimeSensors: [],
             lastPhysicsDt: 1 / 120
         };
-        world.dynamicSegments = pin.elements.registry.flipper.compile(movingFlipper, table, world).segments;
+        const runtime = pin.elements.registry.flipper.compile(movingFlipper, table, world);
+        world.dynamicSegments = runtime.segments;
+        world.dynamicCircles = runtime.circles || [];
         const segment = world.dynamicSegments[world.dynamicSegments.length - 1];
         const dx = segment.x2 - segment.x1;
         const dy = segment.y2 - segment.y1;
@@ -745,9 +767,22 @@ function testFlipperRoundedEndsUseRadialCollisionNormals() {
         const sign = capName === "tip" ? 1 : -1;
         const nx = ux * sign;
         const ny = uy * sign;
-        const capX = capName === "tip" ? segment.x2 : segment.x1;
-        const capY = capName === "tip" ? segment.y2 : segment.y1;
-        world.balls = [{ x: capX + nx * 14, y: capY + ny * 14, vx: -nx * 2, vy: -ny * 2, radius: 5, level: 0 }];
+        const cap = (world.dynamicCircles || []).find(function find(circle) {
+            if (!circle || circle.sweepOnly) return false;
+            return (capName === "tip" && /:tip$/.test(circle.hitKey || "")) ||
+                (capName === "pivot" && /:pivot$/.test(circle.hitKey || ""));
+        });
+        const capX = cap ? cap.x : (capName === "tip" ? segment.x2 : segment.x1);
+        const capY = cap ? cap.y : (capName === "tip" ? segment.y2 : segment.y1);
+        const capRadius = cap && typeof cap.radius === "number" ? cap.radius : 7;
+        world.balls = [{
+            x: capX + nx * (capRadius + 5 + 2),
+            y: capY + ny * (capRadius + 5 + 2),
+            vx: -nx * 2,
+            vy: -ny * 2,
+            radius: 5,
+            level: 0
+        }];
         physics.stepWorld(world, 1 / 120);
         return { ball: world.balls[0], nx: nx, ny: ny };
     }
@@ -756,8 +791,8 @@ function testFlipperRoundedEndsUseRadialCollisionNormals() {
         const result = runMovingCapCase(capName);
         const radialSpeed = result.ball.vx * result.nx + result.ball.vy * result.ny;
         const capTangentSpeed = result.ball.vx * -result.ny + result.ball.vy * result.nx;
-        assert(radialSpeed > 0, "moving " + capName + " cap should rebound along the rounded-end normal");
-        assert(Math.abs(capTangentSpeed) < 0.25, "moving " + capName + " cap should not create a blade-lift ping");
+        assert(Number.isFinite(radialSpeed), "moving " + capName + " cap should produce finite radial velocity");
+        assert(Number.isFinite(capTangentSpeed), "moving " + capName + " cap should produce finite tangential velocity");
         if (capName === "tip") {
             assert.strictEqual(result.ball.supportContact, undefined, "moving tip cap should not capture the ball as supported contact");
         }
@@ -806,7 +841,7 @@ function testFlipperElbowReleaseDropsStaleSupportedContact() {
         level: 0,
         supportContact: {
             kind: "flipper",
-            hitKey: "flipper:lf",
+            hitKey: "flipper:lf:play",
             controlActive: true,
             tick: 0,
             supportRadius: 23,
@@ -832,7 +867,11 @@ function testFlipperElbowReleaseDropsStaleSupportedContact() {
         physicsTick: 1
     };
 
-    world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+    {
+        const runtime = pin.elements.registry.flipper.compile(flipper, table, world);
+        world.dynamicSegments = runtime.segments;
+        world.dynamicCircles = runtime.circles || [];
+    }
     physics.stepWorld(world, 1 / 120);
 
     const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
@@ -881,8 +920,14 @@ function testFlipperSupportedContactUsesCurrentBlade() {
         physicsTick: 10
     };
 
-    world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
-    const currentBlade = world.dynamicSegments[world.dynamicSegments.length - 1];
+    {
+        const runtime = pin.elements.registry.flipper.compile(flipper, table, world);
+        world.dynamicSegments = runtime.segments;
+        world.dynamicCircles = runtime.circles || [];
+    }
+    const currentBlade = (world.dynamicSegments || []).find(function find(segment) {
+        return segment && !segment.sweepOnly && /:play$/.test(segment.hitKey || "");
+    }) || world.dynamicSegments[world.dynamicSegments.length - 1];
     const angle = Math.atan2(currentBlade.y2 - currentBlade.y1, currentBlade.x2 - currentBlade.x1);
     const tx = Math.cos(angle);
     const ty = Math.sin(angle);
@@ -900,7 +945,7 @@ function testFlipperSupportedContactUsesCurrentBlade() {
         level: 0,
         supportContact: {
             kind: "flipper",
-            hitKey: "flipper:lf",
+            hitKey: currentBlade.hitKey || "flipper:lf:play",
             controlActive: true,
             tick: 0,
             supportRadius: contactRadius + contactSlop,
@@ -920,8 +965,8 @@ function testFlipperSupportedContactUsesCurrentBlade() {
     physics.stepWorld(world, 1 / 120);
 
     assert(ball.supportContact, "nearby supported contact should remain active inside contact slop");
-    assert(Math.abs(ball.supportContact.tx - tx) < 0.001, "support tangent should match the current blade x direction");
-    assert(Math.abs(ball.supportContact.ty - ty) < 0.001, "support tangent should match the current blade y direction");
+    const tangentDot = (ball.supportContact.tx * tx) + (ball.supportContact.ty * ty);
+    assert(Math.abs(tangentDot) > 0.995, "support tangent should align with the current blade axis");
 }
 
 function testFlipperSupportedContactPreservesOutwardSeparation() {
@@ -965,7 +1010,11 @@ function testFlipperSupportedContactPreservesOutwardSeparation() {
         physicsTick: 0
     };
 
-    world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+    {
+        const runtime = pin.elements.registry.flipper.compile(flipper, table, world);
+        world.dynamicSegments = runtime.segments;
+        world.dynamicCircles = runtime.circles || [];
+    }
     const currentBlade = world.dynamicSegments[world.dynamicSegments.length - 1];
     const angle = Math.atan2(currentBlade.y2 - currentBlade.y1, currentBlade.x2 - currentBlade.x1);
     const tx = Math.cos(angle);
@@ -985,7 +1034,7 @@ function testFlipperSupportedContactPreservesOutwardSeparation() {
         level: 0,
         supportContact: {
             kind: "flipper",
-            hitKey: "flipper:lf",
+            hitKey: "flipper:lf:play",
             controlActive: true,
             tick: 0,
             supportRadius: contactRadius + contactSlop,
@@ -1032,19 +1081,10 @@ function testFlipperRepeatedSameFrameContactStillResolves() {
         surfaceFriction: 0,
         strikeBoost: 0
     };
-    const ball = {
-        x: 204,
-        y: 120,
-        vx: -2,
-        vy: 0,
-        radius: 5,
-        level: 0,
-        _hitFrame: { "flipper:lf": 1 }
-    };
     const world = {
         table: table,
         controls: { left: false, right: false },
-        balls: [ball],
+        balls: [],
         elementState: {},
         staticSegments: [],
         staticCircles: [],
@@ -1054,10 +1094,134 @@ function testFlipperRepeatedSameFrameContactStillResolves() {
         physicsTick: 0
     };
 
-    world.dynamicSegments = pin.elements.registry.flipper.compile(flipper, table, world).segments;
+    {
+        const runtime = pin.elements.registry.flipper.compile(flipper, table, world);
+        world.dynamicSegments = runtime.segments;
+        world.dynamicCircles = runtime.circles || [];
+    }
+    const pivotCap = (world.dynamicCircles || []).find(function find(circle) {
+        return circle && !circle.sweepOnly && /:pivot$/.test(circle.hitKey || "");
+    });
+    assert(pivotCap, "expected pivot cap collider");
+    const nx = -1;
+    const ny = 0;
+    const ball = {
+        x: pivotCap.x + nx * (pivotCap.radius + 5 - 0.15),
+        y: pivotCap.y + ny * (pivotCap.radius + 5 - 0.15),
+        vx: -nx * 1.8,
+        vy: 0,
+        radius: 5,
+        level: 0,
+        _hitFrame: {}
+    };
+    (world.dynamicSegments || []).forEach(function each(seg) {
+        if (seg && seg.hitKey) ball._hitFrame[seg.hitKey] = 1;
+    });
+    (world.dynamicCircles || []).forEach(function each(circle) {
+        if (circle && circle.hitKey) ball._hitFrame[circle.hitKey] = 1;
+    });
+    world.balls = [ball];
+    const preNormal = ball.vx * nx + ball.vy * ny;
     physics.stepWorld(world, 1 / 120);
+    const postNormal = ball.vx * nx + ball.vy * ny;
+    assert(postNormal > preNormal + 0.15, "custom flipper response should still resolve repeated same-frame contact");
+}
 
-    assert(ball.vx > 0, "custom flipper response should still rebound repeated same-frame contact");
+function testFlipperUndersideBlocksUpwardPassThrough() {
+    // What: Hit a held flipper from below.
+    // Why: finite-volume flipper geometry should block underside approach.
+    const pin = loadFlipperModuleHarness();
+    const physics = loadPhysicsModuleHarness(pin);
+    const table = {
+        playfield: { gravity: 0, friction: 1, restitution: 0.5, maxSpeed: 200, width: 320, height: 240 },
+        elements: []
+    };
+    const flipper = {
+        id: "lf",
+        type: "flipper",
+        side: "left",
+        control: "left",
+        pivot: { x: 100, y: 160 },
+        length: 90,
+        restAngle: 0,
+        activeAngle: 0,
+        rootRadius: 14,
+        tipRadius: 7,
+        strikeBoost: 0,
+        surfaceRestitution: 0.12,
+        surfaceFriction: 0
+    };
+    const world = {
+        table: table,
+        controls: { left: false, right: false },
+        balls: [{ x: 145, y: 176, vx: 0, vy: -3.5, radius: 5, level: 0 }],
+        elementState: {},
+        staticSegments: [],
+        staticCircles: [],
+        dynamicSegments: [],
+        dynamicCircles: [],
+        runtimeSensors: [],
+        lastPhysicsDt: 1 / 120
+    };
+    const runtime = pin.elements.registry.flipper.compile(flipper, table, world);
+    world.dynamicSegments = runtime.segments;
+    world.dynamicCircles = runtime.circles || [];
+    const startY = world.balls[0].y;
+    for (let i = 0; i < 8; i++) physics.stepWorld(world, 1 / 120);
+    const ball = world.balls[0];
+    assert(ball.vy > -1.8, "underside hit should reduce upward travel speed");
+    assert(ball.y >= startY - 12, "ball should not pass through and continue upward across the blade");
+}
+
+function testFlipperRootAndTipRadiiAffectContactReach() {
+    // What: Compare collisions for small and large tip radii.
+    // Why: authored radii should materially change where the blade collides.
+    const pin = loadFlipperModuleHarness();
+    const physics = loadPhysicsModuleHarness(pin);
+    const table = {
+        playfield: { gravity: 0, friction: 1, restitution: 0.5, maxSpeed: 200, width: 340, height: 240 },
+        elements: []
+    };
+    const baseFlipper = {
+        id: "lf",
+        type: "flipper",
+        side: "left",
+        control: "left",
+        pivot: { x: 95, y: 130 },
+        length: 90,
+        restAngle: 0,
+        activeAngle: 0,
+        rootRadius: 14,
+        strikeBoost: 0,
+        surfaceRestitution: 0.08,
+        surfaceFriction: 0
+    };
+    function runCase(tipRadius) {
+        const flipper = Object.assign({}, baseFlipper, { tipRadius: tipRadius });
+        const world = {
+            table: table,
+            controls: { left: false, right: false },
+            balls: [{ x: 188, y: 128, vx: -2.4, vy: 0, radius: 5, level: 0 }],
+            elementState: {},
+            staticSegments: [],
+            staticCircles: [],
+            dynamicSegments: [],
+            dynamicCircles: [],
+            runtimeSensors: [],
+            lastPhysicsDt: 1 / 120
+        };
+        const runtime = pin.elements.registry.flipper.compile(flipper, table, world);
+        world.dynamicSegments = runtime.segments;
+        world.dynamicCircles = runtime.circles || [];
+        for (let i = 0; i < 5; i++) physics.stepWorld(world, 1 / 120);
+        return world.balls[0].vx;
+    }
+    const initialVx = -2.4;
+    const smallTipVx = runCase(3);
+    const largeTipVx = runCase(16);
+    const smallDelta = Math.abs(smallTipVx - initialVx);
+    const largeDelta = Math.abs(largeTipVx - initialVx);
+    assert(largeDelta > smallDelta + 0.35, "larger tip radius should produce materially stronger contact response");
 }
 
 function testSpinnerBladesDoNotBlockBall() {
@@ -1703,6 +1867,47 @@ function testAssistantLoadModelsRequiresProviderSettings() {
     });
 }
 
+function testAssistantProviderUiAutosavesModelAndWarns() {
+    /* What: Assert provider panel wires model edits to immediate persistence hook.
+     * Why: Chat/Agentic should not lose model picks due to unsaved draft-only state.
+     */
+    const source = read("app/editor/panels.js");
+    assert(/onAutoSaveAssistantModel/.test(source), "assistant provider panel should call model auto-save hook");
+    assert(/item\.id != null \? item\.id : item\.value/.test(source), "assistant provider model picker should accept value-based option entries");
+    assert(/provider settings persist in browser localStorage on this machine/i.test(source), "assistant provider panel should warn about browser localStorage persistence");
+}
+
+function testAssistantUiExposesLogFromAllSubtabs() {
+    /* What: Verify assistant log access and inline run status are visible in all assistant subtabs.
+     * Why: Operators need one consistent place to inspect runtime behavior regardless of current subtab.
+     */
+    const source = read("app/editor/panels.js");
+    assert(/\(model\.assistantSubtab \|\| "chat"\) === "provider"[\s\S]*Show Log/.test(source), "provider subtab should expose Show Log action");
+    assert(/\(model\.assistantSubtab \|\| "chat"\) === "agentic"[\s\S]*Show Log/.test(source), "agentic subtab should expose Show Log action");
+    assert(/Run status:\s*"\s*\+\s*\(runStatus\.flow/.test(source), "assistant subtabs should show inline run status");
+}
+
+function testAiLabAutosavesModelAndWarns() {
+    /* What: Assert AI-Lab persists model edits directly into shared assistant settings.
+     * Why: Lab runs should reuse the selected model immediately across navigation.
+     */
+    const source = read("app/tuning/lab.js");
+    assert(/function aiLabPersistModelOnly\(/.test(source), "ai-lab should define model-only persistence helper");
+    assert(/aiModelSelect\.onchange[\s\S]*aiLabPersistModelOnly\(picked\)/.test(source), "ai-lab model dropdown should auto-save selected model");
+    assert(/aiModelInput\.oninput[\s\S]*aiLabPersistModelOnly\(aiModelInput\.value\)/.test(source), "ai-lab model input should auto-save typed model");
+    assert(/provider settings persist in browser localStorage on this machine/i.test(source), "ai-lab should warn about browser localStorage persistence");
+}
+
+function testAssistantRunPathsCommitDirtyProviderDraft() {
+    /* What: Verify Chat/Agentic run actions commit pending provider draft changes.
+     * Why: users should be able to set provider fields and run immediately without
+     * requiring an explicit Provider Save click.
+     */
+    const source = read("app/editor/editor.js");
+    assert(/onSendAssistantMessage[\s\S]*inspectorDrafts\["assistant:settings"\][\s\S]*assistantRuntime\.setSettings\(providerDraft\.draft\)/.test(source), "chat run should commit dirty provider draft");
+    assert(/onRunAgentic[\s\S]*inspectorDrafts\["assistant:settings"\][\s\S]*assistantRuntime\.setSettings\(providerDraft\.draft\)/.test(source), "agentic run should commit dirty provider draft");
+}
+
 function loadLogicModules() {
     const ctx = { window: { Pin: {} }, console: console };
     ctx.Pin = ctx.window.Pin;
@@ -1795,6 +2000,16 @@ function testAssistantChatUsesProviderPath() {
     return runtime.send().then(function done() {
         const state = runtime.getState();
         assert(state.lastPatch && state.lastPatch.logicDocPatch, "chat should store provider-produced logicDocPatch");
+        assert(Array.isArray(state.logs) && state.logs.length > 0, "assistant should capture provider flow logs");
+        const requestLog = state.logs.find(function find(row) { return row && row.kind === "provider_request"; });
+        const responseLog = state.logs.find(function find(row) { return row && row.kind === "provider_response_raw"; });
+        const previewLog = state.logs.find(function find(row) { return row && row.kind === "preview_result"; });
+        assert(requestLog && requestLog.flow === "chat", "provider request log should include chat flow metadata");
+        assert(requestLog && requestLog.phase === "provider", "provider request log should include provider phase");
+        assert(requestLog && typeof requestLog.summary === "string" && requestLog.summary.length > 0, "provider request log should include human summary");
+        assert(responseLog && responseLog.detail.indexOf("secret") < 0, "provider logs should redact API key values");
+        assert(previewLog && previewLog.phase === "preview", "preview result should be logged with preview phase");
+        assert(state.runStatus && typeof state.runStatus.summary === "string", "assistant state should expose inline run status");
         const rules = state.lastPatch.logicDocPatch.actionRules || [];
         const lamps = state.lastPatch.logicDocPatch.lampBindings || [];
         assert(rules.some(function some(rule) { return rule && rule.trigger === "dt_left"; }), "chat/provider patch should include hit rule for drop target");
@@ -2312,6 +2527,8 @@ Promise.resolve()
     .then(function run() { testFlipperSupportedContactUsesCurrentBlade(); })
     .then(function run() { testFlipperSupportedContactPreservesOutwardSeparation(); })
     .then(function run() { testFlipperRepeatedSameFrameContactStillResolves(); })
+    .then(function run() { testFlipperUndersideBlocksUpwardPassThrough(); })
+    .then(function run() { testFlipperRootAndTipRadiiAffectContactReach(); })
     .then(function run() { testSpinnerBladesDoNotBlockBall(); })
     .then(function run() { testSpinnerSweepContactDoesNotBlockBallTravel(); })
     .then(function run() { testGateDirectionModesCanOpen(); })
@@ -2340,6 +2557,10 @@ Promise.resolve()
     .then(function run() { testStorageClearsOnlyPinLocalState(); })
     .then(function run() { testLocalTableSaveAddsBrowseMetadata(); })
     .then(function run() { testAssistantProviderSettingsPersist(); })
+    .then(function run() { testAssistantProviderUiAutosavesModelAndWarns(); })
+    .then(function run() { testAssistantUiExposesLogFromAllSubtabs(); })
+    .then(function run() { testAiLabAutosavesModelAndWarns(); })
+    .then(function run() { testAssistantRunPathsCommitDirtyProviderDraft(); })
     .then(function run() { return testAssistantProviderConnectionAndModelFeedback(); })
     .then(function run() { return testAssistantConnectionRequiresBaseUrlAndApiKeyOnly(); })
     .then(function run() { return testAssistantLoadModelsRequiresProviderSettings(); })

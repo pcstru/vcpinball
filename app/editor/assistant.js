@@ -421,6 +421,7 @@
             lastPatch: null,
             logs: [],
             logOpen: false,
+            runStatus: { flow: "idle", phase: "idle", summary: "Idle", attempt: 0, maxSteps: 0, at: "" },
             picks: { steps: [], target: "", stepLamps: [], targetLamp: "" },
             layoutPicks: [],
             connectionStatus: "Disabled",
@@ -554,12 +555,119 @@
             });
         }
 
-        function appendLog(kind, detail) {
-            state.logs.push({
+        function nextLogId() {
+            /* What: Build stable-ish local ids for ordered log cards.
+             * Why: UI rendering and operator triage both benefit from explicit event ids.
+             */
+            return "log_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+        }
+
+        function inferFlowFromKind(kind, payload) {
+            const data = payload || {};
+            if (data.flow) return String(data.flow);
+            if (data.meta && data.meta.flow) return String(data.meta.flow);
+            const text = String(kind || "");
+            if (text.indexOf("agentic_") === 0) return "agentic";
+            if (text.indexOf("chat_") === 0) return "chat";
+            return "assistant";
+        }
+
+        function inferPhaseFromKind(kind) {
+            const text = String(kind || "");
+            if (/provider_request|provider_http|provider_response_raw|provider_request_failed/.test(text)) return "provider";
+            if (/provider_contract_failed|attempt_contract_retry/.test(text)) return "contract";
+            if (/preview_result|attempt_preview_retry|attempt_success/.test(text)) return "preview";
+            if (/agentic_apply|agentic_apply_pending|agentic_reject_pending|chat_apply_patch/.test(text)) return "apply";
+            if (/attempt_start|attempt_tool_results|provider_tool_requests/.test(text)) return "attempt";
+            if (/chat_error|agentic_error|attempt_failed|provider_parse_failed/.test(text)) return "error";
+            return "event";
+        }
+
+        function inferLevelFromKind(kind) {
+            const text = String(kind || "");
+            if (/error|failed/.test(text)) return "error";
+            if (/retry|pending/.test(text)) return "warn";
+            return "info";
+        }
+
+        function summarizeLog(kind, payload, level) {
+            const data = payload || {};
+            if (kind === "attempt_start") {
+                return "Attempt " + String(data.attempt || 1) + "/" + String(data.maxSteps || 1) + " started.";
+            }
+            if (kind === "provider_request") {
+                const meta = data.meta || {};
+                return "Provider request: " + String(meta.model || "") + " (" + String(meta.flow || "assistant") + ").";
+            }
+            if (kind === "provider_http") {
+                return "Provider HTTP " + String(data.status || "?") + (data.ok ? " ok." : " failed.");
+            }
+            if (kind === "provider_contract_failed") return "Patch failed contract validation.";
+            if (kind === "preview_result") {
+                const preview = data.preview || {};
+                if (preview.ok) return "Preview passed with " + String(preview.issuesCount || 0) + " issues.";
+                return "Preview failed: " + String(preview.error || "unknown");
+            }
+            if (kind === "attempt_success") return "Attempt succeeded.";
+            if (kind === "chat_patch") return "Chat produced a patch ready for review.";
+            if (kind === "agentic_pending") return "Agentic produced a pending patch requiring decision.";
+            if (kind === "agentic_apply" || kind === "agentic_apply_pending" || kind === "chat_apply_patch") {
+                const applyResult = data.applyResult || data.result || {};
+                return applyResult.ok ? "Patch applied successfully." : "Patch apply failed.";
+            }
+            if (kind === "chat_error" || kind === "agentic_error" || level === "error") {
+                return "Failure: " + String(data.message || data || "unknown");
+            }
+            return String(kind || "event");
+        }
+
+        function redactValue(value) {
+            if (Array.isArray(value)) return value.map(redactValue);
+            if (!value || typeof value !== "object") return value;
+            const out = {};
+            Object.keys(value).forEach(function each(key) {
+                const lower = String(key || "").toLowerCase();
+                if (lower === "apikey" || lower === "api_key" || lower === "authorization" || lower === "auth" || lower === "token" || lower.indexOf("secret") >= 0) {
+                    out[key] = "[redacted]";
+                    return;
+                }
+                out[key] = redactValue(value[key]);
+            });
+            return out;
+        }
+
+        function setRunStatusFromEntry(entry) {
+            const maxSteps = Number((entry && entry.detailData && entry.detailData.meta && entry.detailData.meta.maxSteps) || (entry && entry.detailData && entry.detailData.maxSteps) || state.runStatus.maxSteps || 0);
+            const attempt = Number((entry && entry.detailData && entry.detailData.meta && entry.detailData.meta.attempt) || (entry && entry.detailData && entry.detailData.attempt) || state.runStatus.attempt || 0);
+            state.runStatus = {
+                flow: entry && entry.flow ? entry.flow : "assistant",
+                phase: entry && entry.phase ? entry.phase : "event",
+                summary: entry && entry.summary ? entry.summary : "Event",
+                attempt: attempt,
+                maxSteps: maxSteps,
+                at: entry && entry.at ? entry.at : ""
+            };
+        }
+
+        function appendLog(kind, detail, data) {
+            const flow = inferFlowFromKind(kind, data);
+            const phase = inferPhaseFromKind(kind);
+            const level = inferLevelFromKind(kind);
+            const safeData = redactValue(data == null ? {} : data);
+            const entry = {
+                id: nextLogId(),
                 at: new Date().toISOString(),
                 kind: kind,
-                detail: detail
-            });
+                flow: flow,
+                phase: phase,
+                level: level,
+                summary: summarizeLog(kind, safeData, level),
+                detail: detail,
+                detailData: safeData
+            };
+            state.logs.push(entry);
+            if (state.logs.length > 400) state.logs = state.logs.slice(-400);
+            setRunStatusFromEntry(entry);
         }
         function appendLogData(kind, data) {
             /* What: Write structured trace events to the assistant log.
@@ -568,11 +676,12 @@
              */
             let detail = "";
             try {
-                detail = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+                const safe = redactValue(data);
+                detail = typeof safe === "string" ? safe : JSON.stringify(safe, null, 2);
             } catch (err) {
                 detail = String(data);
             }
-            appendLog(kind, detail);
+            appendLog(kind, detail, data);
         }
 
         function createToolInstruction() {
@@ -932,6 +1041,7 @@
             const task = state.draft.trim();
             state.messages.push({ role: "user", content: task });
             appendLogData("chat_user_task", { task: task });
+            state.runStatus = { flow: "chat", phase: "queued", summary: "Chat task queued.", attempt: 0, maxSteps: Number((state.settings && state.settings.maxSteps) || 4), at: new Date().toISOString() };
             state.busy = true;
             state.error = "";
             refresh();
@@ -958,6 +1068,9 @@
             }).finally(function done() {
                 state.draft = "";
                 state.busy = false;
+                if (!state.agenticRunning && (!state.runStatus || state.runStatus.phase !== "error")) {
+                    state.runStatus = { flow: "chat", phase: "idle", summary: "Chat idle.", attempt: state.runStatus && state.runStatus.attempt ? state.runStatus.attempt : 0, maxSteps: state.runStatus && state.runStatus.maxSteps ? state.runStatus.maxSteps : 0, at: new Date().toISOString() };
+                }
                 refresh();
             });
         }
@@ -965,6 +1078,7 @@
             const task = safeString(state.agenticDraft).trim();
             if (!task || state.busy || state.agenticRunning) return;
             appendLogData("agentic_task", { task: task });
+            state.runStatus = { flow: "agentic", phase: "queued", summary: "Agentic run queued.", attempt: 0, maxSteps: Number((state.settings && state.settings.maxSteps) || 4), at: new Date().toISOString() };
             state.busy = true;
             state.agenticRunning = true;
             state.error = "";
@@ -1003,6 +1117,9 @@
             }).finally(function done() {
                 state.busy = false;
                 state.agenticRunning = false;
+                if (!state.runStatus || state.runStatus.phase !== "error") {
+                    state.runStatus = { flow: "agentic", phase: "idle", summary: "Agentic idle.", attempt: state.runStatus && state.runStatus.attempt ? state.runStatus.attempt : 0, maxSteps: state.runStatus && state.runStatus.maxSteps ? state.runStatus.maxSteps : 0, at: new Date().toISOString() };
+                }
                 refresh();
             });
         }

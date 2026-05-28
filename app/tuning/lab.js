@@ -61,6 +61,14 @@
         if (typeof element.strikeBoost !== "number") element.strikeBoost = 0.52;
         if (typeof element.surfaceRestitution !== "number") element.surfaceRestitution = 0.28;
         if (typeof element.surfaceFriction !== "number") element.surfaceFriction = 0.08;
+        if (typeof element.rootRadius !== "number") {
+            const thickness = typeof element.thickness === "number" ? element.thickness : 10;
+            element.rootRadius = Math.max(8, thickness * 1.4);
+        }
+        if (typeof element.tipRadius !== "number") {
+            const thickness = typeof element.thickness === "number" ? element.thickness : 10;
+            element.tipRadius = Math.max(5, thickness * 0.7);
+        }
         return element;
     }
 
@@ -680,6 +688,7 @@
         aiWrap.appendChild(aiModelPickRow);
         aiWrap.appendChild(aiApiKeyRow);
         aiWrap.appendChild(aiProviderSettingsRow);
+        aiWrap.appendChild(create("div", "lab-eval-summary", "Warning: provider settings persist in browser localStorage on this machine."));
         aiWrap.appendChild(aiPrompt);
         aiWrap.appendChild(aiProviderStatus);
         aiWrap.appendChild(aiProviderRow);
@@ -1152,6 +1161,18 @@
             } catch (error) {
                 return false;
             }
+        }
+
+        function aiLabPersistModelOnly(modelValue) {
+            /* What: Persist only the selected model into shared assistant settings.
+             * Why: AI-Lab and Designer execution read saved provider settings, so model
+             *      picks should apply immediately without forcing Save for other fields.
+             */
+            const current = aiLabSettings();
+            const next = Object.assign({}, current, {
+                model: String(modelValue == null ? "" : modelValue).trim()
+            });
+            return aiLabWriteSettings(next);
         }
 
         function aiLabPopulateSettingsForm() {
@@ -2534,6 +2555,8 @@
                     { key: "flipAccel", label: "Flip Accel", min: 20, max: 600, step: 5 },
                     { key: "returnSpeed", label: "Return Speed", min: 4, max: 40, step: 1 },
                     { key: "returnAccel", label: "Return Accel", min: 20, max: 600, step: 5 },
+                    { key: "rootRadius", label: "Root Radius", min: 4, max: 40, step: 0.5 },
+                    { key: "tipRadius", label: "Tip Radius", min: 3, max: 30, step: 0.5 },
                     { key: "strikeBoost", label: "Strike Boost", min: 0, max: 6, step: 0.05 },
                     { key: "surfaceRestitution", label: "Surface Restitution", min: 0, max: 2, step: 0.01 },
                     { key: "surfaceFriction", label: "Surface Friction", min: 0, max: 4, step: 0.05 }
@@ -2687,7 +2710,11 @@
             const picked = String(aiModelSelect.value || "").trim();
             if (!picked) return;
             aiModelInput.value = picked;
+            aiLabPersistModelOnly(picked);
             state.runtime.dirty = true;
+        };
+        aiModelInput.oninput = function onAiModelInputChange() {
+            aiLabPersistModelOnly(aiModelInput.value);
         };
         aiBaseUrlInput.onchange = function onAiBaseUrlChange() {
             aiModelSelect.value = "";

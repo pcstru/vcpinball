@@ -22,7 +22,9 @@
         strikeBoost: 0.52,
         surfaceRestitution: 0.28,
         surfaceFriction: 0.08,
-        thickness: 10
+        thickness: 10,
+        rootRadius: 14,
+        tipRadius: 7
     }, (Pin.table && Pin.table.DEFAULT_FLIPPER_TUNING) || {});
     const TUNING_FIELDS = [
         { key: "flipSpeed", label: "Flip Speed", min: 4, max: 40, step: 1 },

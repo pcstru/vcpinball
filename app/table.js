@@ -26,7 +26,9 @@
         strikeBoost: 0.52,
         surfaceRestitution: 0.28,
         surfaceFriction: 0.08,
-        thickness: 10
+        thickness: 10,
+        rootRadius: 14,
+        tipRadius: 7
     };
 
     function createEmptyTable() {
@@ -102,6 +104,8 @@
                     surfaceRestitution: DEFAULT_FLIPPER_TUNING.surfaceRestitution,
                     surfaceFriction: DEFAULT_FLIPPER_TUNING.surfaceFriction,
                     thickness: DEFAULT_FLIPPER_TUNING.thickness,
+                    rootRadius: DEFAULT_FLIPPER_TUNING.rootRadius,
+                    tipRadius: DEFAULT_FLIPPER_TUNING.tipRadius,
                     color: "#00ddff"
                 },
                 {
@@ -122,6 +126,8 @@
                     surfaceRestitution: DEFAULT_FLIPPER_TUNING.surfaceRestitution,
                     surfaceFriction: DEFAULT_FLIPPER_TUNING.surfaceFriction,
                     thickness: DEFAULT_FLIPPER_TUNING.thickness,
+                    rootRadius: DEFAULT_FLIPPER_TUNING.rootRadius,
+                    tipRadius: DEFAULT_FLIPPER_TUNING.tipRadius,
                     color: "#ff4466"
                 }
             ]
