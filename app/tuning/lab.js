@@ -186,6 +186,7 @@
                 { id: "launcher_rays", label: "Launcher Reachability Rays", category: "stuck" },
                 { id: "flipper_reachability", label: "Flipper Reachability Rays", category: "reachability" },
                 { id: "target_to_flipper_reachability", label: "Target To Flipper Reachability", category: "reachability" },
+                { id: "autoplay_heatmap", label: "Autoplay Heatmap", category: "autoplay" },
                 { id: "reachability_todo", label: "Reachability TODO Reminder", category: "reachability" }
             ];
         const defaultEvalSelection = {};
@@ -220,10 +221,30 @@
                 accessibilityRaySpeed: 15,
                 accessibilityMaxTicks: 420,
                 accessibilityMaxCollisions: 1,
+                autoplayBallCount: 5,
+                autoplayMaxTicksPerBall: 12000,
+                autoplayTargetingIntervalTicks: 8,
+                autoplayPreferUnlitTargets: true,
+                autoplayCellSize: 24,
+                autoplayMinScore: 0,
+                autoplayAimHorizonTicks: 48,
+                autoplayAimPulseTicks: 3,
+                autoplayAimCooldownTicks: 8,
                 runChecks: evalRunChecks,
                 selectedChecks: defaultEvalSelection,
                 runId: 0,
                 running: false
+            },
+            autoplay: {
+                liveRunning: false,
+                liveController: null,
+                liveSummary: "",
+                liveStatus: "Idle",
+                liveHeatmap: null,
+                livePath: [],
+                liveTrajectories: [],
+                liveServeIndex: 0,
+                liveWasInLaunchLane: true
             },
             aiLab: {
                 prompt: "",
@@ -564,6 +585,62 @@
         accessibilityContactsInput.value = String(state.eval.accessibilityMaxCollisions);
         accessibilityContactsInput.className = "lab-number";
         accessibilityContactsRow.appendChild(accessibilityContactsInput);
+        const autoplayBallRow = create("label", "lab-inline-field");
+        autoplayBallRow.textContent = "Autoplay balls";
+        const autoplayBallInput = document.createElement("input");
+        autoplayBallInput.type = "number";
+        autoplayBallInput.min = "1";
+        autoplayBallInput.max = "64";
+        autoplayBallInput.step = "1";
+        autoplayBallInput.value = String(state.eval.autoplayBallCount);
+        autoplayBallInput.className = "lab-number";
+        autoplayBallRow.appendChild(autoplayBallInput);
+        const autoplayTickRow = create("label", "lab-inline-field");
+        autoplayTickRow.textContent = "Autoplay max ticks/ball";
+        const autoplayTickInput = document.createElement("input");
+        autoplayTickInput.type = "number";
+        autoplayTickInput.min = "120";
+        autoplayTickInput.max = "120000";
+        autoplayTickInput.step = "120";
+        autoplayTickInput.value = String(state.eval.autoplayMaxTicksPerBall);
+        autoplayTickInput.className = "lab-number";
+        autoplayTickRow.appendChild(autoplayTickInput);
+        const autoplayTargetIntervalRow = create("label", "lab-inline-field");
+        autoplayTargetIntervalRow.textContent = "Autoplay target interval";
+        const autoplayTargetIntervalInput = document.createElement("input");
+        autoplayTargetIntervalInput.type = "number";
+        autoplayTargetIntervalInput.min = "1";
+        autoplayTargetIntervalInput.max = "120";
+        autoplayTargetIntervalInput.step = "1";
+        autoplayTargetIntervalInput.value = String(state.eval.autoplayTargetingIntervalTicks);
+        autoplayTargetIntervalInput.className = "lab-number";
+        autoplayTargetIntervalRow.appendChild(autoplayTargetIntervalInput);
+        const autoplayCellSizeRow = create("label", "lab-inline-field");
+        autoplayCellSizeRow.textContent = "Autoplay cell size";
+        const autoplayCellSizeInput = document.createElement("input");
+        autoplayCellSizeInput.type = "number";
+        autoplayCellSizeInput.min = "8";
+        autoplayCellSizeInput.max = "128";
+        autoplayCellSizeInput.step = "1";
+        autoplayCellSizeInput.value = String(state.eval.autoplayCellSize);
+        autoplayCellSizeInput.className = "lab-number";
+        autoplayCellSizeRow.appendChild(autoplayCellSizeInput);
+        const autoplayMinScoreRow = create("label", "lab-inline-field");
+        autoplayMinScoreRow.textContent = "Autoplay min score";
+        const autoplayMinScoreInput = document.createElement("input");
+        autoplayMinScoreInput.type = "number";
+        autoplayMinScoreInput.min = "0";
+        autoplayMinScoreInput.max = "1000000000";
+        autoplayMinScoreInput.step = "100";
+        autoplayMinScoreInput.value = String(state.eval.autoplayMinScore || 0);
+        autoplayMinScoreInput.className = "lab-number";
+        autoplayMinScoreRow.appendChild(autoplayMinScoreInput);
+        const autoplayLiveActions = create("div", "lab-actions");
+        const autoplayLiveStartButton = create("button", "", "Autoplay Live");
+        const autoplayLiveStopButton = create("button", "", "Stop Live");
+        autoplayLiveActions.appendChild(autoplayLiveStartButton);
+        autoplayLiveActions.appendChild(autoplayLiveStopButton);
+        const autoplayLiveStatus = create("div", "lab-eval-summary", "Autoplay live: idle.");
         const evalSummary = create("div", "lab-eval-summary", "No report yet.");
         const evalProgress = create("div", "lab-progress");
         const evalProgressFill = create("div", "lab-progress-fill");
@@ -587,6 +664,13 @@
         evalWrap.appendChild(accessibilitySpeedRow);
         evalWrap.appendChild(accessibilityTicksRow);
         evalWrap.appendChild(accessibilityContactsRow);
+        evalWrap.appendChild(autoplayBallRow);
+        evalWrap.appendChild(autoplayTickRow);
+        evalWrap.appendChild(autoplayTargetIntervalRow);
+        evalWrap.appendChild(autoplayCellSizeRow);
+        evalWrap.appendChild(autoplayMinScoreRow);
+        evalWrap.appendChild(autoplayLiveActions);
+        evalWrap.appendChild(autoplayLiveStatus);
         evalWrap.appendChild(evalSummary);
         evalWrap.appendChild(evalProgress);
         evalWrap.appendChild(evalChecks);
@@ -775,6 +859,99 @@
             });
         }
 
+        function autoplayOptionsFromEvalState() {
+            return {
+                autoplayBallCount: state.eval.autoplayBallCount,
+                autoplayMaxTicksPerBall: state.eval.autoplayMaxTicksPerBall,
+                autoplayTargetingIntervalTicks: state.eval.autoplayTargetingIntervalTicks,
+                autoplayPreferUnlitTargets: state.eval.autoplayPreferUnlitTargets,
+                autoplayCellSize: state.eval.autoplayCellSize,
+                autoplayMinScore: state.eval.autoplayMinScore,
+                autoplayAimHorizonTicks: state.eval.autoplayAimHorizonTicks,
+                autoplayAimPulseTicks: state.eval.autoplayAimPulseTicks,
+                autoplayAimCooldownTicks: state.eval.autoplayAimCooldownTicks,
+                targetingIntervalTicks: state.eval.autoplayTargetingIntervalTicks,
+                preferUnlitTargets: state.eval.autoplayPreferUnlitTargets,
+                cellSize: state.eval.autoplayCellSize,
+                aimHorizonTicks: state.eval.autoplayAimHorizonTicks,
+                aimPulseTicks: state.eval.autoplayAimPulseTicks,
+                aimCooldownTicks: state.eval.autoplayAimCooldownTicks
+            };
+        }
+
+        function createLiveAutoplayHeatmap() {
+            const table = state.sim && state.sim.world ? state.sim.world.table : null;
+            const playfield = table && table.playfield ? table.playfield : {};
+            const width = Number.isFinite(playfield.width) && playfield.width > 0 ? playfield.width : 500;
+            const height = Number.isFinite(playfield.height) && playfield.height > 0 ? playfield.height : 880;
+            const cellSize = clamp(Math.round(Number(state.eval.autoplayCellSize) || 24), 8, 128);
+            const cols = Math.max(1, Math.ceil(width / cellSize));
+            const rows = Math.max(1, Math.ceil(height / cellSize));
+            return {
+                cols: cols,
+                rows: rows,
+                cellSize: cellSize,
+                values: new Array(cols * rows).fill(0),
+                max: 0
+            };
+        }
+
+        function stampLiveAutoplayHeatmap(ball) {
+            const heat = state.autoplay.liveHeatmap;
+            if (!heat || !ball || !Number.isFinite(ball.x) || !Number.isFinite(ball.y)) return;
+            const col = Math.max(0, Math.min(heat.cols - 1, Math.floor(ball.x / heat.cellSize)));
+            const row = Math.max(0, Math.min(heat.rows - 1, Math.floor(ball.y / heat.cellSize)));
+            const index = row * heat.cols + col;
+            const next = (heat.values[index] || 0) + 1;
+            heat.values[index] = next;
+            if (next > heat.max) heat.max = next;
+        }
+
+        function stopLiveAutoplay() {
+            state.autoplay.liveRunning = false;
+            state.autoplay.liveController = null;
+            state.autoplay.liveHeatmap = null;
+            state.autoplay.livePath = [];
+            state.autoplay.liveTrajectories = [];
+            state.autoplay.liveServeIndex = 0;
+            state.autoplay.liveWasInLaunchLane = true;
+            state.eval.liveCheck = null;
+            autoplayLiveStatus.textContent = "Autoplay live: stopped.";
+            autoplayLiveStartButton.disabled = false;
+            autoplayLiveStopButton.disabled = true;
+            state.sandbox.controls.left = false;
+            state.sandbox.controls.right = false;
+            state.sandbox.controls.launch = false;
+            state.runtime.dirty = true;
+        }
+
+        function startLiveAutoplay() {
+            if (!state.eval.selectedTable) {
+                autoplayLiveStatus.textContent = "Autoplay live: load a table first.";
+                return;
+            }
+            if (!Pin.tableAutoplay || typeof Pin.tableAutoplay.createController !== "function") {
+                autoplayLiveStatus.textContent = "Autoplay live: runtime unavailable.";
+                return;
+            }
+            state.scenarioId = "sandbox";
+            scenarioSelect.value = "sandbox";
+            setActiveTab("sandbox");
+            reloadControls();
+            rebuildSimulation();
+            state.autoplay.liveController = Pin.tableAutoplay.createController(state.sim.world, autoplayOptionsFromEvalState());
+            state.autoplay.liveRunning = true;
+            state.autoplay.liveHeatmap = createLiveAutoplayHeatmap();
+            state.autoplay.livePath = [];
+            state.autoplay.liveTrajectories = [];
+            state.autoplay.liveServeIndex = 0;
+            state.autoplay.liveWasInLaunchLane = true;
+            autoplayLiveStatus.textContent = "Autoplay live: running.";
+            autoplayLiveStartButton.disabled = true;
+            autoplayLiveStopButton.disabled = false;
+            state.runtime.dirty = true;
+        }
+
         /* What: Keep eval-run controls consistent with selection/run state.
          * Why: disabling invalid actions avoids confusing no-op runs.
          */
@@ -856,6 +1033,7 @@
             if (id === "stuck_launcher_ray" || id === "launcher_velocity_spread") return ["launcher_rays"];
             if (id === "reachability_flipper_rays") return ["flipper_reachability"];
             if (id === "reachability_target_to_flipper") return ["target_to_flipper_reachability"];
+            if (id === "autoplay_heatmap") return ["autoplay_heatmap"];
             if (id === "reachability_todo") return ["reachability_todo"];
             return [];
         }
@@ -1111,6 +1289,15 @@
                 accessibilityRaySpeed: state.eval.accessibilityRaySpeed,
                 accessibilityMaxTicks: state.eval.accessibilityMaxTicks,
                 accessibilityMaxCollisions: state.eval.accessibilityMaxCollisions,
+                autoplayBallCount: state.eval.autoplayBallCount,
+                autoplayMaxTicksPerBall: state.eval.autoplayMaxTicksPerBall,
+                autoplayTargetingIntervalTicks: state.eval.autoplayTargetingIntervalTicks,
+                autoplayPreferUnlitTargets: state.eval.autoplayPreferUnlitTargets,
+                autoplayCellSize: state.eval.autoplayCellSize,
+                autoplayMinScore: state.eval.autoplayMinScore,
+                autoplayAimHorizonTicks: state.eval.autoplayAimHorizonTicks,
+                autoplayAimPulseTicks: state.eval.autoplayAimPulseTicks,
+                autoplayAimCooldownTicks: state.eval.autoplayAimCooldownTicks,
                 evalChecks: hasSelectionArray ? selectedIds : undefined,
                 onProgress: function onProgress(progress) {
                     if (runId !== state.eval.runId) return;
@@ -1704,7 +1891,16 @@
                     accessibilityCellSize: state.eval.accessibilityCellSize,
                     accessibilityRaySpeed: state.eval.accessibilityRaySpeed,
                     accessibilityMaxTicks: state.eval.accessibilityMaxTicks,
-                    accessibilityMaxCollisions: state.eval.accessibilityMaxCollisions
+                    accessibilityMaxCollisions: state.eval.accessibilityMaxCollisions,
+                    autoplayBallCount: state.eval.autoplayBallCount,
+                    autoplayMaxTicksPerBall: state.eval.autoplayMaxTicksPerBall,
+                    autoplayTargetingIntervalTicks: state.eval.autoplayTargetingIntervalTicks,
+                    autoplayPreferUnlitTargets: state.eval.autoplayPreferUnlitTargets,
+                    autoplayCellSize: state.eval.autoplayCellSize,
+                    autoplayMinScore: state.eval.autoplayMinScore,
+                    autoplayAimHorizonTicks: state.eval.autoplayAimHorizonTicks,
+                    autoplayAimPulseTicks: state.eval.autoplayAimPulseTicks,
+                    autoplayAimCooldownTicks: state.eval.autoplayAimCooldownTicks
                 };
                 const result = contract.evaluatePatchAttempt(state.eval.selectedTable, patch, evalOptions);
                 aiLabRecordAttempt(result, patch, response.content, { provider: response.provider, model: response.model });
@@ -1768,7 +1964,7 @@
         }
 
         function selectedEvalCheck() {
-            if (state.eval.running && state.eval.liveCheck) return state.eval.liveCheck;
+            if ((state.eval.running || state.autoplay.liveRunning) && state.eval.liveCheck) return state.eval.liveCheck;
             const report = state.eval.report;
             if (!report || !Array.isArray(report.checks)) return null;
             if (state.eval.selectedCheckIndex < 0 || state.eval.selectedCheckIndex >= report.checks.length) return null;
@@ -1819,6 +2015,8 @@
 
             (diagnostics.segments || []).forEach(function each(seg) {
                 if (!seg) return;
+                ctx.strokeStyle = seg.color || palette.stroke;
+                ctx.lineWidth = seg.lineWidth || 2;
                 ctx.beginPath();
                 ctx.moveTo(seg.x1, seg.y1);
                 ctx.lineTo(seg.x2, seg.y2);
@@ -1831,6 +2029,9 @@
             });
             (diagnostics.circles || []).forEach(function each(circle) {
                 if (!circle) return;
+                ctx.fillStyle = circle.fill || palette.fill;
+                ctx.strokeStyle = circle.stroke || palette.stroke;
+                ctx.lineWidth = circle.lineWidth || 2;
                 ctx.beginPath();
                 ctx.arc(circle.x, circle.y, circle.r || 8, 0, Math.PI * 2);
                 ctx.fill();
@@ -1838,6 +2039,8 @@
             });
             (diagnostics.points || []).forEach(function each(point) {
                 if (!point || typeof point.x !== "number" || typeof point.y !== "number") return;
+                ctx.fillStyle = point.fill || palette.fill;
+                ctx.strokeStyle = point.stroke || palette.stroke;
                 ctx.beginPath();
                 ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
                 ctx.fill();
@@ -1969,6 +2172,9 @@
                 }
             });
             state.sandbox.launchHeldPrev = false;
+            if (state.autoplay.liveRunning && Pin.tableAutoplay && typeof Pin.tableAutoplay.createController === "function") {
+                state.autoplay.liveController = Pin.tableAutoplay.createController(state.sim.world, autoplayOptionsFromEvalState());
+            }
             applySandboxControlsToWorld();
             exportBox.value = JSON.stringify(state.sim.toFragment(), null, 2);
             render();
@@ -2296,7 +2502,7 @@
                 ctx.setLineDash([]);
                 ctx.restore();
             }
-            if (state.ui.activeTab === "eval") {
+            if (state.ui.activeTab === "eval" || state.autoplay.liveRunning) {
                 drawDiagnosticOverlay(selectedEvalCheck());
             }
         }
@@ -2679,6 +2885,13 @@
         runAllEvalButton.onclick = function runAllEvalClick() {
             runTableEvaluation(null, "all");
         };
+        autoplayLiveStartButton.onclick = function autoplayLiveStart() {
+            startLiveAutoplay();
+        };
+        autoplayLiveStopButton.onclick = function autoplayLiveStop() {
+            stopLiveAutoplay();
+        };
+        autoplayLiveStopButton.disabled = true;
         evalSelectAllButton.onclick = function selectAllEvalChecks() {
             (state.eval.runChecks || []).forEach(function each(check) {
                 if (!check || typeof check.id !== "string") return;
@@ -2874,6 +3087,31 @@
             state.eval.accessibilityMaxCollisions = Number.isFinite(next) ? clamp(next, 1, 5000) : 1;
             accessibilityContactsInput.value = String(state.eval.accessibilityMaxCollisions);
             if (state.eval.report && selectedEvalRunCheckIds().length) runTableEvaluation(selectedEvalRunCheckIds(), "selected");
+        };
+        autoplayBallInput.onchange = function onAutoplayBallCountChange() {
+            const next = Math.round(Number(autoplayBallInput.value));
+            state.eval.autoplayBallCount = Number.isFinite(next) ? clamp(next, 1, 64) : 5;
+            autoplayBallInput.value = String(state.eval.autoplayBallCount);
+        };
+        autoplayTickInput.onchange = function onAutoplayTicksChange() {
+            const next = Math.round(Number(autoplayTickInput.value));
+            state.eval.autoplayMaxTicksPerBall = Number.isFinite(next) ? clamp(next, 120, 120000) : 12000;
+            autoplayTickInput.value = String(state.eval.autoplayMaxTicksPerBall);
+        };
+        autoplayTargetIntervalInput.onchange = function onAutoplayTargetIntervalChange() {
+            const next = Math.round(Number(autoplayTargetIntervalInput.value));
+            state.eval.autoplayTargetingIntervalTicks = Number.isFinite(next) ? clamp(next, 1, 120) : 8;
+            autoplayTargetIntervalInput.value = String(state.eval.autoplayTargetingIntervalTicks);
+        };
+        autoplayCellSizeInput.onchange = function onAutoplayCellSizeChange() {
+            const next = Math.round(Number(autoplayCellSizeInput.value));
+            state.eval.autoplayCellSize = Number.isFinite(next) ? clamp(next, 8, 128) : 24;
+            autoplayCellSizeInput.value = String(state.eval.autoplayCellSize);
+        };
+        autoplayMinScoreInput.onchange = function onAutoplayMinScoreChange() {
+            const next = Math.round(Number(autoplayMinScoreInput.value));
+            state.eval.autoplayMinScore = Number.isFinite(next) ? clamp(next, 0, 1000000000) : 0;
+            autoplayMinScoreInput.value = String(state.eval.autoplayMinScore);
         };
         evalTableSelect.onchange = function onEvalTableChange() {
             state.eval.selectedRef = evalTableSelect.value;
@@ -3085,9 +3323,136 @@
             let metricsMs = 0;
             if (state.playing && !state.sim.done) {
                 if (state.scenarioId === "sandbox") {
+                    if (state.autoplay.liveRunning && state.autoplay.liveController && state.sim && state.sim.world) {
+                        const autoControls = state.autoplay.liveController.update();
+                        state.sandbox.controls.left = !!autoControls.left;
+                        state.sandbox.controls.right = !!autoControls.right;
+                        state.sandbox.controls.launch = !!autoControls.launch;
+                        autoplayLiveStatus.textContent = "Autoplay live: running.";
+                    }
                     applySandboxControlsToWorld();
                 }
                 state.sim.step(2);
+                if (state.autoplay.liveRunning && state.sim && state.sim.world) {
+                    const liveBall = state.sim.world.balls && state.sim.world.balls[0] ? state.sim.world.balls[0] : null;
+                    if (liveBall && Number.isFinite(liveBall.x) && Number.isFinite(liveBall.y)) {
+                        const inLane = !!liveBall.inLaunchLane;
+                        if (!inLane && state.autoplay.liveWasInLaunchLane) {
+                            state.autoplay.liveServeIndex += 1;
+                            state.autoplay.livePath = [];
+                            state.autoplay.liveTrajectories.push({
+                                label: "live_ball_" + state.autoplay.liveServeIndex,
+                                status: "warn",
+                                path: state.autoplay.livePath
+                            });
+                            if (state.autoplay.liveTrajectories.length > 10) state.autoplay.liveTrajectories.shift();
+                        }
+                        if (!state.autoplay.liveTrajectories.length) {
+                            state.autoplay.liveServeIndex = 1;
+                            state.autoplay.livePath = [];
+                            state.autoplay.liveTrajectories.push({
+                                label: "live_ball_1",
+                                status: "warn",
+                                path: state.autoplay.livePath
+                            });
+                        }
+                        state.autoplay.liveWasInLaunchLane = inLane;
+                        stampLiveAutoplayHeatmap(liveBall);
+                        if (state.autoplay.livePath.length < 400 || state.autoplay.livePath.length % 4 === 0) {
+                            state.autoplay.livePath.push({ x: liveBall.x, y: liveBall.y });
+                        }
+                        const aimDebug = state.autoplay.liveController && typeof state.autoplay.liveController.getAimDebug === "function" ?
+                            state.autoplay.liveController.getAimDebug() : null;
+                        const aimSegments = [];
+                        const aimLabels = [{ text: "Live autoplay sampling", x: 14, y: 20 }];
+                        const aimPoints = [];
+                        const aimCircles = [];
+                        const aimTrajectories = [];
+                        if (aimDebug && aimDebug.target && Number.isFinite(aimDebug.target.x) && Number.isFinite(aimDebug.target.y)) {
+                            const scheduledAction = aimDebug.scheduled ?
+                                (String(aimDebug.chosen || "none") + "@" + String(aimDebug.scheduled.delay || 0) + "/" + String(aimDebug.scheduled.pulse || 0)) :
+                                "none";
+                            aimPoints.push({
+                                x: aimDebug.target.x,
+                                y: aimDebug.target.y,
+                                fill: "rgba(70, 212, 142, 0.30)",
+                                stroke: "rgba(70, 212, 142, 0.96)"
+                            });
+                            aimCircles.push({
+                                x: aimDebug.target.x,
+                                y: aimDebug.target.y,
+                                r: 18,
+                                fill: "rgba(70, 212, 142, 0.10)",
+                                stroke: "rgba(70, 212, 142, 0.78)",
+                                lineWidth: 1.5
+                            });
+                            if (Number.isFinite(liveBall.x) && Number.isFinite(liveBall.y)) {
+                                aimSegments.push({
+                                    x1: liveBall.x,
+                                    y1: liveBall.y,
+                                    x2: aimDebug.target.x,
+                                    y2: aimDebug.target.y,
+                                    color: "rgba(70, 212, 142, 0.72)"
+                                });
+                            }
+                            if (Array.isArray(aimDebug.candidates)) {
+                                aimDebug.candidates.slice(0, 6).forEach(function eachCandidate(candidate, index) {
+                                    if (!candidate || !candidate.end) return;
+                                    const chosen = !!candidate.action && candidate.action === scheduledAction;
+                                    if (Number.isFinite(candidate.end.x) && Number.isFinite(candidate.end.y) && Number.isFinite(liveBall.x) && Number.isFinite(liveBall.y)) {
+                                        aimSegments.push({
+                                            x1: liveBall.x,
+                                            y1: liveBall.y,
+                                            x2: candidate.end.x,
+                                            y2: candidate.end.y,
+                                            color: chosen ? "rgba(82, 225, 147, 0.95)" : "rgba(255, 188, 94, 0.68)",
+                                            lineWidth: chosen ? 2.6 : 1.4
+                                        });
+                                    }
+                                    if (Array.isArray(candidate.path) && candidate.path.length > 1) {
+                                        aimTrajectories.push({
+                                            label: candidate.action || candidate.mode,
+                                            status: chosen ? "pass" : "warn",
+                                            path: candidate.path
+                                        });
+                                    }
+                                    aimLabels.push({
+                                        text: (candidate.action || candidate.mode) + " score " + String(candidate.score) + " d " + String(candidate.distance) + (candidate.hit ? " hit" : ""),
+                                        x: 14,
+                                        y: 38 + index * 16
+                                    });
+                                });
+                                aimLabels.push({
+                                    text: "phase " + String(aimDebug.phase || "idle") + " | chosen " + String(aimDebug.chosen || "none") + " @ tick " + aimDebug.tick + " | cooldown " + String(aimDebug.cooldownTicks || 0),
+                                    x: 14,
+                                    y: 138
+                                });
+                            }
+                        }
+                        state.eval.liveCheck = {
+                            id: "autoplay_heatmap",
+                            category: "autoplay",
+                            status: "warn",
+                            message: "Autoplay live run in progress...",
+                            diagnostics: {
+                                heatmap: state.autoplay.liveHeatmap,
+                                segments: aimSegments,
+                                trajectories: state.autoplay.liveTrajectories.map(function map(entry) {
+                                    return {
+                                        label: entry.label,
+                                        status: entry.status,
+                                        path: (entry.path || []).slice(-300)
+                                    };
+                                }).concat(aimTrajectories.slice(0, 4)),
+                                labels: aimLabels,
+                                points: aimPoints,
+                                circles: aimCircles
+                            }
+                        };
+                    } else {
+                        autoplayLiveStatus.textContent = "Autoplay live: waiting for ball.";
+                    }
+                }
                 state.runtime.dirty = true;
             }
             if (state.playing || state.runtime.dirty) {

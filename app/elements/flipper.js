@@ -329,44 +329,58 @@
         };
     }
 
+    function stepFlipper(el, table, world, dt) {
+        const controlActive = getControlState(el, world, table);
+        const targetAngle = controlActive ? el.activeAngle : el.restAngle;
+        const minAngle = Math.min(el.restAngle, el.activeAngle);
+        const maxAngle = Math.max(el.restAngle, el.activeAngle);
+        const state = Pin.elements.getState ?
+            Pin.elements.getState(world, el, { angle: el.restAngle, angularVelocity: 0 }) :
+            { angle: targetAngle, angularVelocity: 0 };
+        const prevAngle = typeof state.angle === "number" ? state.angle : targetAngle;
+        const prevVelocity = typeof state.angularVelocity === "number" ? state.angularVelocity : 0;
+        const toTarget = normalizeDelta(targetAngle - prevAngle);
+        const desiredDir = Math.abs(toTarget) <= 0.0001 ? 0 : Math.sign(toTarget);
+        const accel = getAngularAcceleration(el, controlActive);
+        const maxSpeed = Math.max(0.001, getMaxAngularSpeed(el, controlActive));
+        let angularVelocity = prevVelocity;
+        if (desiredDir === 0) {
+            angularVelocity = 0;
+        } else {
+            angularVelocity += desiredDir * accel * dt;
+            if (Math.sign(angularVelocity) === desiredDir) {
+                angularVelocity = Math.sign(angularVelocity) * Math.min(Math.abs(angularVelocity), maxSpeed);
+            }
+        }
+        let appliedDelta = angularVelocity * dt;
+        let currentAngle = prevAngle + appliedDelta;
+        if (desiredDir !== 0 && Math.sign(appliedDelta) === desiredDir && Math.abs(appliedDelta) >= Math.abs(toTarget)) {
+            appliedDelta = toTarget;
+            currentAngle = prevAngle + appliedDelta;
+            angularVelocity = 0;
+        }
+        const clampedAngle = clamp(currentAngle, minAngle, maxAngle);
+        if (clampedAngle !== currentAngle) {
+            currentAngle = clampedAngle;
+            if (currentAngle === prevAngle || Math.sign(angularVelocity) === Math.sign(prevVelocity)) angularVelocity = 0;
+        }
+        state.prevAngle = prevAngle;
+        state.angle = currentAngle;
+        state.angularVelocity = angularVelocity;
+        state.targetAngle = targetAngle;
+        state.active = controlActive;
+    }
+
     Pin.elements.register("flipper", {
         compile: function compile(el, table, world) {
-            const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
             const controlActive = getControlState(el, world, table);
-            const targetAngle = controlActive ? el.activeAngle : el.restAngle;
-            const minAngle = Math.min(el.restAngle, el.activeAngle);
-            const maxAngle = Math.max(el.restAngle, el.activeAngle);
             const state = Pin.elements.getState ?
                 Pin.elements.getState(world, el, { angle: el.restAngle, angularVelocity: 0 }) :
-                { angle: targetAngle, angularVelocity: 0 };
-            const prevAngle = typeof state.angle === "number" ? state.angle : targetAngle;
-            const prevVelocity = typeof state.angularVelocity === "number" ? state.angularVelocity : 0;
-            const toTarget = normalizeDelta(targetAngle - prevAngle);
-            const desiredDir = Math.abs(toTarget) <= 0.0001 ? 0 : Math.sign(toTarget);
-            const accel = getAngularAcceleration(el, controlActive);
-            const maxSpeed = Math.max(0.001, getMaxAngularSpeed(el, controlActive));
-            let angularVelocity = prevVelocity;
-            if (desiredDir === 0) {
-                angularVelocity = 0;
-            } else {
-                angularVelocity += desiredDir * accel * dt;
-                if (Math.sign(angularVelocity) === desiredDir) {
-                    angularVelocity = Math.sign(angularVelocity) * Math.min(Math.abs(angularVelocity), maxSpeed);
-                }
-            }
-            let appliedDelta = angularVelocity * dt;
-            let currentAngle = prevAngle + appliedDelta;
-            if (desiredDir !== 0 && Math.sign(appliedDelta) === desiredDir && Math.abs(appliedDelta) >= Math.abs(toTarget)) {
-                appliedDelta = toTarget;
-                currentAngle = prevAngle + appliedDelta;
-                angularVelocity = 0;
-            }
-            const clampedAngle = clamp(currentAngle, minAngle, maxAngle);
-            if (clampedAngle !== currentAngle) {
-                currentAngle = clampedAngle;
-                appliedDelta = currentAngle - prevAngle;
-                if (appliedDelta === 0 || Math.sign(angularVelocity) === Math.sign(prevVelocity)) angularVelocity = 0;
-            }
+                { angle: el.restAngle, angularVelocity: 0 };
+            const prevAngle = typeof state.prevAngle === "number" ? state.prevAngle : (typeof state.angle === "number" ? state.angle : el.restAngle);
+            const currentAngle = typeof state.angle === "number" ? state.angle : el.restAngle;
+            const angularVelocity = typeof state.angularVelocity === "number" ? state.angularVelocity : 0;
+            const appliedDelta = currentAngle - prevAngle;
 
             const segments = [];
             const circles = [];
@@ -382,13 +396,23 @@
                 circles.push(makeCapCollider(el, geom, angle, t, angularVelocity, controlActive, sweepOnly, "tip"));
             }
 
-            if (world) {
-                state.angle = currentAngle;
-                state.angularVelocity = angularVelocity;
-                state.targetAngle = targetAngle;
-                state.active = controlActive;
-            }
             return { segments: segments, circles: circles };
+        },
+        step: function step(el, table, world, dt) {
+            stepFlipper(el, table, world, Number(dt) || (1 / 120));
+        },
+        physicsCacheKey: function physicsCacheKey(el, table, world) {
+            const state = Pin.elements.peekState ? Pin.elements.peekState(world, el) : null;
+            const angle = state && typeof state.angle === "number" ? state.angle : el.restAngle;
+            const prevAngle = state && typeof state.prevAngle === "number" ? state.prevAngle : angle;
+            const velocity = state && typeof state.angularVelocity === "number" ? state.angularVelocity : 0;
+            const active = state && state.active ? 1 : 0;
+            return [
+                angle.toFixed(5),
+                prevAngle.toFixed(5),
+                velocity.toFixed(5),
+                active
+            ].join("|");
         },
         draw: function draw(ctx, el, runtime, world) {
             const angle = getRuntimeAngle(el, world, world && world.table);

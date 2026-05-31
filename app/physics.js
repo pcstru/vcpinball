@@ -263,10 +263,12 @@
         };
     }
 
-    function queryBroadPhase(index, aabb) {
+    function queryBroadPhase(index, aabb, scratch) {
         if (!index || !index.grid) return null;
-        const refs = [];
-        const seen = {};
+        const refs = scratch && Array.isArray(scratch.refs) ? scratch.refs : [];
+        const seen = scratch && scratch.seen ? scratch.seen : Object.create(null);
+        refs.length = 0;
+        Object.keys(seen).forEach(function clear(key) { delete seen[key]; });
         const minX = Math.floor(aabb.left / index.cellSize);
         const maxX = Math.floor(aabb.right / index.cellSize);
         const minY = Math.floor(aabb.top / index.cellSize);
@@ -285,10 +287,12 @@
         return refs;
     }
 
-    function querySensorBroadPhase(index, aabb) {
+    function querySensorBroadPhase(index, aabb, scratch) {
         if (!index || !index.grid) return null;
-        const refs = [];
-        const seen = {};
+        const refs = scratch && Array.isArray(scratch.refs) ? scratch.refs : [];
+        const seen = scratch && scratch.seen ? scratch.seen : Object.create(null);
+        refs.length = 0;
+        Object.keys(seen).forEach(function clear(key) { delete seen[key]; });
         const minX = Math.floor(aabb.left / index.cellSize);
         const maxX = Math.floor(aabb.right / index.cellSize);
         const minY = Math.floor(aabb.top / index.cellSize);
@@ -387,7 +391,9 @@
             top: Math.min(ball.y, ball.y + dy) - ball.radius,
             bottom: Math.max(ball.y, ball.y + dy) + ball.radius
         }, Math.max(12, ball.radius));
-        return queryBroadPhase(world.staticBroadPhase, query);
+        world.physicsScratch = world.physicsScratch || {};
+        world.physicsScratch.staticBroad = world.physicsScratch.staticBroad || { refs: [], seen: Object.create(null) };
+        return queryBroadPhase(world.staticBroadPhase, query, world.physicsScratch.staticBroad);
     }
 
     function findSweptCollision(ball, world, dx, dy) {
@@ -648,7 +654,9 @@
             top: ball.y - ball.radius,
             bottom: ball.y + ball.radius
         }, Math.max(12, speed + ball.radius));
-        const staticRefs = queryBroadPhase(world.staticBroadPhase, ballQuery);
+        world.physicsScratch = world.physicsScratch || {};
+        world.physicsScratch.staticBroad = world.physicsScratch.staticBroad || { refs: [], seen: Object.create(null) };
+        const staticRefs = queryBroadPhase(world.staticBroadPhase, ballQuery, world.physicsScratch.staticBroad);
         for (let pass = 0; pass < iterations; pass++) {
             let passHit = false;
             const dynamicSegmentOffset = world.staticSegments ? world.staticSegments.length : 0;
@@ -883,7 +891,9 @@
         const candidates = [];
         const splitSensors = Array.isArray(world.staticSensors) || Array.isArray(world.dynamicSensors);
         if (splitSensors) {
-            const staticRefs = querySensorBroadPhase(world.staticSensorBroadPhase, query);
+            world.physicsScratch = world.physicsScratch || {};
+            world.physicsScratch.sensorBroad = world.physicsScratch.sensorBroad || { refs: [], seen: Object.create(null) };
+            const staticRefs = querySensorBroadPhase(world.staticSensorBroadPhase, query, world.physicsScratch.sensorBroad);
             if (staticRefs) {
                 staticRefs.forEach(function each(sensorIndex) {
                     if (world.staticSensors && world.staticSensors[sensorIndex]) {

@@ -16,6 +16,7 @@
         { id: "bounds", label: "Playfield Bounds", category: "static" },
         { id: "compilation", label: "Runtime Compilation", category: "static" },
         { id: "accessibility_heatmap", label: "Accessibility Heatmap", category: "reachability" },
+        { id: "autoplay_heatmap", label: "Autoplay Heatmap", category: "autoplay" },
         { id: "launcher_rays", label: "Launcher Reachability Rays", category: "stuck" },
         { id: "flipper_reachability", label: "Flipper Reachability Rays", category: "reachability" },
         { id: "target_to_flipper_reachability", label: "Target To Flipper Reachability", category: "reachability" },
@@ -2228,6 +2229,7 @@
         if (selectedChecks.bounds) checkBounds(normalized, elements, report);
         if (selectedChecks.compilation) checkCompilation(normalized, report);
         if (selectedChecks.accessibility_heatmap) checkAccessibilityHeatmap(normalized, report, context.opts, onProgress);
+        if (selectedChecks.autoplay_heatmap) checkAutoplayHeatmap(normalized, report, context.opts);
         return true;
     }
 
@@ -2238,6 +2240,50 @@
             status: "warn",
             message: "Advanced contact-backtrace and arbitrary-location reachability coverage is TODO beyond launcher, flipper, and trigger-source probes.",
             objects: []
+        });
+    }
+
+    /*
+     * What: Run autoplay sampling and collect trace/heatmap diagnostics.
+     * Why: this check validates table flow using production physics while
+     * keeping expensive decision logic outside gameplay mode.
+     */
+    function checkAutoplayHeatmap(table, report, options) {
+        if (!Pin.tableAutoplay || typeof Pin.tableAutoplay.run !== "function") {
+            addCheck(report, {
+                id: "autoplay_heatmap",
+                category: "autoplay",
+                status: "warn",
+                message: "Autoplay runtime is unavailable in this environment.",
+                objects: [],
+                diagnostics: {}
+            });
+            return;
+        }
+        const result = Pin.tableAutoplay.run(table, {
+            ballCount: normalizedProbeLimit(options && options.autoplayBallCount, 5, 1, 64),
+            maxTicksPerBall: normalizedProbeLimit(options && options.autoplayMaxTicksPerBall, 12000, 120, 120000),
+            targetingIntervalTicks: normalizedProbeLimit(options && options.autoplayTargetingIntervalTicks, 8, 1, 120),
+            preferUnlitTargets: options && options.autoplayPreferUnlitTargets !== false,
+            cellSize: normalizedProbeLimit(options && options.autoplayCellSize, 24, 8, 128),
+            aimHorizonTicks: normalizedProbeLimit(options && options.autoplayAimHorizonTicks, 48, 8, 120),
+            aimPulseTicks: normalizedProbeLimit(options && options.autoplayAimPulseTicks, 3, 1, 6),
+            aimCooldownTicks: normalizedProbeLimit(options && options.autoplayAimCooldownTicks, 8, 2, 24)
+        });
+        const minScore = normalizedProbeLimit(options && options.autoplayMinScore, 0, 0, 1000000000);
+        const bestScore = result && result.summary ? Number(result.summary.bestBallScore || 0) : 0;
+        const scoreStatus = bestScore >= minScore ? "pass" : "warn";
+        const status = minScore > 0 ? scoreStatus : ((result && result.status) || "pass");
+        const message = minScore > 0 ?
+            ("Autoplay sampled for score: best " + bestScore + " / required " + minScore + ".") :
+            ((result && result.message) || "Autoplay run completed.");
+        addCheck(report, {
+            id: "autoplay_heatmap",
+            category: "autoplay",
+            status: status,
+            message: message,
+            objects: [],
+            diagnostics: result && result.diagnostics ? result.diagnostics : {}
         });
     }
 

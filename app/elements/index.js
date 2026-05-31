@@ -59,6 +59,8 @@
             drawables: []
         };
         const elements = opts.elements || table.elements || [];
+        const cacheStore = opts.dynamicCacheStore || null;
+        const cacheMetrics = opts.dynamicCacheMetrics || null;
         elements.forEach(function compile(el) {
             const mod = Pin.elements.registry[el.type];
             if (!mod || typeof mod.compile !== "function") return;
@@ -66,10 +68,44 @@
             if (opts.dynamic === false && isDynamicPhysics) return;
             if (opts.static === false && !isDynamicPhysics) return;
             if (opts.dynamicPhysicsOnly && !isDynamicPhysics) return;
-            const out = mod.compile(el, table, world) || {};
+            let out = null;
+            if (cacheStore && opts.dynamicPhysicsOnly && typeof mod.physicsCacheKey === "function") {
+                const stateKey = getStateKey(el);
+                const cacheKey = mod.physicsCacheKey(el, table, world);
+                const cached = cacheStore[stateKey];
+                if (cached && cached.cacheKey === cacheKey && cached.out) {
+                    out = cached.out;
+                    if (cacheMetrics) cacheMetrics.hits = (cacheMetrics.hits || 0) + 1;
+                } else {
+                    out = mod.compile(el, table, world) || {};
+                    cacheStore[stateKey] = {
+                        cacheKey: cacheKey,
+                        out: out
+                    };
+                    if (cacheMetrics) cacheMetrics.misses = (cacheMetrics.misses || 0) + 1;
+                }
+            } else {
+                out = mod.compile(el, table, world) || {};
+            }
             addCompiled(runtime, el, mod, out);
         });
         return runtime;
+    }
+
+    /*
+     * What: Advance runtime state for dynamic physics elements without building
+     * colliders.
+     * Why: compile should be geometry-only so idle colliders can be cached and
+     * reused safely.
+     */
+    function stepDynamicElements(table, world, dt, elements) {
+        const list = elements || table.elements || [];
+        list.forEach(function step(el) {
+            const mod = Pin.elements.registry[el.type];
+            if (!mod || typeof mod.step !== "function") return;
+            if (!DYNAMIC_PHYSICS_TYPES[el.type]) return;
+            mod.step(el, table, world, dt);
+        });
     }
 
     function filterElements(table, predicate) {
@@ -141,6 +177,7 @@
     Pin.elements.peekState = peekState;
     Pin.elements.filterElements = filterElements;
     Pin.elements.createDrawables = createDrawables;
+    Pin.elements.stepDynamicElements = stepDynamicElements;
     Pin.elements.isDynamicType = function isDynamicType(type) { return !!DYNAMIC_RENDER_TYPES[type]; };
     Pin.elements.isDynamicPhysicsType = function isDynamicPhysicsType(type) { return !!DYNAMIC_PHYSICS_TYPES[type]; };
 })(window.Pin);

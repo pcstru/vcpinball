@@ -315,6 +315,12 @@ function testIndexLocalAssetsAreVersioned() {
     });
 }
 
+function testIndexDoesNotLoadAutoplayRuntime() {
+    const html = read("index.html");
+    const sources = scriptSources(html);
+    assert(sources.indexOf("app/tableAutoplay.js") < 0, "index.html should not load lab-only autoplay runtime");
+}
+
 function testPhysicsLabLoadsEvalHarnessScripts() {
     // What: Verify the standalone physics lab entrypoint includes table eval dependencies.
     // Why: table validation in the lab needs catalog loading, full element registry, and the evaluator module.
@@ -323,14 +329,29 @@ function testPhysicsLabLoadsEvalHarnessScripts() {
     assert(sources.indexOf("app/tableCatalog.js") >= 0, "physics-lab should load app/tableCatalog.js");
     assert(sources.indexOf("app/elements/launcher.js") >= 0, "physics-lab should load launcher element module");
     assert(sources.indexOf("app/elements/trough.js") >= 0, "physics-lab should load trough element module");
+    assert(sources.indexOf("app/tableAutoplay.js") >= 0, "physics-lab should load app/tableAutoplay.js");
     assert(sources.indexOf("app/tableEval.js") >= 0, "physics-lab should load app/tableEval.js");
+    assert(sources.indexOf("app/tableAutoplay.js") < sources.indexOf("app/tableEval.js"), "autoplay module should load before table eval");
     assert(sources.indexOf("app/tableEval.js") < sources.indexOf("app/tuning/lab.js"), "table eval module should load before lab UI bootstrap");
+}
+
+function testEvalAgentLoadsAutoplayRuntime() {
+    const source = read("tools/eval-agent.js");
+    assert(/"app\/tableAutoplay\.js"/.test(source), "eval-agent should load app/tableAutoplay.js");
+    assert(source.indexOf("\"app/tableAutoplay.js\"") < source.indexOf("\"app/tableEval.js\""), "eval-agent should load autoplay before table eval");
 }
 
 function testTableEvalAccessibilityHeatmapIsRegistered() {
     const source = read("app/tableEval.js");
     assert(/id:\s*"accessibility_heatmap"/.test(source), "tableEval should register accessibility_heatmap check id");
     assert(/label:\s*"Accessibility Heatmap"/.test(source), "tableEval should expose accessibility heatmap label");
+}
+
+function testTableEvalAutoplayHeatmapIsRegistered() {
+    const source = read("app/tableEval.js");
+    assert(/id:\s*"autoplay_heatmap"/.test(source), "tableEval should register autoplay_heatmap check id");
+    assert(/label:\s*"Autoplay Heatmap"/.test(source), "tableEval should expose autoplay heatmap label");
+    assert(/autoplayMinScore/.test(source), "tableEval autoplay check should support score threshold option");
 }
 
 function testTableEvalAccessibilityHeatmapIgnoresGateColliders() {
@@ -373,11 +394,40 @@ function testLabEvalControlsExposeAccessibilityBreadthDepthAndMode() {
     assert(/accessibilityMaxCollisions:\s*state\.eval\.accessibilityMaxCollisions/.test(source), "lab eval options should pass accessibility physics max contacts");
 }
 
+function testLabEvalControlsExposeAutoplayOptions() {
+    const source = read("app/tuning/lab.js");
+    assert(/Autoplay balls/.test(source), "lab eval controls should expose autoplay ball count");
+    assert(/Autoplay max ticks\/ball/.test(source), "lab eval controls should expose autoplay per-ball tick cap");
+    assert(/Autoplay target interval/.test(source), "lab eval controls should expose autoplay retarget interval");
+    assert(/Autoplay cell size/.test(source), "lab eval controls should expose autoplay heatmap cell size");
+    assert(/Autoplay min score/.test(source), "lab eval controls should expose autoplay score threshold");
+    assert(/autoplayBallCount:\s*state\.eval\.autoplayBallCount/.test(source), "lab eval options should pass autoplay ball count");
+    assert(/autoplayMaxTicksPerBall:\s*state\.eval\.autoplayMaxTicksPerBall/.test(source), "lab eval options should pass autoplay max ticks");
+    assert(/autoplayMinScore:\s*state\.eval\.autoplayMinScore/.test(source), "lab eval options should pass autoplay score threshold");
+    assert(/targetingIntervalTicks:\s*state\.eval\.autoplayTargetingIntervalTicks/.test(source), "live autoplay should pass unprefixed targeting interval to controller");
+    assert(/aimPulseTicks:\s*state\.eval\.autoplayAimPulseTicks/.test(source), "live autoplay should pass aim pulse ticks to controller");
+}
+
+function testAutoplayUsesScheduledPulsePrediction() {
+    const source = read("app/tableAutoplay.js");
+    assert(/function applyScheduledPulse\(/.test(source), "autoplay controller should use scheduled bounded pulse execution");
+    assert(/aimState\.scheduled/.test(source), "autoplay controller should store a scheduled aiming action");
+    assert(/const candidateActions = \[\{ mode: "none"/.test(source), "autoplay prediction should include a no-flip baseline action");
+    assert(/function contactPulseForBall\(/.test(source), "autoplay controller should include immediate contact pulse path");
+    assert(/if \(!nearAnyFlipperPivot\(ball\)\) return;/.test(source), "autoplay prediction should only run inside flipper action window");
+}
+
+function testLabDiagnosticOverlaySupportsPerSegmentColoring() {
+    const source = read("app/tuning/lab.js");
+    assert(/ctx\.strokeStyle = seg\.color \|\| palette\.stroke;/.test(source), "diagnostic overlay should support per-segment coloring");
+    assert(/ctx\.fillStyle = point\.fill \|\| palette\.fill;/.test(source), "diagnostic overlay should support per-point fill overrides");
+}
+
 function testLabSupportsLiveAccessibilityProgressOverlay() {
     const source = read("app/tuning/lab.js");
     assert(/liveCheck:\s*null/.test(source), "lab eval state should include liveCheck for in-progress diagnostics");
     assert(/progress\.phase === "accessibility" && progress\.check/.test(source), "lab progress handler should accept accessibility partial checks");
-    assert(/if \(state\.eval\.running && state\.eval\.liveCheck\) return state\.eval\.liveCheck;/.test(source), "overlay selection should prefer live check while evaluation is running");
+    assert(/if \(\(state\.eval\.running \|\| state\.autoplay\.liveRunning\) && state\.eval\.liveCheck\) return state\.eval\.liveCheck;/.test(source), "overlay selection should prefer live check while evaluation or autoplay is running");
 }
 
 function testTableEvalEmitsAccessibilityProgress() {
@@ -1312,6 +1362,7 @@ function testSpinnerSweepContactDoesNotBlockBallTravel() {
 
 function testGateDirectionModesCanOpen() {
     const pin = loadGateModuleHarness();
+    const step = pin.elements.registry.gate.step;
     const compile = pin.elements.registry.gate.compile;
     const table = { playfield: { width: 500, height: 880 } };
 
@@ -1364,6 +1415,7 @@ function testGateDirectionModesCanOpen() {
         swingEndAngle: -0.85
     };
     const forcedWorld = { table: table, elementState: {}, lastPhysicsDt: 1 / 120 };
+    step(forcedOpenGate, table, forcedWorld, 1 / 120);
     compile(forcedOpenGate, table, forcedWorld);
     assert(forcedWorld.elementState["gate:gate_forced_reverse"].angle < 0, "forced-open reverse gate should use the mirrored visual arc endpoint");
 
@@ -1382,6 +1434,7 @@ function testGateDirectionModesCanOpen() {
         swingEndAngle: 2.8
     };
     const authoredWorld = { table: table, elementState: {}, lastPhysicsDt: 1 / 120 };
+    step(authoredStartGate, table, authoredWorld, 1 / 120);
     const authoredRuntime = compile(authoredStartGate, table, authoredWorld);
     const authoredSegment = authoredRuntime.segments[0];
     const authoredAngle = Math.atan2(authoredSegment.y2 - authoredSegment.y1, authoredSegment.x2 - authoredSegment.x1);
@@ -1502,7 +1555,7 @@ function testAdaptiveQualityControllerDropsOnSustainedPressure() {
     assert.strictEqual(result.output.trailEnabled, false, "sustained pressure should disable spark trails");
 }
 
-function testAdaptiveQualityControllerNeedsStableRecoveryWindow() {
+function testAdaptiveQualityControllerHoldsReducedQualityAfterDowngrade() {
     const performanceApi = loadPerformanceModule();
     const controller = performanceApi.createAdaptiveQualityController();
     const degraded = [];
@@ -1510,19 +1563,14 @@ function testAdaptiveQualityControllerNeedsStableRecoveryWindow() {
     const reduced = runQualityControllerFrames(controller, degraded);
     assert.strictEqual(reduced.output.reducedEffects, true, "precondition should enter reduced quality first");
 
-    const stillReducedWindow = [];
-    for (let i = 0; i < 90; i++) stillReducedWindow.push({ dt: 1 / 60, backlog: 0.2 });
-    const stillReduced = runQualityControllerFrames(controller, stillReducedWindow, reduced.now);
-    assert.strictEqual(stillReduced.output.reducedEffects, true, "quality should not recover before the stable recovery window");
-
-    const recoveryWindow = [];
-    for (let i = 0; i < 300; i++) recoveryWindow.push({ dt: 1 / 60, backlog: 0.2 });
-    const recovered = runQualityControllerFrames(controller, recoveryWindow, stillReduced.now);
-    assert.strictEqual(recovered.output.reducedEffects, false, "quality should recover after sustained stable performance");
-    assert.strictEqual(recovered.output.glowScale, 1, "recovered quality should restore full glow scale");
-    assert.strictEqual(recovered.output.pixelRatioScale, 1, "recovered quality should restore full render resolution");
-    assert.strictEqual(recovered.output.sparkLimit, 220, "recovered quality should restore spark budget");
-    assert.strictEqual(recovered.output.trailEnabled, true, "recovered quality should restore spark trails");
+    const stableWindow = [];
+    for (let i = 0; i < 600; i++) stableWindow.push({ dt: 1 / 60, backlog: 0.2 });
+    const held = runQualityControllerFrames(controller, stableWindow, reduced.now);
+    assert.strictEqual(held.output.reducedEffects, true, "quality should stay reduced after downgrade even when performance stabilizes");
+    assert.strictEqual(held.output.glowScale, 0.55, "held reduced quality should keep reduced glow scale");
+    assert(held.output.pixelRatioScale < 1, "held reduced quality should keep reduced render resolution");
+    assert(held.output.sparkLimit < 220, "held reduced quality should keep reduced spark budget");
+    assert.strictEqual(held.output.trailEnabled, false, "held reduced quality should keep trail effects disabled");
 }
 
 function testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad() {
@@ -1542,11 +1590,35 @@ function testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad() {
 function testPlayLoopSamplesQualityAfterPhysicsCatchup() {
     const source = read("app/main.js");
     const whileIndex = source.indexOf("while (accumulator >= fixedDt)");
+    const loopSlice = whileIndex >= 0 ? source.slice(whileIndex, whileIndex + 700) : "";
+    const stepIndex = loopSlice.indexOf("stepDynamicElements(world.table, world, fixedDt, world.dynamicPhysicsElements)");
+    const refreshIndex = loopSlice.indexOf("refreshRuntime(world)");
     const sampleIndex = source.indexOf("qualityController.sample");
     const syncIndex = source.lastIndexOf("syncPlayCanvasResolution(qualityProfile.pixelRatioScale)");
     assert(whileIndex >= 0, "play loop should retain fixed-step physics catch-up");
+    assert(stepIndex >= 0, "play loop should step dynamic mechanisms inside the fixed-step loop");
+    assert(refreshIndex > stepIndex, "dynamic collider refresh should happen after dynamic state stepping");
     assert(sampleIndex > whileIndex, "quality sampling should use post-catch-up accumulator backlog");
     assert(syncIndex > sampleIndex, "play loop should apply backing-scale sync after quality sampling");
+}
+
+function testDynamicPhysicsCompileSupportsCachingAndExplicitStep() {
+    const elementsSource = read("app/elements/index.js");
+    const flipperSource = read("app/elements/flipper.js");
+    const gateSource = read("app/elements/gate.js");
+    const spinnerSource = read("app/elements/spinner.js");
+    const launcherSource = read("app/elements/launcher.js");
+
+    assert(/dynamicCacheStore/.test(elementsSource), "element compile pass should support dynamic cache storage");
+    assert(/stepDynamicElements/.test(elementsSource), "element registry should expose dynamic step helper");
+    assert(/step:\s*function step/.test(flipperSource), "flipper should expose a separate step hook");
+    assert(/physicsCacheKey/.test(flipperSource), "flipper should expose a physics cache key");
+    assert(/step:\s*function step/.test(gateSource), "gate should expose a separate step hook");
+    assert(/physicsCacheKey/.test(gateSource), "gate should expose a physics cache key");
+    assert(/step:\s*function step/.test(spinnerSource), "spinner should expose a separate step hook");
+    assert(/physicsCacheKey/.test(spinnerSource), "spinner should expose a physics cache key");
+    assert(/step:\s*function step/.test(launcherSource), "launcher should expose a separate step hook");
+    assert(/physicsCacheKey/.test(launcherSource), "launcher should expose a physics cache key");
 }
 
 function testPlayLoopAppliesTableRealTimeScale() {
@@ -2504,12 +2576,18 @@ function testCobraBonusTroughAdvancesScoreMultiplier() {
 Promise.resolve()
     .then(function run() { testIndexScriptsExistAndOrderCoreBeforeMain(); })
     .then(function run() { testIndexLocalAssetsAreVersioned(); })
+    .then(function run() { testIndexDoesNotLoadAutoplayRuntime(); })
     .then(function run() { testPhysicsLabLoadsEvalHarnessScripts(); })
+    .then(function run() { testEvalAgentLoadsAutoplayRuntime(); })
     .then(function run() { testTableEvalAccessibilityHeatmapIsRegistered(); })
+    .then(function run() { testTableEvalAutoplayHeatmapIsRegistered(); })
     .then(function run() { testTableEvalAccessibilityHeatmapIgnoresGateColliders(); })
     .then(function run() { testTableEvalAccessibilityModeSupportsPhysics(); })
     .then(function run() { testLabDiagnosticOverlayRendersHeatmap(); })
     .then(function run() { testLabEvalControlsExposeAccessibilityBreadthDepthAndMode(); })
+    .then(function run() { testLabEvalControlsExposeAutoplayOptions(); })
+    .then(function run() { testAutoplayUsesScheduledPulsePrediction(); })
+    .then(function run() { testLabDiagnosticOverlaySupportsPerSegmentColoring(); })
     .then(function run() { testLabSupportsLiveAccessibilityProgressOverlay(); })
     .then(function run() { testTableEvalEmitsAccessibilityProgress(); })
     .then(function run() { testPhysicsLabSupportsDynamicPlayfieldSizing(); })
@@ -2536,9 +2614,10 @@ Promise.resolve()
     .then(function run() { testRuntimeSplitKeepsOnlyPhysicsElementsDynamic(); })
     .then(function run() { testAdaptiveQualityControllerIgnoresSingleSpike(); })
     .then(function run() { testAdaptiveQualityControllerDropsOnSustainedPressure(); })
-    .then(function run() { testAdaptiveQualityControllerNeedsStableRecoveryWindow(); })
+    .then(function run() { testAdaptiveQualityControllerHoldsReducedQualityAfterDowngrade(); })
     .then(function run() { testAdaptiveQualityControllerDoesNotOscillateOnBorderlineLoad(); })
     .then(function run() { testPlayLoopSamplesQualityAfterPhysicsCatchup(); })
+    .then(function run() { testDynamicPhysicsCompileSupportsCachingAndExplicitStep(); })
     .then(function run() { testPlayLoopAppliesTableRealTimeScale(); })
     .then(function run() { testSparkHelpersEmitAndExpireParticles(); })
     .then(function run() { testReducedEffectsSuppressSparkEmission(); })

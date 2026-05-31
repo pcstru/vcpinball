@@ -1,13 +1,44 @@
 # Pinball
 
-Pinball is a static browser "vibe code" experiment built for amusement, with education as a useful side effect when the machine happens to throw off sparks. It is still an AI-assisted, no-build browser project, but it now has a table designer, a logic authoring surface, a physics lab, structured assistant tooling, and enough tests to make the phrase "just vibe it" sound irresponsible in the funny way, not the catastrophic way.
+Pinball is a work-in-progress browser experiment. It is not a finished game, not a polished editor, and not a production engine. It is intentionally small: plain JavaScript, JSON table data, canvas rendering, no build step.
 
-The app is both a small pinball game and a design laboratory. It explores:
-- how far an AI-assisted coding loop can take a custom browser game without a framework or build step
-- how an in-app assistant can help design table geometry and gameplay rules
-- how to make complex state-machine authoring understandable for humans
-- where AI-generated implementation helps, where it adds cruft, and where the code needs pruning
-- how different agents, prompts, and orchestration harnesses behave when given the same deterministic codebase and the same requested change
+The useful part is not only that it is pinball. The useful part is the combination of:
+
+- a deterministic-ish physics simulation
+- structured table data in JSON
+- an interactive editor
+- a physics lab and evaluator
+- a short browser feedback loop
+
+That makes it a good sandbox for testing how AI-assisted development behaves on something more like a real task than a toy prompt. Pinball has geometry, timing, state, visual feedback, authored rules, and enough edge cases to punish vague instructions. LLMs do not understand what makes a table playable, let alone good. But they can still help with many bounded parts of the work: generating structured edits, wiring rules, proposing layouts, writing diagnostics, and producing code that humans then inspect, test, and cut back down to size.
+
+This repo is an experiment in that workflow. It asks:
+
+- Can an AI assistant modify structured game data without freely mutating the app?
+- Can deterministic simulation make AI-generated changes easier to evaluate?
+- Can a simple editor turn "add three targets and score them" into auditable JSON changes?
+- Can automated checks catch some bad tables before a human wastes time playing them?
+- Where does AI help, and where does it create extra cleanup work?
+
+There are no claims here about completeness, correctness, or research-grade simulation. It is useful because it is inspectable, hackable, and repeatable enough to learn from.
+
+## What You Can Do Today
+
+- Play a bundled table in the browser.
+- Edit table geometry and element properties in `#design`.
+- Define game logic using structured data: switches, state, computed values, lamp bindings, action rules, and reset rules.
+- Use the editor assistant to propose structured table/logic patches, then preview and validate them before applying.
+- Open `physics-lab.html`, load a table, run evaluation checks, and inspect overlays.
+- Run autoplay in the lab to launch balls, operate flippers, record ball traces, build heatmaps, and collect score summaries.
+- Use `eval-agent` from Node to validate patches and collect machine-readable evaluation records.
+
+What you cannot do today:
+
+- Automatically prove that a table is fun or well designed.
+- Train a flipper controller in this repo.
+- Run a complete generate/evaluate/refine loop without human review.
+- Treat the physics as physically accurate pinball.
+- Rely on the AI assistant to understand playability by itself.
 
 ## What It Is
 
@@ -20,6 +51,8 @@ The project has three main browser surfaces:
 `#logicstudio` is currently an alias for `#logic`.
 
 The current design direction is intentionally current-schema only. Old table compatibility and previous `rulesEngine` compatibility paths have been removed. New table logic lives directly in `table.logicDocument`.
+
+The system is deliberately structured. Tables are JSON documents rather than opaque assets. Game rules are defined using structured data: sequence rules, switch triggers, variables, computed state, lamp bindings, and reset rules. Those rules are executed after each physics tick through the same event path used by play mode. That structure is what makes the project usable for AI-assisted editing and automated evaluation; the model is not guessing against a screenshot alone.
 
 ## Engineering Standards
 
@@ -38,9 +71,9 @@ The house style is not anti-snark, only anti-hand-waving. If a comment, test, or
 
 ## Agent Harness Research
 
-Pinball is also useful as shared code collateral for comparing agentic development systems. The same base version can be presented to different agents, prompts, harnesses, and orchestration layers, then judged by how they handle the same requested change: what they inspect, what they break, what they test, and whether they can explain the result without pretending the diff is magic.
+Pinball is also useful as shared code collateral for comparing AI coding tools. The same base version can be presented to different agents, prompts, harnesses, and orchestration layers, then judged by how they handle the same requested change: what they inspect, what they break, what they test, and whether they can explain the result without pretending the diff is magic.
 
-That works because the project gives AI systems a deterministic world to interact with. There is table JSON, schema validation, logic simulation, physics stepping, canvas-visible behavior, smoke tests, eval-agent scoring, and GEPA prompt optimization. The result is not a perfect benchmark, which is good because perfect benchmarks tend to become games. It is a practical one: repeatable enough to compare behavior, complex enough to expose weak orchestration, and amusing enough that running another experiment does not feel like eating a spreadsheet.
+That works because the project gives AI systems a small but concrete world to interact with. There is table JSON, schema validation, logic simulation, physics stepping, canvas-visible behavior, smoke tests, eval-agent scoring, and prompt-evaluation tooling. This is not a benchmark in the formal sense. It is a practical test bed: repeatable enough to compare behavior, complex enough to expose weak orchestration, and small enough that the whole system remains understandable.
 
 ## Designer Screen
 
@@ -80,9 +113,9 @@ The logic editor includes validation and pure logic simulation so a designer can
 
 ## Physics Lab And Table Evaluation
 
-`physics-lab.html` is the physics and table-evaluation workbench. It started as a tuning surface for small flipper scenarios and has grown into the beginning of a table validity harness.
+`physics-lab.html` is the physics and table-evaluation workbench. It is a controlled environment for testing table behavior with repeatable scenarios and visible diagnostics.
 
-The intent is deliberately narrow: this is not trying to decide whether a table is fun, beautiful, or commercially good. It is trying to answer whether a table is structurally and physically valid enough to be worth playing and iterating on.
+The intent is deliberately narrow. The lab does not decide whether a table is fun, beautiful, or commercially good. It answers smaller questions: can the launcher release a ball, do probes get stuck, can the ball reach useful areas, does autoplay score anything, and what path did the ball actually take?
 
 ![Physics Lab AI Eval](Doc-Lab-Eval.png)
 
@@ -104,6 +137,7 @@ The lab currently supports:
 - clicking evaluation rows to draw diagnostics on the table canvas
 - tracing launcher rollout/stuck diagnostics through the same core physics path used by play mode
 - configuring probe counts, bounce/contact limits, and tick limits for repeatable AI Eval runs
+- running lab-only autoplay with launcher variation, flipper control, ball trails, heatmaps, target aiming diagnostics, and score summaries
 - `AI-Lab` visibility-first patch/eval workflow:
   - stepwise attempts with explicit operator approval
   - optional auto/batch toggles with guardrails
@@ -118,12 +152,53 @@ The important design rule is that evaluation and fine-tuning data should come fr
 
 This matters because table validation is meant to guide edits. If a diagnostic disagrees with play mode, the diagnostic is the thing to fix. As with the rest of the project, it is what it is: an experimental harness, useful only insofar as it stays tied to the real runtime behavior.
 
+### Autoplay Evaluation
+
+Autoplay is a lab/eval feature, not part of normal game mode. It launches balls using the real launcher, steps the same physics runtime as play mode, runs table events and scoring rules, and operates flippers through a simple controller.
+
+The current controller is intentionally modest:
+
+- it varies launch hold time across multiple balls
+- it chooses lane/drop-target style targets, preferring unlit targets where possible
+- it predicts short flipper pulse candidates outside the main game loop
+- it schedules bounded flipper pulses rather than holding flippers indefinitely
+- it records ball traces, heatmap data, target diagnostics, and score summaries
+
+Autoplay is useful for rough evaluation:
+
+- "Does a single launched ball score at least 1,000 points?"
+- "Do repeated launches cover the upper playfield?"
+- "Does the ball keep falling into the same dead area?"
+- "Do unlit targets receive any traffic?"
+
+It is not a good player. It does not understand table strategy, table quality, combo design, or long-term mode value. The flipper controller is deliberately simple so more expensive prediction or learned controllers can be tried later without changing game mode performance.
+
+For a single-ball score check in the lab, set:
+
+- `Autoplay balls` to `1`
+- `Autoplay min score` to the required score
+- run `Autoplay Heatmap`
+
+The evaluator reports PASS/WARN against the best-ball score when `Autoplay min score` is greater than zero. A pass means the current controller managed to score enough in that run. It does not prove that the table is generally playable.
+
 ## AI Integration
 
-The project has two AI-related layers:
+The project has several AI-adjacent pieces. They are related, but they are not the same thing:
 
-- The codebase itself is being built and refactored through Codex-assisted iteration.
-- The application includes an assistant workflow intended to generate structured patches for table and logic edits.
+- AI-assisted coding of this repo.
+- The in-browser assistant that proposes structured table and logic patches.
+- Automated evaluation checks that produce diagnostics and metrics.
+- Node automation via `eval-agent`.
+- Prompt-evaluation tooling.
+
+The in-browser assistant is a tool inside the editor. It helps generate or modify structured data. It is not autonomous, and it does not understand playability. It can be useful because the table format is small enough and structured enough that proposed changes can be validated, previewed, and rejected.
+
+Example requests that fit the current assistant model:
+
+- "Add a lane and connect it to a scoring rule."
+- "Trigger multiball after hitting three drop targets."
+- "Add lights that show sequence progress."
+- "Move these targets into a simple arc."
 
 The assistant contract is intentionally constrained. It should produce JSON patch objects with known keys such as:
 
@@ -141,6 +216,8 @@ The app validates and previews patches before applying them. The design goal is 
 The browser assistant can also use a small deterministic local tool layer before it returns a final patch. The important design is not one specific tool but the pattern: the model can decide it needs exact numeric help, request a whitelisted local tool, receive the computed result, and then produce a normal structured patch. `radialLayout` is simply the first concrete tool in that registry. This keeps exact geometry in browser-side code rather than trusting the model to do arithmetic accurately.
 
 In this static build, provider settings, assistant execution, and local numeric tools are browser-side. External model calls still depend on configured provider endpoints, but layout/numeric helper execution happens locally in the browser through a fixed tool registry rather than a backend server.
+
+This is the practical version of "vibe coding" in this repo: using AI to modify the system or table by intent rather than by manually editing every JSON field. It works best where the problem is structured and bounded. It does not replace engineering judgment. It gives the human a faster stream of proposed changes to inspect, validate, test, and simplify. Mildly annoying, but productive when kept on a leash.
 
 Important split:
 
@@ -162,6 +239,16 @@ The `Check Provider` button triggers the live probe. Opening the `AI-Lab` tab al
 
 The project also includes a Node `eval-agent` loop for automation and dataset building. It shares the same patch/eval contract used by browser AI-Lab so interactive and batch workflows stay aligned.
 `eval-agent prompt-eval` also understands the browser-style `toolRequests` loop, so GEPA prompt optimization can validate when the model should ask for deterministic local geometry help before returning a final patch.
+
+Possible AI experiments this repo can support:
+
+- Generate table patches and evaluate them with schema/playability checks.
+- Log autoplay heatmaps and score summaries to compare table variants.
+- Try a simple flipper controller that fires when the ball crosses a threshold.
+- Build datasets from structured patches, validation failures, and evaluation results.
+- Compare prompts or agents on the same concrete editing task.
+
+These are experiments, not finished product features. There is no training loop in the repo today, and no automatic loop that reliably generates a good table, evaluates it, and refines it without human review.
 
 ## Current Table Schema
 
@@ -208,6 +295,7 @@ Important modules:
 - `app/render.js`: canvas rendering, static render cache, quality scaling
 - `app/elements/*`: element compile/draw/runtime behavior
 - `app/physicsHarness.js`: deterministic physics scenarios and sandbox simulation used by the lab
+- `app/tableAutoplay.js`: lab-only autoplay runner for heatmaps, traces, target diagnostics, and score summaries
 - `app/aiLabContract.js`: shared AI patch contract, patch apply/validate flow, and evaluator entry
 - `app/tableEval.js`: table evaluation checks, diagnostics, and report generation
 - `app/tuning/lab.js`: browser UI for physics tuning, sandbox play, and table evaluation
@@ -253,7 +341,7 @@ Run the smoke suite:
 npm test
 ```
 
-The tests check script ordering, table validation, bundled image paths, assistant patch behavior, assistant local tool behavior, logic simulation, high scores, runtime split behavior, and eval-agent contract/evaluation smoke behavior.
+The tests check script ordering, table validation, bundled image paths, assistant patch behavior, assistant local tool behavior, logic simulation, autoplay wiring, high scores, runtime split behavior, and eval-agent contract/evaluation smoke behavior.
 
 This is, objectively, a funny kind of project to test seriously: browser pinball physics, authored rule graphs, structured AI patch generation, and a prompt optimizer that is allowed to improve instructions but not rewrite reality. That is also exactly why the tests matter. The parts most likely to drift into nonsense are the parts that need a harness.
 
@@ -350,9 +438,9 @@ Image path rules for hosted table JSON:
 
 ## Project Status
 
-This is still an active experimental codebase, not a polished engine, and entertainment remains the point. The useful accident is that a sufficiently overbuilt toy can also develop opinions, infrastructure, and a test suite.
+This is still an active experimental codebase, not a polished engine. Entertainment is part of the point, but the more useful part is that pinball forces a lot of real software concerns into a small space: geometry, timing, state, input, rendering, validation, simulation, persistence, and UI.
 
-That turns out to be a surprisingly good fit for pinball. Pinball is all geometry, timing, authored rules, and immediate feedback. In other words: an excellent domain for finding out whether the code, the tools, and the prompts are actually coherent, or merely enthusiastic.[^codex-note]
+That is why it is a good exercise for AI-assisted development. A model can suggest a lane, a rule, a layout, or a controller tweak. The simulation then has opinions about whether that suggestion works. The editor and schema make changes inspectable. The lab and tests catch some mistakes. The human still has to decide whether the result is any good.
 
 Current priorities:
 
@@ -362,4 +450,12 @@ Current priorities:
 - preserve a fast play loop on older PCs
 - prefer surgical, simple code over speculative framework-style abstractions
 
-[^codex-note]: Codex note: this is exactly the kind of project where "AI can code now" has to stop being a slogan and start submitting to ball physics, schema validators, UI state, stale prompts, and tests that remember what you broke. A pinball editor is a good choice because it is playful enough to keep the work human, and unforgiving enough to expose nonsense quickly. That is the useful version of vibe coding: not replacing engineering judgment, but giving it more mistakes to inspect at higher speed.
+Useful directions to explore next:
+
+- better automated playability metrics
+- stronger autoplay controllers
+- logged datasets from repeated simulation runs
+- generated table variants evaluated through the same checks
+- prompt and agent comparisons on concrete table-editing tasks
+
+None of those require pretending the AI knows what "good pinball" means. The value is in giving it a structured problem, a fast feedback loop, and enough instrumentation for humans to see what happened.

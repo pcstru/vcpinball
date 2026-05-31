@@ -186,6 +186,7 @@ function loadPinRuntime() {
         "app/physics.js",
         "app/aiPromptContract.js",
         "app/aiLabContract.js",
+        "app/tableAutoplay.js",
         "app/tableEval.js"
     ].forEach(function each(file) {
         vm.runInContext(read(file), ctx, { filename: file });

@@ -355,6 +355,9 @@
 
     function stepWorld(world) {
         world.lastPhysicsDt = fixedDtForWorld(world);
+        if (Pin.elements && typeof Pin.elements.stepDynamicElements === "function") {
+            Pin.elements.stepDynamicElements(world.table, world, world.lastPhysicsDt, world.dynamicPhysicsElements);
+        }
         refreshRuntime(world);
         Pin.physics.stepWorld(world, world.lastPhysicsDt);
     }

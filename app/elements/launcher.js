@@ -1,4 +1,22 @@
 (function registerLauncher(Pin) {
+    function stepLauncher(el, table, world, dt) {
+        const maxRetract = el.maxRetract || 65;
+        const state = Pin.elements.getState ?
+            Pin.elements.getState(world, el, { position: 0, velocity: 0, charge: 0, releasing: false }) :
+            { position: 0, velocity: 0, charge: 0, releasing: false };
+        if (world && world.launchCharging) {
+            state.charging = true;
+            state.charge = Math.min(1, (state.charge || 0) + dt / 2);
+            state.position = Math.min(maxRetract, (state.position || 0) + (el.pullSpeed || 95) * dt);
+            state.velocity = 0;
+        } else if (!state.releasing) {
+            state.charging = false;
+            state.position = Math.max(0, (state.position || 0) - (el.returnSpeed || 220) * dt);
+            if (state.position <= 0.001) state.charge = 0;
+        }
+        state.maxRetract = maxRetract;
+    }
+
     Pin.elements.register("launcher", {
         compile: function compile(el, table, world) {
             const x = el.x || 439;
@@ -6,28 +24,25 @@
             const bottom = el.bottom || 735;
             const width = el.width || 38;
             const half = width * 0.5;
-            const maxRetract = el.maxRetract || 65;
             const state = Pin.elements.getState ?
                 Pin.elements.getState(world, el, { position: 0, velocity: 0, charge: 0, releasing: false }) :
                 { position: 0, velocity: 0, charge: 0, releasing: false };
-            const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
-            if (world && world.launchCharging) {
-                state.charging = true;
-                state.charge = Math.min(1, (state.charge || 0) + dt / 2);
-                state.position = Math.min(maxRetract, (state.position || 0) + (el.pullSpeed || 95) * dt);
-                state.velocity = 0;
-            } else if (!state.releasing) {
-                state.charging = false;
-                state.position = Math.max(0, (state.position || 0) - (el.returnSpeed || 220) * dt);
-                if (state.position <= 0.001) state.charge = 0;
-            }
-            state.maxRetract = maxRetract;
             const segments = [
                 { x1: x - half, y1: top, x2: x - half, y2: bottom, thickness: 2 },
                 { x1: x + half, y1: top, x2: x + half, y2: bottom, thickness: 2 },
                 { x1: x - half, y1: bottom, x2: x + half, y2: bottom, thickness: 2 }
             ];
             return { segments: segments };
+        },
+        step: function step(el, table, world, dt) {
+            stepLauncher(el, table, world, Number(dt) || (1 / 120));
+        },
+        physicsCacheKey: function physicsCacheKey(el, table, world) {
+            const state = Pin.elements.peekState ? Pin.elements.peekState(world, el) : null;
+            const position = state && typeof state.position === "number" ? state.position : 0;
+            const charging = state && state.charging ? 1 : 0;
+            const releasing = state && state.releasing ? 1 : 0;
+            return [position.toFixed(4), charging, releasing].join("|");
         },
         draw: function draw(ctx, el, runtime, world) {
             const x = el.x || 439;

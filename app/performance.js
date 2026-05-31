@@ -1,5 +1,6 @@
 // What: Play-loop performance helpers, including adaptive quality control.
-// Why: Rendering quality should react to sustained pressure, not single-frame spikes.
+// Why: Rendering quality should react to sustained pressure without bouncing
+// back and forth mid-session like a tiny indecisive committee.
 (function initPerformance(Pin) {
     Pin.performance = Pin.performance || {};
 
@@ -17,18 +18,16 @@
     }
 
     /* What: Build a stateful adaptive quality controller for play mode.
-     * Why: Hysteresis and dwell times prevent quality oscillation and visual flicker.
+     * Why: once quality drops, keeping it there avoids visible mid-session
+     * upgrades and removes the flicker-prone recovery dance.
      */
     function createAdaptiveQualityController(options) {
         const opts = Object.assign({
             frameHalfLifeMs: 650,
             backlogHalfLifeMs: 500,
             enterFrameMs: 22,
-            exitFrameMs: 18,
             enterBacklogSteps: 1.55,
-            exitBacklogSteps: 0.65,
             enterSustainMs: 900,
-            exitSustainMs: 3000,
             minDwellMs: 1800
         }, options || {});
 
@@ -49,12 +48,12 @@
         let mode = "full";
         let modeChangedAt = 0;
         let pressureSince = 0;
-        let stableSince = 0;
         let frameMsEma = NaN;
         let backlogEma = NaN;
 
         /* What: Sample current frame pressure and return the desired quality profile.
-         * Why: Play mode needs predictable, low-noise quality switching.
+         * Why: Play mode needs predictable downgrade behavior; recovery is left
+         * to a fresh controller/session so presentation does not visibly yo-yo.
          */
         function sample(metrics) {
             const now = Math.max(0, Number(metrics && metrics.now) || 0);
@@ -66,7 +65,6 @@
             backlogEma = updateEma(backlogEma, backlogSteps, frameDt, opts.backlogHalfLifeMs);
 
             const underPressure = frameMsEma >= opts.enterFrameMs || backlogEma >= opts.enterBacklogSteps;
-            const stable = frameMsEma <= opts.exitFrameMs && backlogEma <= opts.exitBacklogSteps;
             const canSwitch = now - modeChangedAt >= opts.minDwellMs;
 
             if (underPressure) {
@@ -75,20 +73,9 @@
                 pressureSince = 0;
             }
 
-            if (stable) {
-                if (!stableSince) stableSince = now;
-            } else {
-                stableSince = 0;
-            }
-
             if (mode === "full" && canSwitch && pressureSince && (now - pressureSince >= opts.enterSustainMs)) {
                 mode = "reduced";
                 modeChangedAt = now;
-                stableSince = 0;
-            } else if (mode === "reduced" && canSwitch && stableSince && (now - stableSince >= opts.exitSustainMs)) {
-                mode = "full";
-                modeChangedAt = now;
-                pressureSince = 0;
             }
 
             return mode === "reduced" ? reducedQuality : fullQuality;

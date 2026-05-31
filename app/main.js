@@ -23,12 +23,18 @@
         perfState[name] = entry;
     }
 
+    function perfSet(name, value) {
+        if (!perfEnabled) return;
+        perfState[name] = { value: value, gauge: true };
+    }
+
     function flushPerf() {
         if (!perfEnabled) return;
         const keys = Object.keys(perfState);
         if (!keys.length) return;
         const parts = keys.map(function map(key) {
             const item = perfState[key];
+            if (item.gauge) return key + "=" + String(item.value);
             const avg = item.count ? item.total / item.count : 0;
             return key + "=" + avg.toFixed(2) + "ms";
         });
@@ -114,7 +120,9 @@
                 right: false
             },
             tiltState: { lockout: false, cooldownUntil: 0, recentTimes: [] },
-            elementState: {}
+            elementState: {},
+            dynamicCompileCache: {},
+            physicsScratch: {}
         };
         if (Pin.logicCompile && Pin.logicSim) {
             const logicDoc = Pin.logicCompile.extractFromTable(table);
@@ -152,10 +160,13 @@
 
     function refreshRuntime(world) {
         const startedAt = perfStart();
+        const dynamicCacheMetrics = { hits: 0, misses: 0 };
         const dynamicRuntime = Pin.elements.compileElements(world.table, world, {
             static: false,
             dynamicPhysicsOnly: true,
-            elements: world.dynamicPhysicsElements
+            elements: world.dynamicPhysicsElements,
+            dynamicCacheStore: world.dynamicCompileCache,
+            dynamicCacheMetrics: dynamicCacheMetrics
         });
         world.dynamicRuntime = dynamicRuntime;
         world.dynamicSegments = dynamicRuntime.segments;
@@ -177,6 +188,11 @@
         world.runtimeCircles = runtime.circles;
         world.runtimeRamps = runtime.ramps;
         world.runtimeSensors = runtime.sensors;
+        if (dynamicCacheMetrics.hits || dynamicCacheMetrics.misses) {
+            const total = dynamicCacheMetrics.hits + dynamicCacheMetrics.misses;
+            const hitRate = total ? Math.round((dynamicCacheMetrics.hits / total) * 100) : 0;
+            perfSet("dynamicCompileCache", dynamicCacheMetrics.hits + "/" + total + " (" + hitRate + "%)");
+        }
         perfEnd("refreshRuntime", startedAt);
     }
 
@@ -759,6 +775,9 @@
             accumulator = Math.min(fixedDt * maxBacklogSteps, accumulator + scaledFrameDt);
             while (accumulator >= fixedDt) {
                 world.lastPhysicsDt = fixedDt;
+                if (Pin.elements && Pin.elements.stepDynamicElements) {
+                    Pin.elements.stepDynamicElements(world.table, world, fixedDt, world.dynamicPhysicsElements);
+                }
                 refreshRuntime(world);
                 const physicsStartedAt = perfStart();
                 Pin.physics.stepWorld(world, fixedDt);

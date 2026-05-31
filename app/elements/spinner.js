@@ -18,17 +18,22 @@
         return 30;
     }
 
+    function stepSpinner(el, table, world, dt) {
+        const state = Pin.elements.getState ?
+            Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0, lastTime: now() }) :
+            { angle: 0, angularVelocity: 0, lastTime: now() };
+        const damping = typeof el.damping === "number" ? el.damping : 5.5;
+        state.angle = (state.angle || 0) + (state.angularVelocity || 0) * dt;
+        state.angularVelocity = (state.angularVelocity || 0) * Math.exp(-damping * dt);
+        state.lastTime = now();
+    }
+
     Pin.elements.register("spinner", {
         compile: function compile(el, table, world) {
             const radius = getSpinnerRadius(el);
             const state = Pin.elements.getState ?
                 Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0, lastTime: now() }) :
                 { angle: 0, angularVelocity: 0, lastTime: now() };
-            const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
-            const damping = typeof el.damping === "number" ? el.damping : 5.5;
-            state.angle = (state.angle || 0) + (state.angularVelocity || 0) * dt;
-            state.angularVelocity = (state.angularVelocity || 0) * Math.exp(-damping * dt);
-            state.lastTime = now();
             const baseAngle = (el.angle || 0) + (state.angle || 0);
             function buildBladeSegment(segmentAngle, bladeIndex) {
                 const dx = Math.cos(segmentAngle) * radius;
@@ -78,6 +83,14 @@
                     buildBladeSegment(baseAngle + Math.PI * 0.5, 1)
                 ]
             };
+        },
+        step: function step(el, table, world, dt) {
+            stepSpinner(el, table, world, Number(dt) || (1 / 120));
+        },
+        physicsCacheKey: function physicsCacheKey(el, table, world) {
+            const state = Pin.elements.peekState ? Pin.elements.peekState(world, el) : null;
+            const angle = state && typeof state.angle === "number" ? state.angle : 0;
+            return angle.toFixed(5);
         },
         draw: function draw(ctx, el, runtime, world) {
             const radius = getSpinnerRadius(el);

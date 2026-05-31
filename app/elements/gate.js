@@ -148,34 +148,42 @@
         if (Pin.events) Pin.events.emit(world, { type: "gateOpened", sourceId: el.id, elementType: el.type });
     }
 
+    function stepGate(el, table, world, dt) {
+        const state = Pin.elements.getState ?
+            Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0 }) :
+            { angle: 0, angularVelocity: 0 };
+        const restAngle = gateRestAngle(el);
+        const direction = configuredDirection(el, world);
+        const limits = gateSwingLimits(el, restAngle, direction);
+        const returnStrength = typeof el.returnStrength === "number" ? el.returnStrength : 24;
+        const damping = typeof el.returnDamping === "number" ? el.returnDamping : 8;
+        const locked = isLocked(el, world);
+        const open = !locked && isOpen(el, world);
+        if (locked) {
+            state.angle = 0;
+            state.angularVelocity = 0;
+        } else if (open) {
+            state.angle = forcedOpenAngle(el, world, limits);
+            state.angularVelocity = 0;
+        } else {
+            state.angularVelocity = (state.angularVelocity || 0) - (state.angle || 0) * returnStrength * dt;
+            state.angularVelocity *= Math.exp(-damping * dt);
+            state.angle = clamp((state.angle || 0) + state.angularVelocity * dt, limits.min, limits.max);
+        }
+        if (Math.abs(state.angle) < 0.0015 && Math.abs(state.angularVelocity) < 0.02) {
+            state.angle = 0;
+            state.angularVelocity = 0;
+        }
+    }
+
     Pin.elements.register("gate", {
         compile: function compile(el, table, world) {
             const state = Pin.elements.getState ?
                 Pin.elements.getState(world, el, { angle: 0, angularVelocity: 0 }) :
                 { angle: 0, angularVelocity: 0 };
-            const dt = world && world.lastPhysicsDt ? world.lastPhysicsDt : 1 / 120;
             const restAngle = gateRestAngle(el);
             const direction = configuredDirection(el, world);
             const limits = gateSwingLimits(el, restAngle, direction);
-            const returnStrength = typeof el.returnStrength === "number" ? el.returnStrength : 24;
-            const damping = typeof el.returnDamping === "number" ? el.returnDamping : 8;
-            const locked = isLocked(el, world);
-            const open = !locked && isOpen(el, world);
-            if (locked) {
-                state.angle = 0;
-                state.angularVelocity = 0;
-            } else if (open) {
-                state.angle = forcedOpenAngle(el, world, limits);
-                state.angularVelocity = 0;
-            } else {
-                state.angularVelocity = (state.angularVelocity || 0) - (state.angle || 0) * returnStrength * dt;
-                state.angularVelocity *= Math.exp(-damping * dt);
-                state.angle = clamp((state.angle || 0) + state.angularVelocity * dt, limits.min, limits.max);
-            }
-            if (Math.abs(state.angle) < 0.0015 && Math.abs(state.angularVelocity) < 0.02) {
-                state.angle = 0;
-                state.angularVelocity = 0;
-            }
 
             const geom = buildGeometry(el, state);
             const nx = -(geom.y2 - geom.pivotY) / geom.length;
@@ -235,6 +243,24 @@
                 }
             };
             return { segments: [seg] };
+        },
+        step: function step(el, table, world, dt) {
+            stepGate(el, table, world, Number(dt) || (1 / 120));
+        },
+        physicsCacheKey: function physicsCacheKey(el, table, world) {
+            const state = Pin.elements.peekState ? Pin.elements.peekState(world, el) : null;
+            const angle = state && typeof state.angle === "number" ? state.angle : 0;
+            const velocity = state && typeof state.angularVelocity === "number" ? state.angularVelocity : 0;
+            const locked = isLocked(el, world) ? 1 : 0;
+            const open = isOpen(el, world) ? 1 : 0;
+            const direction = configuredDirection(el, world);
+            return [
+                angle.toFixed(5),
+                velocity.toFixed(5),
+                direction,
+                locked,
+                open
+            ].join("|");
         },
         draw: function draw(ctx, el, runtime, world) {
             const state = Pin.elements.peekState ? Pin.elements.peekState(world, el) : null;
