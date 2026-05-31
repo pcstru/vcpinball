@@ -1,5 +1,76 @@
 # Change Log
 
+## 2026-05-31 21:39:17 +01:00
+
+### Before Change
+- **User intent:** Update documentation for the current autoplay/neural Brain work and push the repository to GitHub.
+- **Scope before implementation:** README described autoplay and a browser neural path, but still said the repo could not train a flipper controller and did not document the new `Brain` tab, hidden/logit telemetry, or attributed shot-outcome training data.
+
+### After Change
+- Updated `README.md` to:
+  - clarify that Lab can train a small browser-side neural flipper policy, while not claiming production-quality or reward-optimising training,
+  - include the `Brain` tab in Lab capabilities and tab workflow,
+  - describe visible neural telemetry: input features, hidden activations, output probabilities, logits, selected action, source/fallback state, and weight summaries,
+  - explain that training can use heuristic samples plus attributed successful shot outcomes from processed switch events,
+  - keep limits explicit: no reinforcement learning loop, no direct score-reward optimisation, and continued heuristic fallback/target context.
+
+## 2026-05-31 18:30:00 +01:00
+
+### Before Change
+- **User intent:** Make model success align with successful flipper-to-target outcomes, not only frame-level imitation labels.
+- **Scope before implementation:** Neural training primarily consumed `none/left/right` frame labels; shot-outcome attribution existed but was not yet used as a weighted training signal.
+
+### After Change
+- Updated `app/tuning/lab.js`:
+  - Added `shotOutcomeSamplesToActionSamples(...)` to convert attributed shot outcomes into additional action samples.
+  - Weighted outcome-derived samples by shot latency (`ticksAfterFlip`) so cleaner, near-term target hits contribute more.
+  - Merged success-derived samples into the neural training set and rebalanced before SGD.
+  - Added panel visibility for outcome-driven training influence (`Shot L/R`, `Success used`).
+  - Training status now reports raw + success sample contribution.
+- Updated `tests/smoke.test.js`:
+  - Added assertions for success-sample transformation hook and new panel visibility fields.
+
+### Verification
+- `npm test` (smoke + eval-agent smoke).
+
+## 2026-05-31 18:15:00 +01:00
+
+### Before Change
+- **User intent:** Make the new autoplay shot-outcome data fully visible in the lab UI ("everything, we should be able to see").
+- **Scope before implementation:** The panel showed aggregate shot counters and only a single last-shot row, which made it hard to inspect pending attempts, recent attributed outcomes, and per-target hit distribution.
+
+### After Change
+- Updated `app/tuning/lab.js`:
+  - Added `Pending shots` metric to the `Autoplay Brain` panel.
+  - Added `Recent shots` detail summary showing the latest attributed `flip -> target @+T` outcomes.
+  - Added `Target hit map` detail summary showing top per-target outcome counts.
+  - Preserved existing aggregate rows while exposing rawer live context.
+- Updated `tests/smoke.test.js`:
+  - Added assertions for pending-shot visibility, recent-shot detail text, and target-hit-map detail text.
+
+### Verification
+- `npm test` (smoke + eval-agent smoke).
+
+## 2026-05-31 18:05:00 +01:00
+
+### Before Change
+- **User intent:** Improve autoplay/neural data quality by linking flipper actions to later target hits with a time offset, starting from easy switch-backed targets/lanes.
+- **Scope before implementation:** Live neural training samples captured frame-level action labels only (`none/left/right`) and did not preserve outcome labels like `target hit after T`.
+
+### After Change
+- Updated `app/physicsHarness.js`:
+  - Sandbox step now stores processed rule events as `world.lastProcessedEvents` so lab live mode can attribute outcomes without touching core physics.
+- Updated `app/tuning/lab.js`:
+  - Added shot-attempt collection on flipper press transitions (`recordShotAttempt`), including state snapshot and features at press time.
+  - Added shot-outcome attribution (`attributeShotOutcomes`) from processed `switchClosed` events using a tick window to compute `ticksAfterFlip` and `secondsAfterFlip`.
+  - Added lab training state buffers/maps for outcome data: `shotSamples`, `recentShotSamples`, `shotHitMap`, and `pendingShotAttempts`.
+  - Added neural panel/overlay visibility for shot outcome accumulation and latest `flip -> target @+T` attribution.
+- Updated `tests/smoke.test.js`:
+  - Added assertions for harness processed-event retention and live lab shot-attribution wiring/visibility.
+
+### Verification
+- `npm test` (smoke + eval-agent smoke).
+
 ## 2026-05-31 17:35:00 +01:00
 
 ### Before Change
@@ -556,3 +627,29 @@
   - `bodyColor`, `tipColor`, `strokeColor`, `pivotColor`, `highlightColor`, `glowStrength`.
 - Kept compatibility with existing tables via `color`/`glowColor` fallback behavior.
 - Updated flipper inspector ordering in `app/editor/panels.js` so the new visual controls are directly available in Appearance.
+
+## 2026-05-31 21:26:31 +01:00
+
+### Before Change
+- **User intent:** Add a dedicated, visible neural-network view in Lab so model activity is auditable ("if it is happening, we can see it"), including architecture options and live telemetry.
+- **Scope before implementation:** Neural autoplay status existed in a compact right-side summary, but there was no dedicated brain page, no network diagram, and no exposed hidden/logit activations for inspection.
+
+### After Change
+- Added a dedicated **Brain** tab in `app/tuning/lab.js` and expanded tab layout in `app/tuning/lab.css` to five tabs.
+- Added a Brain panel with:
+  - live run/model/action/status summaries,
+  - architecture option visibility (`16->8->3`, `16->12->3`, `16->16->3`, `16->24->3`),
+  - a canvas-rendered network flow graph (inputs -> hidden -> outputs),
+  - feature/hidden/output value tables including logits.
+- Added a new eval control: **Neural hidden units** (4..64), and wired it into training model creation.
+- Synced hidden-size UI with loaded persisted models so architecture display remains accurate after reload.
+- Extended autoplay learning debug payload in `app/tableAutoplayLearning.js` to expose:
+  - `hidden` activations,
+  - `logits`,
+  - `featureNames` metadata,
+  and exported `featureNames` from `Pin.tableAutoplayLearning`.
+- Added/updated smoke checks in `tests/smoke.test.js` for:
+  - Brain tab/panel existence,
+  - brain graph refresh hooks,
+  - hidden-unit control exposure,
+  - debug telemetry fields (`hidden`, `logits`, `featureNames`).

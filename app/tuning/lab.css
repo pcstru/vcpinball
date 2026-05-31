@@ -176,7 +176,7 @@ body {
 
 .lab-tabs {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
     margin: 0 0 12px;
 }
@@ -257,6 +257,28 @@ body {
 
 .lab-metric-list .value {
     color: #eef4ff;
+}
+
+.lab-brain-canvas {
+    width: 100%;
+    min-height: 220px;
+    border: 1px solid rgba(120, 140, 190, 0.28);
+    border-radius: 8px;
+    background: #070d18;
+    margin: 8px 0 10px;
+}
+
+.lab-brain-rows {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.lab-brain-rows .lab-metric-list {
+    border: 1px solid rgba(120, 140, 190, 0.2);
+    border-radius: 8px;
+    padding: 8px;
+    background: rgba(10, 15, 24, 0.66);
 }
 
 .lab-export {

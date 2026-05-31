@@ -30,12 +30,13 @@ There are no claims here about completeness, correctness, or research-grade simu
 - Use the editor assistant to propose structured table/logic patches, then preview and validate them before applying.
 - Open `physics-lab.html`, load a table, run evaluation checks, and inspect overlays.
 - Run autoplay in the lab to launch balls, operate flippers, record ball traces, build heatmaps, and collect score summaries.
+- Train a small browser-side neural flipper policy from autoplay samples, then compare or switch it against the heuristic controller in the lab.
 - Use `eval-agent` from Node to validate patches and collect machine-readable evaluation records.
 
 What you cannot do today:
 
 - Automatically prove that a table is fun or well designed.
-- Train a flipper controller in this repo.
+- Train a production-quality or reward-optimising flipper controller.
 - Run a complete generate/evaluate/refine loop without human review.
 - Treat the physics as physically accurate pinball.
 - Rely on the AI assistant to understand playability by itself.
@@ -138,12 +139,13 @@ The lab currently supports:
 - tracing launcher rollout/stuck diagnostics through the same core physics path used by play mode
 - configuring probe counts, bounce/contact limits, and tick limits for repeatable AI Eval runs
 - running lab-only autoplay with launcher variation, flipper control, ball trails, heatmaps, target aiming diagnostics, per-target hit counts, and score summaries
+- training and inspecting a small browser-side neural autoplay policy in the `Brain` tab
 - `AI-Lab` visibility-first patch/eval workflow:
   - stepwise attempts with explicit operator approval
   - optional auto/batch toggles with guardrails
   - provider status panel (configured/missing/reachable/unreachable) with manual `Check Provider` probe
   - attempt timeline, structured failure detail, and checkpoint/rollback controls
-  - desktop tabbed workflow (`Tune`, `Sandbox`, `Eval`, `AI-Lab`) to keep control depth shallow
+  - desktop tabbed workflow (`Tune`, `Sandbox`, `Eval`, `Brain`, `AI-Lab`) to keep control depth shallow
   - right-side inspector for heavy JSON/detail panes so control tabs stay compact
   - throttled metrics UI refresh and hidden-tab frame short-circuiting to reduce background UI cost
   - optional top-bar perf readout (`Perf On`) and paused-state dirty-render gating to reduce idle redraw overhead
@@ -178,7 +180,11 @@ Autoplay is useful for rough evaluation:
 
 It is not a good player. It does not understand table strategy, table quality, combo design, or long-term mode value. The flipper controller is deliberately simple so more expensive prediction or learned controllers can be tried later without changing game mode performance.
 
-The lab also has an experimental neural autoplay path. It trains a small browser-side policy from heuristic autoplay samples, shows the live sample buffer and class balance, and can switch live control between heuristic and neural modes without resetting the ball. This is useful for exploring whether a tiny controller can imitate or assist the heuristic. It is not a full learning system, does not train from score reward, and currently still relies on the heuristic path for fallback and target context.
+The lab also has an experimental neural autoplay path. It trains a small browser-side policy from heuristic autoplay samples and attributed successful shots, then can switch live control between heuristic and neural modes without resetting the ball. Training data includes frame-level `none/left/right` labels and shot-outcome samples such as "left flipper led to target X after N ticks" when processed switch events can be attributed to a recent flipper press.
+
+The `Brain` tab is the inspection surface for this experiment. It shows the selected model shape, current input features, hidden activations, output probabilities, logits, chosen action, fallback/source state, and rough weight statistics. This is intentionally visible and low-ceremony: if the model claims to be active, the lab should show what it is seeing and what it is outputting.
+
+The neural controller is still modest. It is not reinforcement learning, does not optimise directly from score reward, and currently relies on the heuristic path for fallback and target context. It is useful for testing whether a tiny policy can imitate or assist the heuristic, and for collecting data about what the controller is actually learning.
 
 For a single-ball score check in the lab, set:
 
@@ -251,7 +257,7 @@ Possible AI experiments this repo can support:
 
 - Generate table patches and evaluate them with schema/playability checks.
 - Log autoplay heatmaps, score summaries, and per-target hit maps to compare table variants.
-- Train a small browser-side flipper policy from heuristic autoplay samples and compare it with the heuristic controller.
+- Train a small browser-side flipper policy from heuristic autoplay samples and attributed shot outcomes, then compare it with the heuristic controller.
 - Build datasets from structured patches, validation failures, and evaluation results.
 - Compare prompts or agents on the same concrete editing task.
 
@@ -303,7 +309,7 @@ Important modules:
 - `app/elements/*`: element compile/draw/runtime behavior
 - `app/physicsHarness.js`: deterministic physics scenarios and sandbox simulation used by the lab
 - `app/tableAutoplay.js`: lab-only autoplay runner for heatmaps, traces, target diagnostics, event-based target-hit maps, and score summaries
-- `app/tableAutoplayLearning.js`: lab-only browser neural policy used to imitate/assist autoplay flipper control
+- `app/tableAutoplayLearning.js`: lab-only browser neural policy used to imitate/assist autoplay flipper control and expose model telemetry to the Lab Brain view
 - `app/aiLabContract.js`: shared AI patch contract, patch apply/validate flow, and evaluator entry
 - `app/tableEval.js`: table evaluation checks, diagnostics, and report generation
 - `app/tuning/lab.js`: browser UI for physics tuning, sandbox play, and table evaluation

@@ -380,8 +380,9 @@
         }
         refreshRuntime(world);
         Pin.physics.stepWorld(world, world.lastPhysicsDt);
+        world.lastProcessedEvents = [];
         if (Pin.events && typeof Pin.events.processRules === "function") {
-            Pin.events.processRules(world, world.lastPhysicsDt);
+            world.lastProcessedEvents = Pin.events.processRules(world, world.lastPhysicsDt) || [];
         }
     }
 

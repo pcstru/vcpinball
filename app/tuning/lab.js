@@ -253,6 +253,7 @@
                 neuralEpochs: 4,
                 neuralTrainingBalls: 10,
                 neuralMaxSamples: 3000,
+                neuralHiddenSize: 12,
                 neuralLastDebug: null,
                 training: {
                     collecting: false,
@@ -267,6 +268,12 @@
                     liveSamples: [],
                     liveActionSamples: 0,
                     recentLiveSamples: [],
+                    shotSamples: [],
+                    recentShotSamples: [],
+                    shotHitMap: {},
+                    pendingShotAttempts: [],
+                    successSampleCount: 0,
+                    prevAutoControls: { left: false, right: false },
                     liveCollectEnabled: true
                 }
             },
@@ -364,10 +371,12 @@
         const tabTune = create("button", "active", "Tune");
         const tabSandbox = create("button", "", "Sandbox");
         const tabEval = create("button", "", "Eval");
+        const tabBrain = create("button", "", "Brain");
         const tabAi = create("button", "", "AI-Lab");
         tabRow.appendChild(tabTune);
         tabRow.appendChild(tabSandbox);
         tabRow.appendChild(tabEval);
+        tabRow.appendChild(tabBrain);
         tabRow.appendChild(tabAi);
         left.appendChild(tabRow);
         const tabBody = create("div", "lab-tab-body");
@@ -375,10 +384,12 @@
         const tunePanel = create("section", "lab-tab-panel active");
         const sandboxPanel = create("section", "lab-tab-panel");
         const evalPanel = create("section", "lab-tab-panel");
+        const brainPanel = create("section", "lab-tab-panel");
         const aiPanel = create("section", "lab-tab-panel");
         tabBody.appendChild(tunePanel);
         tabBody.appendChild(sandboxPanel);
         tabBody.appendChild(evalPanel);
+        tabBody.appendChild(brainPanel);
         tabBody.appendChild(aiPanel);
 
         const navRow = create("div", "lab-actions lab-top-nav");
@@ -455,8 +466,12 @@
         const neuralStatus = create("div", "lab-eval-summary", "Neural policy: untrained.");
         const neuralMetrics = create("div", "lab-metric-list");
         const neuralTrainingStatus = create("div", "lab-eval-summary", "Training data: idle.");
+        const neuralShotDetailStatus = create("div", "lab-eval-summary", "Shot outcomes: idle.");
+        const neuralHitMapStatus = create("div", "lab-eval-summary", "Target hits: idle.");
         neuralWrap.appendChild(neuralStatus);
         neuralWrap.appendChild(neuralTrainingStatus);
+        neuralWrap.appendChild(neuralShotDetailStatus);
+        neuralWrap.appendChild(neuralHitMapStatus);
         neuralWrap.appendChild(neuralMetrics);
         right.appendChild(neuralWrap);
 
@@ -700,6 +715,16 @@
         neuralTrainEpochInput.value = String(state.autoplay.neuralEpochs);
         neuralTrainEpochInput.className = "lab-number";
         neuralTrainEpochRow.appendChild(neuralTrainEpochInput);
+        const neuralHiddenSizeRow = create("label", "lab-inline-field");
+        neuralHiddenSizeRow.textContent = "Neural hidden units";
+        const neuralHiddenSizeInput = document.createElement("input");
+        neuralHiddenSizeInput.type = "number";
+        neuralHiddenSizeInput.min = "4";
+        neuralHiddenSizeInput.max = "64";
+        neuralHiddenSizeInput.step = "1";
+        neuralHiddenSizeInput.value = String(state.autoplay.neuralHiddenSize);
+        neuralHiddenSizeInput.className = "lab-number";
+        neuralHiddenSizeRow.appendChild(neuralHiddenSizeInput);
         const autoplayLiveActions = create("div", "lab-actions");
         const autoplayLiveStartButton = create("button", "", "Heuristic Live");
         const autoplayNeuralStartButton = create("button", "", "Neural Live");
@@ -745,6 +770,7 @@
         evalWrap.appendChild(neuralTrainBallsRow);
         evalWrap.appendChild(neuralTrainSamplesRow);
         evalWrap.appendChild(neuralTrainEpochRow);
+        evalWrap.appendChild(neuralHiddenSizeRow);
         evalWrap.appendChild(autoplayLiveActions);
         evalWrap.appendChild(autoplayLiveStatus);
         evalWrap.appendChild(evalSummary);
@@ -860,6 +886,32 @@
         aiWrap.appendChild(aiAttempts);
         aiPanel.appendChild(aiWrap);
 
+        brainPanel.appendChild(create("h2", "", "Neural Brain"));
+        brainPanel.appendChild(create("p", "small", "Live view of features, activations, output probabilities, and current control source."));
+        const brainWrap = create("div", "lab-group");
+        const brainRunStatus = create("div", "lab-eval-summary", "Brain: waiting for autoplay data.");
+        const brainArchitectureStatus = create("div", "lab-eval-summary", "Architectures: 16->8->3 | 16->12->3 | 16->16->3 | 16->24->3");
+        const brainActionStatus = create("div", "lab-eval-summary", "Action: none.");
+        const brainWeightStatus = create("div", "lab-eval-summary", "Weights: no model loaded.");
+        const brainCanvas = document.createElement("canvas");
+        brainCanvas.className = "lab-brain-canvas";
+        brainCanvas.width = 760;
+        brainCanvas.height = 300;
+        const brainRows = create("div", "lab-brain-rows");
+        const brainFeatureRows = create("div", "lab-metric-list");
+        const brainHiddenRows = create("div", "lab-metric-list");
+        const brainOutputRows = create("div", "lab-metric-list");
+        brainRows.appendChild(brainFeatureRows);
+        brainRows.appendChild(brainHiddenRows);
+        brainRows.appendChild(brainOutputRows);
+        brainWrap.appendChild(brainRunStatus);
+        brainWrap.appendChild(brainArchitectureStatus);
+        brainWrap.appendChild(brainActionStatus);
+        brainWrap.appendChild(brainWeightStatus);
+        brainWrap.appendChild(brainCanvas);
+        brainWrap.appendChild(brainRows);
+        brainPanel.appendChild(brainWrap);
+
         right.appendChild(create("h2", "", "AI Attempt Detail"));
         const aiDetailWrap = create("div", "lab-group");
         const aiDetail = document.createElement("textarea");
@@ -874,21 +926,25 @@
                 tune: nextTab === "tune",
                 sandbox: nextTab === "sandbox",
                 eval: nextTab === "eval",
+                brain: nextTab === "brain",
                 ai: nextTab === "ai"
             };
             tabTune.className = active.tune ? "active" : "";
             tabSandbox.className = active.sandbox ? "active" : "";
             tabEval.className = active.eval ? "active" : "";
+            tabBrain.className = active.brain ? "active" : "";
             tabAi.className = active.ai ? "active" : "";
             tunePanel.className = "lab-tab-panel" + (active.tune ? " active" : "");
             sandboxPanel.className = "lab-tab-panel" + (active.sandbox ? " active" : "");
             evalPanel.className = "lab-tab-panel" + (active.eval ? " active" : "");
+            brainPanel.className = "lab-tab-panel" + (active.brain ? " active" : "");
             aiPanel.className = "lab-tab-panel" + (active.ai ? " active" : "");
         }
 
         tabTune.onclick = function onTuneTabClick() { setActiveTab("tune"); };
         tabSandbox.onclick = function onSandboxTabClick() { setActiveTab("sandbox"); };
         tabEval.onclick = function onEvalTabClick() { setActiveTab("eval"); };
+        tabBrain.onclick = function onBrainTabClick() { setActiveTab("brain"); };
         tabAi.onclick = function onAiTabClick() {
             setActiveTab("ai");
             aiLabRefreshProviderStatus(false);
@@ -955,6 +1011,191 @@
             };
         }
 
+        /* What: Compute lightweight weight stats for brain visibility panel.
+         * Why: show whether training changed parameters without dumping full matrices.
+         */
+        function summarizeNeuralWeights(model) {
+            const stats = {
+                count: 0,
+                min: Number.POSITIVE_INFINITY,
+                max: Number.NEGATIVE_INFINITY,
+                absSum: 0
+            };
+            function record(value) {
+                if (!Number.isFinite(value)) return;
+                stats.count += 1;
+                if (value < stats.min) stats.min = value;
+                if (value > stats.max) stats.max = value;
+                stats.absSum += Math.abs(value);
+            }
+            if (model && Array.isArray(model.w1)) model.w1.forEach(function eachRow(row) { (row || []).forEach(record); });
+            if (model && Array.isArray(model.w2)) model.w2.forEach(function eachRow(row) { (row || []).forEach(record); });
+            if (model && Array.isArray(model.b1)) model.b1.forEach(record);
+            if (model && Array.isArray(model.b2)) model.b2.forEach(record);
+            if (!stats.count) return null;
+            return {
+                count: stats.count,
+                min: stats.min,
+                max: stats.max,
+                meanAbs: stats.absSum / stats.count
+            };
+        }
+
+        /* What: Draw a compact, readable neural flow graph for the Brain tab.
+         * Why: make current model activity auditable while autoplay runs.
+         */
+        function drawBrainGraph(debug, model) {
+            const ctxBrain = brainCanvas.getContext("2d");
+            if (!ctxBrain) return;
+            const width = brainCanvas.width;
+            const height = brainCanvas.height;
+            ctxBrain.clearRect(0, 0, width, height);
+            ctxBrain.fillStyle = "#090f1b";
+            ctxBrain.fillRect(0, 0, width, height);
+
+            const featureValues = debug && Array.isArray(debug.features) ? debug.features : [];
+            const hiddenValues = debug && Array.isArray(debug.hidden) ? debug.hidden : [];
+            const outputs = debug && debug.outputs ? debug.outputs : { none: 0, left: 0, right: 0 };
+            const inputCount = Math.max(1, Math.min(8, featureValues.length || 8));
+            const hiddenCount = Math.max(1, Math.min(8, hiddenValues.length || ((model && model.hiddenSize) || 8)));
+            const outputValues = [Number(outputs.none) || 0, Number(outputs.left) || 0, Number(outputs.right) || 0];
+            const outputLabels = ["none", "left", "right"];
+            const xInput = 120;
+            const xHidden = Math.round(width * 0.5);
+            const xOutput = width - 120;
+            const radius = 12;
+
+            function yAt(index, total) {
+                const pad = 36;
+                if (total <= 1) return Math.round(height * 0.5);
+                return Math.round(pad + index * ((height - pad * 2) / (total - 1)));
+            }
+            function nodeColor(value, mode) {
+                const v = clamp(Number(value) || 0, mode === "hidden" ? 0 : -1, 1);
+                if (mode === "hidden") {
+                    const intensity = Math.round(45 + v * 180);
+                    return "rgb(" + intensity + "," + Math.min(255, intensity + 24) + ",255)";
+                }
+                const positive = Math.max(0, v);
+                const negative = Math.max(0, -v);
+                return "rgb(" + Math.round(90 + positive * 120) + "," + Math.round(90 + (1 - negative) * 80) + "," + Math.round(120 + positive * 90) + ")";
+            }
+            function drawNode(x, y, value, mode, label) {
+                ctxBrain.beginPath();
+                ctxBrain.arc(x, y, radius, 0, Math.PI * 2);
+                ctxBrain.fillStyle = nodeColor(value, mode);
+                ctxBrain.fill();
+                ctxBrain.lineWidth = 1.2;
+                ctxBrain.strokeStyle = "rgba(230, 240, 255, 0.72)";
+                ctxBrain.stroke();
+                ctxBrain.fillStyle = "rgba(230, 240, 255, 0.95)";
+                ctxBrain.font = "11px Consolas, monospace";
+                ctxBrain.textAlign = "center";
+                ctxBrain.fillText(label, x, y - 16);
+            }
+            function drawLayerLinks(fromX, fromCount, toX, toCount, tone) {
+                ctxBrain.strokeStyle = tone;
+                ctxBrain.lineWidth = 1;
+                for (let i = 0; i < fromCount; i++) {
+                    const y1 = yAt(i, fromCount);
+                    for (let j = 0; j < toCount; j++) {
+                        const y2 = yAt(j, toCount);
+                        ctxBrain.beginPath();
+                        ctxBrain.moveTo(fromX + radius, y1);
+                        ctxBrain.lineTo(toX - radius, y2);
+                        ctxBrain.stroke();
+                    }
+                }
+            }
+
+            drawLayerLinks(xInput, inputCount, xHidden, hiddenCount, "rgba(116, 155, 233, 0.18)");
+            drawLayerLinks(xHidden, hiddenCount, xOutput, 3, "rgba(106, 210, 170, 0.2)");
+
+            for (let i = 0; i < inputCount; i++) {
+                const val = Number(featureValues[i]) || 0;
+                drawNode(xInput, yAt(i, inputCount), val, "input", "i" + i);
+            }
+            for (let h = 0; h < hiddenCount; h++) {
+                const val = Number(hiddenValues[h]) || 0;
+                drawNode(xHidden, yAt(h, hiddenCount), val, "hidden", "h" + h);
+            }
+            for (let o = 0; o < 3; o++) {
+                drawNode(xOutput, yAt(o, 3), outputValues[o], "hidden", outputLabels[o]);
+                ctxBrain.fillStyle = "rgba(230, 240, 255, 0.9)";
+                ctxBrain.font = "11px Consolas, monospace";
+                ctxBrain.textAlign = "left";
+                ctxBrain.fillText(String(round(outputValues[o], 3)), xOutput + 22, yAt(o, 3) + 4);
+            }
+
+            ctxBrain.fillStyle = "rgba(160, 186, 235, 0.9)";
+            ctxBrain.font = "12px Consolas, monospace";
+            ctxBrain.textAlign = "center";
+            ctxBrain.fillText("Input Features", xInput, 18);
+            ctxBrain.fillText("Hidden Activations", xHidden, 18);
+            ctxBrain.fillText("Output Probabilities", xOutput, 18);
+        }
+
+        /* What: Refresh Brain tab values/diagram from current autoplay telemetry.
+         * Why: user requested auditable live visuals for model activity and data.
+         */
+        function refreshBrainPanel() {
+            const debug = state.autoplay.neuralLastDebug || null;
+            const model = state.autoplay.neuralModel || null;
+            const featureNames = (debug && Array.isArray(debug.featureNames) && debug.featureNames.length)
+                ? debug.featureNames
+                : ((Pin.tableAutoplayLearning && Array.isArray(Pin.tableAutoplayLearning.featureNames)) ? Pin.tableAutoplayLearning.featureNames : []);
+            const features = debug && Array.isArray(debug.features) ? debug.features : [];
+            const hidden = debug && Array.isArray(debug.hidden) ? debug.hidden : [];
+            const logits = debug && Array.isArray(debug.logits) ? debug.logits : [];
+            const outputs = debug && debug.outputs ? debug.outputs : null;
+            const stats = summarizeNeuralWeights(model);
+
+            brainFeatureRows.innerHTML = "";
+            brainHiddenRows.innerHTML = "";
+            brainOutputRows.innerHTML = "";
+
+            const modeText = state.autoplay.liveRunning ? (state.autoplay.liveMode + " live") : "idle";
+            const modelText = model ? (model.inputSize + " -> " + model.hiddenSize + " -> 3") : "untrained";
+            brainRunStatus.textContent = "Brain: " + modeText + " | model " + modelText + " | samples " + (state.autoplay.neuralSampleCount || 0);
+            brainRunStatus.className = "lab-eval-summary" + (model ? " pass" : "");
+            brainArchitectureStatus.textContent = "Architectures: 16->8->3 | 16->12->3 | 16->16->3 | 16->24->3 | selected hidden " + state.autoplay.neuralHiddenSize;
+            brainActionStatus.textContent = debug
+                ? ("Action " + (debug.action || "none") + " | source " + (debug.source || "model") + " | conf " + round(debug.confidence || 0, 3))
+                : "Action: waiting for neural debug telemetry.";
+            brainActionStatus.className = "lab-eval-summary" + (debug ? " pass" : " warn");
+            brainWeightStatus.textContent = stats
+                ? ("Weights: " + stats.count + " params | min " + round(stats.min, 4) + " | max " + round(stats.max, 4) + " | mean|w| " + round(stats.meanAbs, 4))
+                : "Weights: no model loaded.";
+            brainWeightStatus.className = "lab-eval-summary" + (stats ? " pass" : " warn");
+
+            for (let i = 0; i < Math.min(8, features.length || featureNames.length); i++) {
+                const name = featureNames[i] || ("f" + i);
+                const value = Number(features[i]);
+                brainFeatureRows.appendChild(create("div", "label", name));
+                brainFeatureRows.appendChild(create("div", "value", Number.isFinite(value) ? String(round(value, 4)) : "-"));
+            }
+            for (let h = 0; h < Math.min(8, hidden.length || (model ? model.hiddenSize : 0)); h++) {
+                const value = Number(hidden[h]);
+                brainHiddenRows.appendChild(create("div", "label", "hidden_" + h));
+                brainHiddenRows.appendChild(create("div", "value", Number.isFinite(value) ? String(round(value, 4)) : "-"));
+            }
+            const outputRows = [
+                { name: "none", value: outputs ? outputs.none : null },
+                { name: "left", value: outputs ? outputs.left : null },
+                { name: "right", value: outputs ? outputs.right : null },
+                { name: "logit_none", value: logits.length > 0 ? logits[0] : null },
+                { name: "logit_left", value: logits.length > 1 ? logits[1] : null },
+                { name: "logit_right", value: logits.length > 2 ? logits[2] : null }
+            ];
+            outputRows.forEach(function each(row) {
+                brainOutputRows.appendChild(create("div", "label", row.name));
+                brainOutputRows.appendChild(create("div", "value", Number.isFinite(row.value) ? String(round(row.value, 4)) : "-"));
+            });
+
+            drawBrainGraph(debug, model);
+            if (state.ui.activeTab === "brain") state.runtime.dirty = true;
+        }
+
         function refreshNeuralPanel() {
             neuralMetrics.innerHTML = "";
             const debug = state.autoplay.neuralLastDebug;
@@ -962,6 +1203,12 @@
             const latestSample = training.recentLiveSamples && training.recentLiveSamples.length
                 ? training.recentLiveSamples[training.recentLiveSamples.length - 1]
                 : null;
+            const latestShotSample = training.recentShotSamples && training.recentShotSamples.length
+                ? training.recentShotSamples[training.recentShotSamples.length - 1]
+                : null;
+            const pendingShotAttempts = training.pendingShotAttempts || [];
+            const recentShotSamples = training.recentShotSamples || [];
+            const shotHitMap = training.shotHitMap || {};
             const rows = [
                 { label: "Mode", value: state.autoplay.liveMode || "heuristic" },
                 { label: "Samples", value: state.autoplay.neuralSampleCount || 0 },
@@ -981,7 +1228,13 @@
                 { label: "Cooldown", value: debug && Number.isFinite(debug.cooldown) ? debug.cooldown : "-" },
                 { label: "Source", value: debug && debug.source ? debug.source : "-" },
                 { label: "Model", value: debug && debug.model ? (debug.model.inputSize + " -> " + debug.model.hiddenSize + " -> 3") : "-" },
-                { label: "Last sample", value: latestSample ? (latestSample.action + " bx " + round(latestSample.ballX, 3) + " by " + round(latestSample.ballY, 3) + " vy " + round(latestSample.vy, 3)) : "-" }
+                { label: "Last sample", value: latestSample ? (latestSample.action + " bx " + round(latestSample.ballX, 3) + " by " + round(latestSample.ballY, 3) + " vy " + round(latestSample.vy, 3)) : "-" },
+                { label: "Shot samples", value: (training.shotSamples && training.shotSamples.length) || 0 },
+                { label: "Shot targets", value: training.shotHitMap ? Object.keys(training.shotHitMap).length : 0 },
+                { label: "Shot L/R", value: (training.shotLeft || 0) + "/" + (training.shotRight || 0) },
+                { label: "Success used", value: training.successSampleCount || 0 },
+                { label: "Pending shots", value: pendingShotAttempts.length || 0 },
+                { label: "Last shot", value: latestShotSample ? (latestShotSample.side + " -> " + latestShotSample.targetId + " @+" + latestShotSample.ticksAfterFlip) : "-" }
             ];
             rows.forEach(function each(row) {
                 const key = create("div", "label", row.label);
@@ -998,11 +1251,27 @@
                 ? "Training data: collecting (" + (training.total || 0) + " samples)."
                 : ("Training data: idle. live buffer " + ((training.liveSamples && training.liveSamples.length) || 0) + ".");
             neuralTrainingStatus.className = "lab-eval-summary" + (training.collecting ? " warn" : "");
+            const recentShotText = recentShotSamples.slice(-5).map(function map(sample) {
+                if (!sample) return "";
+                return (sample.side || "?") + " -> " + (sample.targetId || "?") + " @+" + (sample.ticksAfterFlip || 0) + "t";
+            }).filter(Boolean).join(" | ");
+            neuralShotDetailStatus.textContent = recentShotSamples.length
+                ? ("Recent shots (" + recentShotSamples.length + " kept): " + recentShotText)
+                : "Recent shots: none yet.";
+            neuralShotDetailStatus.className = "lab-eval-summary" + (recentShotSamples.length ? " pass" : "");
+            const topHits = Object.keys(shotHitMap).map(function map(key) {
+                return { key: key, count: shotHitMap[key] || 0 };
+            }).sort(function sort(a, b) { return b.count - a.count; }).slice(0, 6);
+            neuralHitMapStatus.textContent = topHits.length
+                ? ("Target hit map: " + topHits.map(function map(entry) { return entry.key + ":" + entry.count; }).join(" | "))
+                : "Target hit map: none yet.";
+            neuralHitMapStatus.className = "lab-eval-summary" + (topHits.length ? " pass" : "");
             autoplayNeuralStartButton.disabled = !trained || state.eval.running || (state.autoplay.liveRunning && state.autoplay.liveMode === "neural");
             autoplayLiveStartButton.disabled = state.eval.running || (state.autoplay.liveRunning && state.autoplay.liveMode === "heuristic");
             autoplayCompareButton.disabled = !trained || state.eval.running;
             autoplayLiveStartButton.className = state.autoplay.liveMode === "heuristic" && state.autoplay.liveRunning ? "active" : "";
             autoplayNeuralStartButton.className = state.autoplay.liveMode === "neural" && state.autoplay.liveRunning ? "active" : "";
+            refreshBrainPanel();
             state.runtime.dirty = true;
         }
 
@@ -1010,6 +1279,114 @@
             if (controls && controls.left && !controls.right) return "left";
             if (controls && controls.right && !controls.left) return "right";
             return "none";
+        }
+
+        function shotSourceTypeSet() {
+            return {
+                lane: true,
+                dropTarget: true,
+                trough: true,
+                kicker: true,
+                spinner: true,
+                scoreZone: true,
+                bumper: true
+            };
+        }
+
+        function shotTargetLookup(table) {
+            const out = {};
+            const allowed = shotSourceTypeSet();
+            const elements = table && Array.isArray(table.elements) ? table.elements : [];
+            elements.forEach(function each(el) {
+                if (!el || !el.id || !allowed[el.type]) return;
+                out[String(el.id)] = {
+                    id: String(el.id),
+                    type: String(el.type || "")
+                };
+            });
+            return out;
+        }
+
+        function recordShotAttempt(world, controls, target) {
+            const training = state.autoplay.training;
+            const prev = training.prevAutoControls || { left: false, right: false };
+            const ball = world && world.balls && world.balls[0] ? world.balls[0] : null;
+            if (!ball || !Pin.tableAutoplayLearning || typeof Pin.tableAutoplayLearning.extractFeatures !== "function") {
+                training.prevAutoControls = { left: !!controls.left, right: !!controls.right };
+                return;
+            }
+            const features = Pin.tableAutoplayLearning.extractFeatures(world, { target: target || null });
+            const nowTick = Number(world.physicsTick) || 0;
+            function appendAttempt(side) {
+                training.pendingShotAttempts.push({
+                    tick: nowTick,
+                    side: side,
+                    targetId: target && target.id ? String(target.id) : "",
+                    targetType: target && target.type ? String(target.type) : "",
+                    ballX: Number(ball.x) || 0,
+                    ballY: Number(ball.y) || 0,
+                    ballVx: Number(ball.vx) || 0,
+                    ballVy: Number(ball.vy) || 0,
+                    features: Array.isArray(features) ? features.slice(0) : []
+                });
+            }
+            if (!!controls.left && !prev.left) appendAttempt("left");
+            if (!!controls.right && !prev.right) appendAttempt("right");
+            training.prevAutoControls = { left: !!controls.left, right: !!controls.right };
+            const maxPending = 512;
+            if (training.pendingShotAttempts.length > maxPending) {
+                training.pendingShotAttempts.splice(0, training.pendingShotAttempts.length - maxPending);
+            }
+        }
+
+        function attributeShotOutcomes(world, processedEvents) {
+            const training = state.autoplay.training;
+            const events = Array.isArray(processedEvents) ? processedEvents : [];
+            if (!events.length) return;
+            if (!training.shotTargetLookup) {
+                training.shotTargetLookup = shotTargetLookup(world && world.table ? world.table : null);
+            }
+            const nowTick = Number(world.physicsTick) || 0;
+            const minTicks = 12;
+            const maxTicks = 180;
+            training.pendingShotAttempts = (training.pendingShotAttempts || []).filter(function keep(attempt) {
+                if (!attempt || !Number.isFinite(attempt.tick)) return false;
+                return (nowTick - attempt.tick) <= maxTicks;
+            });
+            events.forEach(function each(event) {
+                if (!event || event.type !== "switchClosed" || !event.sourceId) return;
+                const sourceId = String(event.sourceId);
+                const targetMeta = training.shotTargetLookup[sourceId];
+                if (!targetMeta) return;
+                let best = null;
+                for (let i = training.pendingShotAttempts.length - 1; i >= 0; i--) {
+                    const attempt = training.pendingShotAttempts[i];
+                    const dt = nowTick - (attempt.tick || 0);
+                    if (dt < minTicks || dt > maxTicks) continue;
+                    best = attempt;
+                    break;
+                }
+                if (!best) return;
+                const sample = {
+                    tick: nowTick,
+                    side: best.side,
+                    targetId: sourceId,
+                    targetType: targetMeta.type || "",
+                    intendedTargetId: best.targetId || "",
+                    ticksAfterFlip: nowTick - (best.tick || 0),
+                    secondsAfterFlip: (world.lastPhysicsDt || (1 / 120)) * (nowTick - (best.tick || 0)),
+                    ballX: best.ballX,
+                    ballY: best.ballY,
+                    ballVx: best.ballVx,
+                    ballVy: best.ballVy,
+                    features: Array.isArray(best.features) ? best.features.slice(0) : []
+                };
+                training.shotSamples.push(sample);
+                training.recentShotSamples.push(sample);
+                training.shotHitMap[sourceId] = (training.shotHitMap[sourceId] || 0) + 1;
+                if (training.recentShotSamples.length > 24) training.recentShotSamples.shift();
+                if (training.shotSamples.length > 5000) training.shotSamples.splice(0, training.shotSamples.length - 5000);
+            });
         }
 
         function rebalanceTrainingSamples(samples) {
@@ -1030,6 +1407,29 @@
                 rightBalanced.push(right[i % right.length]);
             }
             return leftBalanced.concat(rightBalanced, trimmedNone);
+        }
+
+        function shotOutcomeSamplesToActionSamples(shotSamples) {
+            const out = [];
+            const shots = Array.isArray(shotSamples) ? shotSamples : [];
+            shots.forEach(function each(sample) {
+                if (!sample || !Array.isArray(sample.features)) return;
+                const side = sample.side === "left" ? "left" : (sample.side === "right" ? "right" : "");
+                if (!side) return;
+                const ticks = Number(sample.ticksAfterFlip) || 0;
+                // Favor cleaner, shorter-latency outcomes without exploding sample count.
+                let weight = 1;
+                if (ticks >= 12 && ticks <= 60) weight = 4;
+                else if (ticks <= 100) weight = 3;
+                else if (ticks <= 160) weight = 2;
+                for (let i = 0; i < weight; i++) {
+                    out.push({
+                        features: sample.features.slice(0),
+                        action: side
+                    });
+                }
+            });
+            return out;
         }
 
         function collectAutoplayTrainingSamples() {
@@ -1056,6 +1456,9 @@
             state.autoplay.training.none = 0;
             state.autoplay.training.left = 0;
             state.autoplay.training.right = 0;
+            state.autoplay.training.shotLeft = 0;
+            state.autoplay.training.shotRight = 0;
+            state.autoplay.training.successSampleCount = 0;
             state.autoplay.training.liveActionSamples = 0;
             state.autoplay.training.recentLiveSamples = [];
             state.autoplay.training.startedAt = Date.now();
@@ -1118,11 +1521,23 @@
             } else {
                 samples = collectAutoplayTrainingSamples();
             }
+            const shotSamplesRaw = (state.autoplay.training.shotSamples || []).slice(-5000);
+            const shotActionSamples = shotOutcomeSamplesToActionSamples(shotSamplesRaw);
+            state.autoplay.training.successSampleCount = shotActionSamples.length;
+            state.autoplay.training.shotLeft = shotSamplesRaw.filter(function filter(sample) { return sample && sample.side === "left"; }).length;
+            state.autoplay.training.shotRight = shotSamplesRaw.filter(function filter(sample) { return sample && sample.side === "right"; }).length;
+            if (shotActionSamples.length) {
+                samples = samples.concat(shotActionSamples);
+                samples = rebalanceTrainingSamples(samples);
+            }
             if (!samples.length) {
                 autoplayLiveStatus.textContent = "Neural training: no samples collected.";
                 return;
             }
-            const model = Pin.tableAutoplayLearning.createModel(samples[0].features.length, 12);
+            const model = Pin.tableAutoplayLearning.createModel(
+                samples[0].features.length,
+                clamp(Math.round(Number(state.autoplay.neuralHiddenSize) || 12), 4, 64)
+            );
             const result = Pin.tableAutoplayLearning.trainModel(model, samples, {
                 epochs: clamp(Math.round(Number(state.autoplay.neuralEpochs) || 4), 1, 24),
                 learningRate: 0.05
@@ -1135,7 +1550,9 @@
             state.autoplay.neuralSampleCount = result.samples;
             saveNeuralModel();
             autoplayLiveStatus.textContent =
-                "Neural training complete. raw " + (state.autoplay.training.rawTotal || result.samples) + " -> used " + result.samples + " (N/L/R " + noneCount + "/" + leftCount + "/" + rightCount + ") | loss " + round(result.finalLoss, 5);
+                "Neural training complete. raw " + (state.autoplay.training.rawTotal || result.samples) +
+                " + success " + (state.autoplay.training.successSampleCount || 0) +
+                " -> used " + result.samples + " (N/L/R " + noneCount + "/" + leftCount + "/" + rightCount + ") | loss " + round(result.finalLoss, 5);
             refreshNeuralPanel();
         }
 
@@ -1262,6 +1679,8 @@
             state.autoplay.liveServeIndex = 0;
             state.autoplay.liveWasInLaunchLane = true;
             state.autoplay.liveSampleCounter = 0;
+            state.autoplay.training.pendingShotAttempts = [];
+            state.autoplay.training.prevAutoControls = { left: false, right: false };
             state.eval.liveCheck = null;
             autoplayLiveStatus.textContent = "Autoplay live: stopped.";
             autoplayLiveStartButton.disabled = false;
@@ -1348,6 +1767,8 @@
             state.autoplay.liveServeIndex = 0;
             state.autoplay.liveWasInLaunchLane = true;
             state.autoplay.liveSampleCounter = 0;
+            state.autoplay.training.pendingShotAttempts = [];
+            state.autoplay.training.prevAutoControls = { left: false, right: false };
             autoplayLiveStatus.textContent = (nextMode === "neural" ? "Neural" : "Heuristic") + " live: running.";
             autoplayLiveStartButton.disabled = nextMode === "heuristic";
             autoplayNeuralStartButton.disabled = nextMode === "neural";
@@ -1598,6 +2019,8 @@
                     return;
                 }
                 state.autoplay.neuralModel = model;
+                state.autoplay.neuralHiddenSize = clamp(Math.round(Number(model.hiddenSize) || 12), 4, 64);
+                neuralHiddenSizeInput.value = String(state.autoplay.neuralHiddenSize);
                 refreshNeuralPanel();
             } catch (err) {
                 console.warn("Neural model load failed:", err);
@@ -2840,6 +3263,9 @@
             }
             runStateSummary.textContent = runStateParts.join(" | ");
             exportBox.value = JSON.stringify(state.sim.toFragment(), null, 2);
+            if (state.ui.activeTab === "brain" || state.autoplay.liveRunning || state.autoplay.training.collecting) {
+                refreshBrainPanel();
+            }
         }
 
         function render() {
@@ -3637,6 +4063,12 @@
             state.autoplay.neuralEpochs = Number.isFinite(next) ? clamp(next, 1, 24) : 4;
             neuralTrainEpochInput.value = String(state.autoplay.neuralEpochs);
         };
+        neuralHiddenSizeInput.onchange = function onNeuralHiddenSizeChange() {
+            const next = Math.round(Number(neuralHiddenSizeInput.value));
+            state.autoplay.neuralHiddenSize = Number.isFinite(next) ? clamp(next, 4, 64) : 12;
+            neuralHiddenSizeInput.value = String(state.autoplay.neuralHiddenSize);
+            refreshBrainPanel();
+        };
         evalTableSelect.onchange = function onEvalTableChange() {
             state.eval.selectedRef = evalTableSelect.value;
         };
@@ -3850,14 +4282,17 @@
                     if (state.scenarioId === "sandbox") {
                         if (state.autoplay.liveRunning && state.autoplay.liveController && state.sim && state.sim.world) {
                             const autoControls = state.autoplay.liveController.update();
+                            const liveTarget = state.autoplay.liveController && typeof state.autoplay.liveController.getTarget === "function"
+                                ? state.autoplay.liveController.getTarget()
+                                : null;
+                            if (state.autoplay.training.liveCollectEnabled) {
+                                recordShotAttempt(state.sim.world, autoControls, liveTarget);
+                            }
                             if (state.autoplay.liveMode === "heuristic" &&
                                 state.autoplay.training.liveCollectEnabled &&
                                 Pin.tableAutoplayLearning &&
                                 typeof Pin.tableAutoplayLearning.extractFeatures === "function") {
-                                const target = state.autoplay.liveController && typeof state.autoplay.liveController.getTarget === "function"
-                                    ? state.autoplay.liveController.getTarget()
-                                    : null;
-                                const features = Pin.tableAutoplayLearning.extractFeatures(state.sim.world, { target: target });
+                                const features = Pin.tableAutoplayLearning.extractFeatures(state.sim.world, { target: liveTarget });
                                 const action = pickTrainingActionFromControls(autoControls);
                                 const entry = { features: features, action: action };
                                 state.autoplay.training.liveSamples.push(entry);
@@ -3890,6 +4325,9 @@
                     applySandboxControlsToWorld();
                 }
                 state.sim.step(2);
+                if (state.autoplay.liveRunning && state.autoplay.training.liveCollectEnabled && state.sim && state.sim.world) {
+                    attributeShotOutcomes(state.sim.world, state.sim.world.lastProcessedEvents || []);
+                }
                 if (state.autoplay.liveRunning && state.sim && state.sim.world) {
                     const liveBall = state.sim.world.balls && state.sim.world.balls[0] ? state.sim.world.balls[0] : null;
                     if (liveBall && Number.isFinite(liveBall.x) && Number.isFinite(liveBall.y)) {
@@ -3956,6 +4394,16 @@
                                     y: 102
                                 });
                             }
+                        }
+                        const latestShotSample = state.autoplay.training.recentShotSamples && state.autoplay.training.recentShotSamples.length
+                            ? state.autoplay.training.recentShotSamples[state.autoplay.training.recentShotSamples.length - 1]
+                            : null;
+                        if (latestShotSample) {
+                            aimLabels.push({
+                                text: "shot " + latestShotSample.side + " -> " + latestShotSample.targetId + " @+" + latestShotSample.ticksAfterFlip + "t",
+                                x: 14,
+                                y: 118
+                            });
                         }
                         if (aimDebug && aimDebug.target && Number.isFinite(aimDebug.target.x) && Number.isFinite(aimDebug.target.y)) {
                             const scheduledAction = aimDebug.scheduled ?

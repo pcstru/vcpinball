@@ -4,6 +4,25 @@
  * touching core physics internals or game-mode control paths.
  */
 (function initTableAutoplayLearning(Pin) {
+    const FEATURE_NAMES = [
+        "ball_x_norm",
+        "ball_y_norm",
+        "ball_vx_norm",
+        "ball_vy_norm",
+        "ball_speed_norm",
+        "left_dx_norm",
+        "left_dy_norm",
+        "right_dx_norm",
+        "right_dy_norm",
+        "left_dist_norm",
+        "right_dist_norm",
+        "is_lower_playfield",
+        "is_descending",
+        "is_in_launch_lane",
+        "target_dx_norm",
+        "target_dy_norm"
+    ];
+
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
     }
@@ -249,6 +268,8 @@
                     action: "fallback",
                     confidence: 1,
                     outputs: { none: 0, left: 0, right: 0 },
+                    logits: null,
+                    hidden: null,
                     cooldown: state.cooldown,
                     pulseLeft: state.pulseLeft,
                     pulseRight: state.pulseRight,
@@ -323,6 +344,8 @@
                 action: usedFallback ? ("fallback(" + best + ")") : best,
                 confidence: confidence,
                 outputs: { none: pass.probs[0], left: pass.probs[1], right: pass.probs[2] },
+                logits: pass.logits.slice(0, 3),
+                hidden: pass.hidden.slice(0, 24),
                 cooldown: state.cooldown,
                 pulseLeft: state.pulseLeft,
                 pulseRight: state.pulseRight,
@@ -337,6 +360,7 @@
                     right: !!controls.right,
                     launch: !!controls.launch
                 },
+                featureNames: FEATURE_NAMES.slice(0),
                 features: state.lastFeatures ? state.lastFeatures.slice(0, 16) : null,
                 model: { inputSize: model.inputSize, hiddenSize: model.hiddenSize }
             };
@@ -349,6 +373,7 @@
     }
 
     Pin.tableAutoplayLearning = {
+        featureNames: FEATURE_NAMES.slice(0),
         createModel: createModel,
         extractFeatures: extractFeatures,
         trainModel: trainModel,

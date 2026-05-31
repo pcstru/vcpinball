@@ -411,6 +411,7 @@ function testLabEvalControlsExposeAutoplayOptions() {
     assert(/Neural train balls/.test(source), "lab eval controls should expose neural training ball count");
     assert(/Neural max samples/.test(source), "lab eval controls should expose neural training sample cap");
     assert(/Neural epochs/.test(source), "lab eval controls should expose neural training epochs");
+    assert(/Neural hidden units/.test(source), "lab eval controls should expose neural hidden-layer width");
     assert(/Train Neural/.test(source), "lab eval controls should expose neural training action");
     assert(/Neural Live/.test(source), "lab eval controls should expose neural live control action");
     assert(/Compare Runs/.test(source), "lab eval controls should expose heuristic-vs-neural compare action");
@@ -430,6 +431,12 @@ function testLabEvalControlsExposeAutoplayOptions() {
     assert(/indecisiveGap:\s*0\.1/.test(source), "neural live should set indecisive-gap fallback gating");
     assert(/Out L\/R\/Launch/.test(source), "neural panel should show final control outputs");
     assert(/Last sample/.test(source), "neural panel should show a recent live-sample preview");
+    assert(/Shot L\/R/.test(source), "neural panel should show shot-side distribution");
+    assert(/Success used/.test(source), "neural panel should show success-sample usage count");
+    assert(/const tabBrain = create\(\"button\", \"\", \"Brain\"\)/.test(source), "lab should expose a dedicated Brain tab");
+    assert(/Neural Brain/.test(source), "lab should expose a dedicated neural brain panel title");
+    assert(/drawBrainGraph\(/.test(source), "lab should render a neural brain graph view");
+    assert(/refreshBrainPanel\(/.test(source), "lab should refresh dedicated brain telemetry");
 }
 
 function testNeuralAutoplayLearningModuleExports() {
@@ -445,6 +452,10 @@ function testNeuralAutoplayLearningModuleExports() {
     assert(/if \(!ball\) state\.launchHold = 0;/.test(source), "neural autoplay controller should clear launch hold when no ball is active");
     assert(/source:\s*usedFallback \? "fallback" : "model"/.test(source), "neural autoplay controller debug should expose model vs fallback source");
     assert(/controls:\s*\{\s*left:\s*!!controls\.left,\s*right:\s*!!controls\.right,\s*launch:\s*!!controls\.launch\s*\}/.test(source), "neural autoplay controller debug should expose final controls");
+    assert(/logits:\s*pass\.logits\.slice\(0,\s*3\)/.test(source), "neural autoplay debug should expose output logits");
+    assert(/hidden:\s*pass\.hidden\.slice\(0,\s*24\)/.test(source), "neural autoplay debug should expose hidden activations");
+    assert(/featureNames:\s*FEATURE_NAMES\.slice\(0\)/.test(source), "neural autoplay debug should expose feature-name metadata");
+    assert(/Pin\.tableAutoplayLearning\s*=\s*\{\s*featureNames:\s*FEATURE_NAMES\.slice\(0\),/.test(source), "neural autoplay module should export feature-name metadata");
     assert(/minActionProbability/.test(source), "neural autoplay controller should support action probability floor");
     assert(/indecisiveGap/.test(source), "neural autoplay controller should support indecisive-gap fallback gating");
     assert(!/controls\.launch = !!controls\.launch \|\| !!inLane;/.test(source), "neural autoplay controller should allow launcher release after hold window");
@@ -476,6 +487,7 @@ function testPhysicsHarnessSandboxProcessesRulesAndSupportsBaseTable() {
     const source = read("app/physicsHarness.js");
     assert(/const baseTable = options && options\.baseTable \? clone\(options\.baseTable\) : null;/.test(source), "sandbox table builder should support baseTable cloning");
     assert(/if \(Pin\.events && typeof Pin\.events\.processRules === \"function\"\)/.test(source), "physics harness step should process rule events");
+    assert(/world\.lastProcessedEvents = Pin\.events\.processRules\(world, world\.lastPhysicsDt\) \|\| \[\];/.test(source), "physics harness step should retain processed events for lab attribution");
 }
 
 function testLabLiveAutoplayKeepsBaseTableAndContinuousSampling() {
@@ -484,6 +496,14 @@ function testLabLiveAutoplayKeepsBaseTableAndContinuousSampling() {
     assert(/baseTable:\s*state\.sandbox\.baseTable \? clone\(state\.sandbox\.baseTable\) : null/.test(source), "sandbox rebuild should pass baseTable into harness");
     assert(/liveSampleCounter:\s*0/.test(source), "live autoplay state should track a sample counter");
     assert(/state\.autoplay\.liveSampleCounter \+= 1;/.test(source), "live autoplay path sampling should increment explicit counter");
+    assert(/function recordShotAttempt\(/.test(source), "lab should capture flipper press transitions as shot attempts");
+    assert(/function attributeShotOutcomes\(/.test(source), "lab should attribute switch hits to recent flipper attempts");
+    assert(/function shotOutcomeSamplesToActionSamples\(/.test(source), "lab should transform shot outcomes into action-training samples");
+    assert(/attributeShotOutcomes\(state\.sim\.world, state\.sim\.world\.lastProcessedEvents \|\| \[\]\);/.test(source), "lab live loop should consume processed events for shot attribution");
+    assert(/Shot samples/.test(source), "neural panel should expose shot sample count");
+    assert(/Pending shots/.test(source), "neural panel should expose pending shot-attempt count");
+    assert(/Recent shots: none yet\./.test(source), "neural panel should expose recent shot outcome details");
+    assert(/Target hit map: none yet\./.test(source), "neural panel should expose per-target hit-map details");
 }
 
 function testLabDiagnosticOverlaySupportsPerSegmentColoring() {
