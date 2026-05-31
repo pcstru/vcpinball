@@ -200,6 +200,10 @@
     }
 
     function buildSandboxTable(options) {
+        /* What: Build a sandbox table, optionally preserving authored rule/logic data.
+         * Why: live autoplay over loaded tables should keep switch/lamp/score logic
+         * active while still letting the lab override geometry and physics quickly.
+         */
         const physics = mergeSettings({
             gravity: DEFAULT_PLAYFIELD.gravity,
             friction: DEFAULT_PLAYFIELD.friction,
@@ -216,8 +220,22 @@
         const elements = (includeDefaultBounds ? buildSandboxBounds(playfield) : [])
             .concat([buildSandboxDrain(playfield)])
             .concat(clone((options && options.elements) || []));
-        const table = buildHarnessTable(elements);
-        table.name = "Physics Sandbox";
+        const baseTable = options && options.baseTable ? clone(options.baseTable) : null;
+        const table = baseTable || buildHarnessTable(elements);
+        table.name = (baseTable && baseTable.name) || "Physics Sandbox";
+        table.elements = elements;
+        table.rules = Object.assign({ balls: 1, highScoreKey: "pinball.physicsHarness" }, table.rules || {});
+        if (!table.logicDocument || typeof table.logicDocument !== "object") {
+            table.logicDocument = {
+                logicVersion: 1,
+                switchRegistry: [],
+                stateTable: [],
+                computedState: [],
+                lampBindings: [],
+                actionRules: [],
+                resetRules: []
+            };
+        }
         table.playfield.width = playfield.width;
         table.playfield.height = playfield.height;
         table.playfield.ballRadius = playfield.ballRadius;
@@ -339,10 +357,12 @@
             staticRamps: staticRuntime.ramps || [],
             staticSensors: staticRuntime.sensors || [],
             staticBroadPhase: Pin.physics.buildBroadPhase(staticRuntime.segments || [], staticRuntime.circles || [], table.playfield),
+            staticSensorBroadPhase: Pin.physics.buildSensorBroadPhase(staticRuntime.sensors || []),
             dynamicPhysicsElements: dynamicPhysicsElements,
             dynamicDrawableRuntime: dynamicDrawableRuntime,
             dynamicSegments: [],
             dynamicCircles: [],
+            dynamicSensors: [],
             runtimeSensors: [],
             runtimeRamps: [],
             physicsTick: 0,
@@ -360,6 +380,9 @@
         }
         refreshRuntime(world);
         Pin.physics.stepWorld(world, world.lastPhysicsDt);
+        if (Pin.events && typeof Pin.events.processRules === "function") {
+            Pin.events.processRules(world, world.lastPhysicsDt);
+        }
     }
 
     function primeHeldFlipper(world, ticks) {

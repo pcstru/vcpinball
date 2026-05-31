@@ -327,16 +327,23 @@ function testPhysicsLabLoadsEvalHarnessScripts() {
     const html = read("physics-lab.html");
     const sources = scriptSources(html);
     assert(sources.indexOf("app/tableCatalog.js") >= 0, "physics-lab should load app/tableCatalog.js");
+    assert(sources.indexOf("app/logic/simulate.js") >= 0, "physics-lab should load logic simulation runtime");
+    assert(sources.indexOf("app/rules.js") >= 0, "physics-lab should load rule helpers");
+    assert(sources.indexOf("app/events.js") >= 0, "physics-lab should load event processing runtime");
     assert(sources.indexOf("app/elements/launcher.js") >= 0, "physics-lab should load launcher element module");
     assert(sources.indexOf("app/elements/trough.js") >= 0, "physics-lab should load trough element module");
     assert(sources.indexOf("app/tableAutoplay.js") >= 0, "physics-lab should load app/tableAutoplay.js");
+    assert(sources.indexOf("app/tableAutoplayLearning.js") >= 0, "physics-lab should load app/tableAutoplayLearning.js");
     assert(sources.indexOf("app/tableEval.js") >= 0, "physics-lab should load app/tableEval.js");
     assert(sources.indexOf("app/tableAutoplay.js") < sources.indexOf("app/tableEval.js"), "autoplay module should load before table eval");
+    assert(sources.indexOf("app/tableAutoplayLearning.js") < sources.indexOf("app/tableEval.js"), "neural autoplay module should load before table eval");
     assert(sources.indexOf("app/tableEval.js") < sources.indexOf("app/tuning/lab.js"), "table eval module should load before lab UI bootstrap");
 }
 
 function testEvalAgentLoadsAutoplayRuntime() {
     const source = read("tools/eval-agent.js");
+    assert(/"app\/logic\/simulate\.js"/.test(source), "eval-agent should load logic simulation runtime");
+    assert(/"app\/events\.js"/.test(source), "eval-agent should load event processing runtime");
     assert(/"app\/tableAutoplay\.js"/.test(source), "eval-agent should load app/tableAutoplay.js");
     assert(source.indexOf("\"app/tableAutoplay.js\"") < source.indexOf("\"app/tableEval.js\""), "eval-agent should load autoplay before table eval");
 }
@@ -401,11 +408,46 @@ function testLabEvalControlsExposeAutoplayOptions() {
     assert(/Autoplay target interval/.test(source), "lab eval controls should expose autoplay retarget interval");
     assert(/Autoplay cell size/.test(source), "lab eval controls should expose autoplay heatmap cell size");
     assert(/Autoplay min score/.test(source), "lab eval controls should expose autoplay score threshold");
+    assert(/Neural train balls/.test(source), "lab eval controls should expose neural training ball count");
+    assert(/Neural max samples/.test(source), "lab eval controls should expose neural training sample cap");
+    assert(/Neural epochs/.test(source), "lab eval controls should expose neural training epochs");
+    assert(/Train Neural/.test(source), "lab eval controls should expose neural training action");
+    assert(/Neural Live/.test(source), "lab eval controls should expose neural live control action");
+    assert(/Compare Runs/.test(source), "lab eval controls should expose heuristic-vs-neural compare action");
+    assert(/Collect Live On/.test(source), "lab eval controls should expose live training-data collection toggle");
+    assert(/Training data: idle\./.test(source), "lab should expose training-data accumulation status panel");
+    assert(/Autoplay live: switch to Sandbox first \(no auto-switch\)\./.test(source), "autoplay live should require manual sandbox selection and avoid forced mode switch");
+    assert(/live: controller switched\./.test(source), "live autoplay should support in-place controller swapping without simulation reset");
+    assert(!/state\.scenarioId = "sandbox";\s*scenarioSelect\.value = "sandbox";\s*setActiveTab\("sandbox"\);\s*state\.eval\.loadError = "";\s*state\.eval\.report = null;\s*reloadControls\(\);\s*rebuildSimulation\(\);/.test(source), "loading eval table should not force sandbox scenario/tab switch");
     assert(/autoplayBallCount:\s*state\.eval\.autoplayBallCount/.test(source), "lab eval options should pass autoplay ball count");
     assert(/autoplayMaxTicksPerBall:\s*state\.eval\.autoplayMaxTicksPerBall/.test(source), "lab eval options should pass autoplay max ticks");
     assert(/autoplayMinScore:\s*state\.eval\.autoplayMinScore/.test(source), "lab eval options should pass autoplay score threshold");
     assert(/targetingIntervalTicks:\s*state\.eval\.autoplayTargetingIntervalTicks/.test(source), "live autoplay should pass unprefixed targeting interval to controller");
     assert(/aimPulseTicks:\s*state\.eval\.autoplayAimPulseTicks/.test(source), "live autoplay should pass aim pulse ticks to controller");
+    assert(/fallbackController:\s*fallbackController/.test(source), "neural live should wire a heuristic fallback controller");
+    assert(/targetProvider:\s*function targetProvider/.test(source), "neural live should wire target provider from heuristic companion");
+    assert(/minActionProbability:\s*0\.22/.test(source), "neural live should set an action-probability floor");
+    assert(/indecisiveGap:\s*0\.1/.test(source), "neural live should set indecisive-gap fallback gating");
+    assert(/Out L\/R\/Launch/.test(source), "neural panel should show final control outputs");
+    assert(/Last sample/.test(source), "neural panel should show a recent live-sample preview");
+}
+
+function testNeuralAutoplayLearningModuleExports() {
+    const source = read("app/tableAutoplayLearning.js");
+    assert(/Pin\.tableAutoplayLearning\s*=/.test(source), "neural autoplay module should export Pin.tableAutoplayLearning");
+    assert(/createModel: createModel/.test(source), "neural autoplay module should export createModel");
+    assert(/trainModel: trainModel/.test(source), "neural autoplay module should export trainModel");
+    assert(/createController: createController/.test(source), "neural autoplay module should export createController");
+    assert(/fallbackController/.test(source), "neural autoplay controller should support heuristic fallback controller");
+    assert(/minConfidence/.test(source), "neural autoplay controller should support confidence threshold fallback");
+    assert(/maxInput = 64/.test(source), "neural autoplay controller should cap model input dimensions");
+    assert(/maxHidden = 64/.test(source), "neural autoplay controller should cap model hidden dimensions");
+    assert(/if \(!ball\) state\.launchHold = 0;/.test(source), "neural autoplay controller should clear launch hold when no ball is active");
+    assert(/source:\s*usedFallback \? "fallback" : "model"/.test(source), "neural autoplay controller debug should expose model vs fallback source");
+    assert(/controls:\s*\{\s*left:\s*!!controls\.left,\s*right:\s*!!controls\.right,\s*launch:\s*!!controls\.launch\s*\}/.test(source), "neural autoplay controller debug should expose final controls");
+    assert(/minActionProbability/.test(source), "neural autoplay controller should support action probability floor");
+    assert(/indecisiveGap/.test(source), "neural autoplay controller should support indecisive-gap fallback gating");
+    assert(!/controls\.launch = !!controls\.launch \|\| !!inLane;/.test(source), "neural autoplay controller should allow launcher release after hold window");
 }
 
 function testAutoplayUsesScheduledPulsePrediction() {
@@ -415,6 +457,33 @@ function testAutoplayUsesScheduledPulsePrediction() {
     assert(/const candidateActions = \[\{ mode: "none"/.test(source), "autoplay prediction should include a no-flip baseline action");
     assert(/function contactPulseForBall\(/.test(source), "autoplay controller should include immediate contact pulse path");
     assert(/if \(!nearAnyFlipperPivot\(ball\)\) return;/.test(source), "autoplay prediction should only run inside flipper action window");
+    assert(/if \(!ball\) \{[\s\S]*prevInLaunchLane = false;[\s\S]*launchHoldTicks = 0;[\s\S]*launchReleased = false;[\s\S]*return controls;[\s\S]*\}/.test(source), "autoplay controller should reset launch state when no active ball exists");
+    assert(/trough:\s*true/.test(source), "autoplay target source set should include troughs");
+    assert(/resolveElementProperty\(world, el, "active"/.test(source), "autoplay target choice should respect active element-property overrides");
+    assert(/!hasUnlitPrimary && a\.collectable !== b\.collectable/.test(source), "autoplay should prefer active collectable targets after primary targets are lit");
+}
+
+function testAutoplayWorldBuildIncludesBroadPhaseAndSamplingCounter() {
+    const source = read("app/tableAutoplay.js");
+    assert(/staticBroadPhase:\s*Pin\.physics\.buildBroadPhase/.test(source), "autoplay eval world should include static collision broad-phase");
+    assert(/staticSensorBroadPhase:\s*Pin\.physics\.buildSensorBroadPhase/.test(source), "autoplay eval world should include static sensor broad-phase");
+    assert(/stats\.traceSampleCounter\s*=\s*\(stats\.traceSampleCounter \|\| 0\) \+ 1;/.test(source), "autoplay tracing should use an explicit sample counter");
+    assert(/stats\.targetHitMap\[sourceId\]\s*=\s*\(stats\.targetHitMap\[sourceId\] \|\| 0\) \+ 1;/.test(source), "autoplay should track target hits from processed switch events");
+    assert(/targetHitMap:\s*clone\(stats\.targetHitMap\)/.test(source), "autoplay summary should expose per-target hit counts");
+}
+
+function testPhysicsHarnessSandboxProcessesRulesAndSupportsBaseTable() {
+    const source = read("app/physicsHarness.js");
+    assert(/const baseTable = options && options\.baseTable \? clone\(options\.baseTable\) : null;/.test(source), "sandbox table builder should support baseTable cloning");
+    assert(/if \(Pin\.events && typeof Pin\.events\.processRules === \"function\"\)/.test(source), "physics harness step should process rule events");
+}
+
+function testLabLiveAutoplayKeepsBaseTableAndContinuousSampling() {
+    const source = read("app/tuning/lab.js");
+    assert(/state\.sandbox\.baseTable = clone\(table\);/.test(source), "lab should retain the loaded table as sandbox base data");
+    assert(/baseTable:\s*state\.sandbox\.baseTable \? clone\(state\.sandbox\.baseTable\) : null/.test(source), "sandbox rebuild should pass baseTable into harness");
+    assert(/liveSampleCounter:\s*0/.test(source), "live autoplay state should track a sample counter");
+    assert(/state\.autoplay\.liveSampleCounter \+= 1;/.test(source), "live autoplay path sampling should increment explicit counter");
 }
 
 function testLabDiagnosticOverlaySupportsPerSegmentColoring() {
@@ -428,6 +497,7 @@ function testLabSupportsLiveAccessibilityProgressOverlay() {
     assert(/liveCheck:\s*null/.test(source), "lab eval state should include liveCheck for in-progress diagnostics");
     assert(/progress\.phase === "accessibility" && progress\.check/.test(source), "lab progress handler should accept accessibility partial checks");
     assert(/if \(\(state\.eval\.running \|\| state\.autoplay\.liveRunning\) && state\.eval\.liveCheck\) return state\.eval\.liveCheck;/.test(source), "overlay selection should prefer live check while evaluation or autoplay is running");
+    assert(/if \(state\.sandbox\.launchHeldPrev && Pin\.physics && Pin\.physics\.releaseLauncher\)/.test(source), "controller switching should release pending launcher charge before swapping");
 }
 
 function testTableEvalEmitsAccessibilityProgress() {
@@ -2586,7 +2656,11 @@ Promise.resolve()
     .then(function run() { testLabDiagnosticOverlayRendersHeatmap(); })
     .then(function run() { testLabEvalControlsExposeAccessibilityBreadthDepthAndMode(); })
     .then(function run() { testLabEvalControlsExposeAutoplayOptions(); })
+    .then(function run() { testNeuralAutoplayLearningModuleExports(); })
     .then(function run() { testAutoplayUsesScheduledPulsePrediction(); })
+    .then(function run() { testAutoplayWorldBuildIncludesBroadPhaseAndSamplingCounter(); })
+    .then(function run() { testPhysicsHarnessSandboxProcessesRulesAndSupportsBaseTable(); })
+    .then(function run() { testLabLiveAutoplayKeepsBaseTableAndContinuousSampling(); })
     .then(function run() { testLabDiagnosticOverlaySupportsPerSegmentColoring(); })
     .then(function run() { testLabSupportsLiveAccessibilityProgressOverlay(); })
     .then(function run() { testTableEvalEmitsAccessibilityProgress(); })

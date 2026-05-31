@@ -137,7 +137,7 @@ The lab currently supports:
 - clicking evaluation rows to draw diagnostics on the table canvas
 - tracing launcher rollout/stuck diagnostics through the same core physics path used by play mode
 - configuring probe counts, bounce/contact limits, and tick limits for repeatable AI Eval runs
-- running lab-only autoplay with launcher variation, flipper control, ball trails, heatmaps, target aiming diagnostics, and score summaries
+- running lab-only autoplay with launcher variation, flipper control, ball trails, heatmaps, target aiming diagnostics, per-target hit counts, and score summaries
 - `AI-Lab` visibility-first patch/eval workflow:
   - stepwise attempts with explicit operator approval
   - optional auto/batch toggles with guardrails
@@ -159,10 +159,15 @@ Autoplay is a lab/eval feature, not part of normal game mode. It launches balls 
 The current controller is intentionally modest:
 
 - it varies launch hold time across multiple balls
-- it chooses lane/drop-target style targets, preferring unlit targets where possible
+- it chooses switch-backed targets, preferring unlit lanes/drop targets while those remain available
+- when primary targets are already lit, it can prefer active collectable shots such as logic-armed troughs
 - it predicts short flipper pulse candidates outside the main game loop
 - it schedules bounded flipper pulses rather than holding flippers indefinitely
-- it records ball traces, heatmap data, target diagnostics, and score summaries
+- it records ball traces, heatmap data, target diagnostics, event-based target-hit counts, and score summaries
+
+Target selection uses the table's structured state rather than a separate strategy model. Lamp state is used to tell whether lane/drop-target style targets are lit. Runtime element properties are used to notice when collectable mechanisms become active; for example, a trough whose `active` property is driven by rules can become the preferred shot after the normal group targets are complete.
+
+Target-hit tracking is based on processed `switchClosed` events, not just distance from the ball to the current aim point. Autoplay summaries include the total target-hit count and a per-target map (`summary.targetHitMap`) so a run can show which lanes, targets, troughs, or other switch-backed elements were actually activated.
 
 Autoplay is useful for rough evaluation:
 
@@ -172,6 +177,8 @@ Autoplay is useful for rough evaluation:
 - "Do unlit targets receive any traffic?"
 
 It is not a good player. It does not understand table strategy, table quality, combo design, or long-term mode value. The flipper controller is deliberately simple so more expensive prediction or learned controllers can be tried later without changing game mode performance.
+
+The lab also has an experimental neural autoplay path. It trains a small browser-side policy from heuristic autoplay samples, shows the live sample buffer and class balance, and can switch live control between heuristic and neural modes without resetting the ball. This is useful for exploring whether a tiny controller can imitate or assist the heuristic. It is not a full learning system, does not train from score reward, and currently still relies on the heuristic path for fallback and target context.
 
 For a single-ball score check in the lab, set:
 
@@ -243,12 +250,12 @@ The project also includes a Node `eval-agent` loop for automation and dataset bu
 Possible AI experiments this repo can support:
 
 - Generate table patches and evaluate them with schema/playability checks.
-- Log autoplay heatmaps and score summaries to compare table variants.
-- Try a simple flipper controller that fires when the ball crosses a threshold.
+- Log autoplay heatmaps, score summaries, and per-target hit maps to compare table variants.
+- Train a small browser-side flipper policy from heuristic autoplay samples and compare it with the heuristic controller.
 - Build datasets from structured patches, validation failures, and evaluation results.
 - Compare prompts or agents on the same concrete editing task.
 
-These are experiments, not finished product features. There is no training loop in the repo today, and no automatic loop that reliably generates a good table, evaluates it, and refines it without human review.
+These are experiments, not finished product features. There is no reinforcement-learning loop in the repo today, and no automatic loop that reliably generates a good table, evaluates it, and refines it without human review.
 
 ## Current Table Schema
 
@@ -295,7 +302,8 @@ Important modules:
 - `app/render.js`: canvas rendering, static render cache, quality scaling
 - `app/elements/*`: element compile/draw/runtime behavior
 - `app/physicsHarness.js`: deterministic physics scenarios and sandbox simulation used by the lab
-- `app/tableAutoplay.js`: lab-only autoplay runner for heatmaps, traces, target diagnostics, and score summaries
+- `app/tableAutoplay.js`: lab-only autoplay runner for heatmaps, traces, target diagnostics, event-based target-hit maps, and score summaries
+- `app/tableAutoplayLearning.js`: lab-only browser neural policy used to imitate/assist autoplay flipper control
 - `app/aiLabContract.js`: shared AI patch contract, patch apply/validate flow, and evaluator entry
 - `app/tableEval.js`: table evaluation checks, diagnostics, and report generation
 - `app/tuning/lab.js`: browser UI for physics tuning, sandbox play, and table evaluation

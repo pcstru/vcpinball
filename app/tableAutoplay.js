@@ -85,6 +85,8 @@
             physicsTick: 0,
             physicsTime: 0,
             lastPhysicsDt: fixedDtForWorld({ table: table }),
+            staticBroadPhase: Pin.physics.buildBroadPhase(staticRuntime.segments || [], staticRuntime.circles || [], table.playfield),
+            staticSensorBroadPhase: Pin.physics.buildSensorBroadPhase(staticRuntime.sensors || []),
             physicsCollisionCount: 0,
             lastPhysicsCollision: null,
             dynamicCompileCache: {},
@@ -146,34 +148,140 @@
         if (next > heatmap.max) heatmap.max = next;
     }
 
-    function sourceElements(elements) {
-        return (elements || []).filter(function filter(el) {
-            return el && (el.type === "lane" || el.type === "dropTarget");
+    function targetSourceTypeSet() {
+        return {
+            lane: true,
+            dropTarget: true,
+            bumper: true,
+            scoreZone: true,
+            spinner: true,
+            kicker: true,
+            trough: true
+        };
+    }
+
+    function sourceCenterForElement(el) {
+        if (!el) return null;
+        if (isFiniteNumber(el.x) && isFiniteNumber(el.y)) return { x: el.x, y: el.y };
+        if (Array.isArray(el.anchors) && el.anchors.length) {
+            let sx = 0;
+            let sy = 0;
+            let count = 0;
+            el.anchors.forEach(function each(anchor) {
+                if (!anchor || !isFiniteNumber(anchor.x) || !isFiniteNumber(anchor.y)) return;
+                sx += anchor.x;
+                sy += anchor.y;
+                count += 1;
+            });
+            if (count > 0) return { x: sx / count, y: sy / count };
+        }
+        return null;
+    }
+
+    function sourceElements(table, elements) {
+        const byId = {};
+        const seen = {};
+        const out = [];
+        const allowed = targetSourceTypeSet();
+        (elements || []).forEach(function each(el) {
+            if (el && typeof el.id === "string") byId[el.id] = el;
+        });
+        const doc = (table && table.logicDocument) || {};
+        const switches = Array.isArray(doc.switchRegistry) ? doc.switchRegistry : [];
+        switches.forEach(function each(row) {
+            if (!row) return;
+            const sourceId = typeof row.sourceElementId === "string" && row.sourceElementId ? row.sourceElementId :
+                (typeof row.id === "string" ? row.id : "");
+            const el = byId[sourceId];
+            if (!el || !el.id || !allowed[el.type] || seen[el.id] || !sourceCenterForElement(el)) return;
+            seen[el.id] = true;
+            out.push(el);
+        });
+        (elements || []).forEach(function each(el) {
+            if (!el || !el.id || !allowed[el.type] || seen[el.id] || !sourceCenterForElement(el)) return;
+            seen[el.id] = true;
+            out.push(el);
+        });
+        return out;
+    }
+
+    function resolveLampLit(world, el) {
+        const lampState = world && world.lampState ? world.lampState : {};
+        const keys = [
+            String((el && el.lampId) || ""),
+            String((el && el.id) || "")
+        ].filter(Boolean);
+        return keys.some(function some(key) {
+            const state = lampState[key];
+            return !!(state && state.on);
         });
     }
 
+    function resolveElementActive(world, el) {
+        if (!el) return false;
+        const fallback = el.active !== false;
+        if (Pin.rules && typeof Pin.rules.resolveElementProperty === "function") {
+            return !!Pin.rules.resolveElementProperty(world, el, "active", fallback);
+        }
+        const props = world && world.ruleState && world.ruleState.elementProperties && world.ruleState.elementProperties[el.id];
+        if (props && Object.prototype.hasOwnProperty.call(props, "active")) return !!props.active;
+        return !!fallback;
+    }
+
+    function isPrimaryTarget(el) {
+        return el && (el.type === "lane" || el.type === "dropTarget");
+    }
+
+    function isCollectableTarget(world, el) {
+        if (!el) return false;
+        if (el.type === "trough") return resolveElementActive(world, el);
+        if (el.type === "kicker" || el.type === "spinner" || el.type === "scoreZone") return resolveElementActive(world, el) || resolveLampLit(world, el);
+        return false;
+    }
+
     function pickTarget(world, elements, preferUnlit) {
-        const candidates = sourceElements(elements);
+        const table = world && world.table ? world.table : {};
+        const candidates = sourceElements(table, elements);
         if (!candidates.length) return null;
-        const lampState = world && world.lampState ? world.lampState : {};
         const ball = world && world.balls && world.balls[0] ? world.balls[0] : null;
+        const primary = candidates.filter(isPrimaryTarget);
+        const hasUnlitPrimary = primary.some(function some(el) {
+            return !resolveLampLit(world, el);
+        });
         const ranked = candidates.map(function map(el) {
-            const key = String((el && el.lampId) || (el && el.id) || "");
-            const state = lampState[key];
-            const lit = !!(state && state.on);
+            const lit = resolveLampLit(world, el);
+            const primaryTarget = isPrimaryTarget(el);
+            const collectable = isCollectableTarget(world, el);
+            const center = sourceCenterForElement(el) || el;
             let distance = 999999;
-            if (ball && isFiniteNumber(ball.x) && isFiniteNumber(ball.y) && isFiniteNumber(el.x) && isFiniteNumber(el.y)) {
-                const dx = ball.x - el.x;
-                const dy = ball.y - el.y;
+            if (ball && isFiniteNumber(ball.x) && isFiniteNumber(ball.y) && isFiniteNumber(center.x) && isFiniteNumber(center.y)) {
+                const dx = ball.x - center.x;
+                const dy = ball.y - center.y;
                 distance = Math.sqrt(dx * dx + dy * dy);
             }
-            return { el: el, lit: lit, distance: distance };
+            return {
+                el: Object.assign({}, el, { x: center.x, y: center.y }),
+                lit: lit,
+                primary: primaryTarget,
+                collectable: collectable,
+                distance: distance
+            };
         });
         ranked.sort(function sort(a, b) {
-            if (preferUnlit && a.lit !== b.lit) return a.lit ? 1 : -1;
+            if (preferUnlit && hasUnlitPrimary && a.primary !== b.primary) return a.primary ? -1 : 1;
+            if (preferUnlit && hasUnlitPrimary && a.primary && b.primary && a.lit !== b.lit) return a.lit ? 1 : -1;
+            if (!hasUnlitPrimary && a.collectable !== b.collectable) return a.collectable ? -1 : 1;
             return a.distance - b.distance;
         });
         return ranked[0].el;
+    }
+
+    function targetLookup(elements) {
+        const out = {};
+        sourceElements(null, elements).forEach(function each(el) {
+            if (el && el.id) out[el.id] = el;
+        });
+        return out;
     }
 
     function makeController(world, options) {
@@ -508,7 +616,13 @@
             controls.right = false;
             controls.launch = false;
 
-            if (!ball) return controls;
+            if (!ball) {
+                // No active ball: ensure next served ball is treated as a fresh lane entry.
+                prevInLaunchLane = false;
+                launchHoldTicks = 0;
+                launchReleased = false;
+                return controls;
+            }
 
             // Ball returned to launch lane (new serve) -> allow a new charge/release cycle.
             if (ball.inLaunchLane && !prevInLaunchLane) {
@@ -599,11 +713,21 @@
         world.lastPhysicsDt = dt;
         Pin.physics.stepWorld(world, dt);
         if (Pin.events && typeof Pin.events.processRules === "function") {
-            Pin.events.processRules(world, dt);
+            const processed = Pin.events.processRules(world, dt);
+            if (stats && stats.targetLookup && Array.isArray(processed)) {
+                processed.forEach(function each(event) {
+                    if (!event || event.type !== "switchClosed" || !event.sourceId) return;
+                    const sourceId = String(event.sourceId);
+                    if (!stats.targetLookup[sourceId]) return;
+                    stats.targetHitMap[sourceId] = (stats.targetHitMap[sourceId] || 0) + 1;
+                    stats.hitCount += 1;
+                });
+            }
         }
         const ball = world.balls && world.balls[0] ? world.balls[0] : null;
         if (ball) {
-            if (trace && (trace.length < 320 || trace.length % 4 === 0)) {
+            stats.traceSampleCounter = (stats.traceSampleCounter || 0) + 1;
+            if (trace && (trace.length < 320 || stats.traceSampleCounter % 4 === 0)) {
                 trace.push({ x: ball.x, y: ball.y });
             }
             stampHeatmap(heatmap, ball);
@@ -629,8 +753,8 @@
             totalScore: 0,
             bestBallScore: 0
         };
-        const targetHits = {};
-        const sources = sourceElements(normalized.elements || []);
+        stats.targetHitMap = {};
+        stats.targetLookup = targetLookup(normalized.elements || []);
         const minLaunchHoldTicks = Math.max(4, Math.min(80, Math.round((opts.minLaunchHoldTicks == null ? 12 : opts.minLaunchHoldTicks))));
         const maxLaunchHoldTicks = Math.max(minLaunchHoldTicks, Math.min(120, Math.round((opts.maxLaunchHoldTicks == null ? 34 : opts.maxLaunchHoldTicks))));
 
@@ -668,15 +792,6 @@
                 if (!isFiniteNumber(ball.x) || !isFiniteNumber(ball.y) || !isFiniteNumber(ball.vx) || !isFiniteNumber(ball.vy)) {
                     break;
                 }
-                const target = controller.getTarget();
-                if (target && isFiniteNumber(target.x) && isFiniteNumber(target.y)) {
-                    const dx = ball.x - target.x;
-                    const dy = ball.y - target.y;
-                    if ((dx * dx + dy * dy) <= 18 * 18) {
-                        targetHits[target.id] = (targetHits[target.id] || 0) + 1;
-                        stats.hitCount += 1;
-                    }
-                }
             }
             trajectories.push({
                 label: "ball_" + (ballIndex + 1),
@@ -695,7 +810,7 @@
             y: 20
         });
         labels.push({
-            text: "Target hits " + stats.hitCount + " | hold ticks " + minLaunchHoldTicks + "-" + maxLaunchHoldTicks,
+            text: "Target hits " + stats.hitCount + " | unique " + Object.keys(stats.targetHitMap).length + " | hold ticks " + minLaunchHoldTicks + "-" + maxLaunchHoldTicks,
             x: 14,
             y: 38
         });
@@ -714,6 +829,7 @@
                 rightPresses: stats.rightPresses,
                 launches: stats.launchReleases,
                 targetHits: stats.hitCount,
+                targetHitMap: clone(stats.targetHitMap),
                 totalScore: stats.totalScore,
                 bestBallScore: stats.bestBallScore,
                 averageBallScore: ballsToRun > 0 ? Math.round(stats.totalScore / ballsToRun) : 0
@@ -722,9 +838,10 @@
                 heatmap: heatmap,
                 trajectories: trajectories,
                 labels: labels,
-                points: Object.keys(targetHits).map(function map(id) {
+                points: Object.keys(stats.targetHitMap).map(function map(id) {
                     const el = (normalized.elements || []).find(function find(entry) { return entry && entry.id === id; });
-                    return el && isFiniteNumber(el.x) && isFiniteNumber(el.y) ? { x: el.x, y: el.y } : null;
+                    const center = sourceCenterForElement(el);
+                    return center && isFiniteNumber(center.x) && isFiniteNumber(center.y) ? { x: center.x, y: center.y } : null;
                 }).filter(Boolean)
             }
         };

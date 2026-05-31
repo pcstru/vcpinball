@@ -238,13 +238,37 @@
             autoplay: {
                 liveRunning: false,
                 liveController: null,
+                liveMode: "heuristic",
                 liveSummary: "",
                 liveStatus: "Idle",
                 liveHeatmap: null,
                 livePath: [],
                 liveTrajectories: [],
                 liveServeIndex: 0,
-                liveWasInLaunchLane: true
+                liveWasInLaunchLane: true,
+                liveSampleCounter: 0,
+                neuralModel: null,
+                neuralLastLoss: null,
+                neuralSampleCount: 0,
+                neuralEpochs: 4,
+                neuralTrainingBalls: 10,
+                neuralMaxSamples: 3000,
+                neuralLastDebug: null,
+                training: {
+                    collecting: false,
+                    total: 0,
+                    rawTotal: 0,
+                    usedTotal: 0,
+                    none: 0,
+                    left: 0,
+                    right: 0,
+                    startedAt: 0,
+                    samplesPerSec: 0,
+                    liveSamples: [],
+                    liveActionSamples: 0,
+                    recentLiveSamples: [],
+                    liveCollectEnabled: true
+                }
             },
             aiLab: {
                 prompt: "",
@@ -287,6 +311,7 @@
                 selectedElementId: "",
                 dragSelection: null,
                 elements: [],
+                baseTable: null,
                 playfield: {
                     width: defaultPlayfield.width,
                     height: defaultPlayfield.height
@@ -424,6 +449,16 @@
         const metricList = create("div", "lab-metric-list");
         metricsWrap.appendChild(metricList);
         right.appendChild(metricsWrap);
+
+        right.appendChild(create("h2", "", "Autoplay Brain"));
+        const neuralWrap = create("div", "lab-group");
+        const neuralStatus = create("div", "lab-eval-summary", "Neural policy: untrained.");
+        const neuralMetrics = create("div", "lab-metric-list");
+        const neuralTrainingStatus = create("div", "lab-eval-summary", "Training data: idle.");
+        neuralWrap.appendChild(neuralStatus);
+        neuralWrap.appendChild(neuralTrainingStatus);
+        neuralWrap.appendChild(neuralMetrics);
+        right.appendChild(neuralWrap);
 
         right.appendChild(create("h2", "", "Export"));
         right.appendChild(create("p", "small", "This fragment is intended to be pasted back into discussion so the tuned values can be applied to a real flipper."));
@@ -635,10 +670,48 @@
         autoplayMinScoreInput.value = String(state.eval.autoplayMinScore || 0);
         autoplayMinScoreInput.className = "lab-number";
         autoplayMinScoreRow.appendChild(autoplayMinScoreInput);
+        const neuralTrainBallsRow = create("label", "lab-inline-field");
+        neuralTrainBallsRow.textContent = "Neural train balls";
+        const neuralTrainBallsInput = document.createElement("input");
+        neuralTrainBallsInput.type = "number";
+        neuralTrainBallsInput.min = "1";
+        neuralTrainBallsInput.max = "64";
+        neuralTrainBallsInput.step = "1";
+        neuralTrainBallsInput.value = String(state.autoplay.neuralTrainingBalls);
+        neuralTrainBallsInput.className = "lab-number";
+        neuralTrainBallsRow.appendChild(neuralTrainBallsInput);
+        const neuralTrainSamplesRow = create("label", "lab-inline-field");
+        neuralTrainSamplesRow.textContent = "Neural max samples";
+        const neuralTrainSamplesInput = document.createElement("input");
+        neuralTrainSamplesInput.type = "number";
+        neuralTrainSamplesInput.min = "200";
+        neuralTrainSamplesInput.max = "20000";
+        neuralTrainSamplesInput.step = "100";
+        neuralTrainSamplesInput.value = String(state.autoplay.neuralMaxSamples);
+        neuralTrainSamplesInput.className = "lab-number";
+        neuralTrainSamplesRow.appendChild(neuralTrainSamplesInput);
+        const neuralTrainEpochRow = create("label", "lab-inline-field");
+        neuralTrainEpochRow.textContent = "Neural epochs";
+        const neuralTrainEpochInput = document.createElement("input");
+        neuralTrainEpochInput.type = "number";
+        neuralTrainEpochInput.min = "1";
+        neuralTrainEpochInput.max = "24";
+        neuralTrainEpochInput.step = "1";
+        neuralTrainEpochInput.value = String(state.autoplay.neuralEpochs);
+        neuralTrainEpochInput.className = "lab-number";
+        neuralTrainEpochRow.appendChild(neuralTrainEpochInput);
         const autoplayLiveActions = create("div", "lab-actions");
-        const autoplayLiveStartButton = create("button", "", "Autoplay Live");
+        const autoplayLiveStartButton = create("button", "", "Heuristic Live");
+        const autoplayNeuralStartButton = create("button", "", "Neural Live");
+        const autoplayNeuralTrainButton = create("button", "", "Train Neural");
+        const autoplayCompareButton = create("button", "", "Compare Runs");
+        const autoplayCollectToggleButton = create("button", "active", "Collect Live On");
         const autoplayLiveStopButton = create("button", "", "Stop Live");
         autoplayLiveActions.appendChild(autoplayLiveStartButton);
+        autoplayLiveActions.appendChild(autoplayNeuralStartButton);
+        autoplayLiveActions.appendChild(autoplayNeuralTrainButton);
+        autoplayLiveActions.appendChild(autoplayCompareButton);
+        autoplayLiveActions.appendChild(autoplayCollectToggleButton);
         autoplayLiveActions.appendChild(autoplayLiveStopButton);
         const autoplayLiveStatus = create("div", "lab-eval-summary", "Autoplay live: idle.");
         const evalSummary = create("div", "lab-eval-summary", "No report yet.");
@@ -669,6 +742,9 @@
         evalWrap.appendChild(autoplayTargetIntervalRow);
         evalWrap.appendChild(autoplayCellSizeRow);
         evalWrap.appendChild(autoplayMinScoreRow);
+        evalWrap.appendChild(neuralTrainBallsRow);
+        evalWrap.appendChild(neuralTrainSamplesRow);
+        evalWrap.appendChild(neuralTrainEpochRow);
         evalWrap.appendChild(autoplayLiveActions);
         evalWrap.appendChild(autoplayLiveStatus);
         evalWrap.appendChild(evalSummary);
@@ -879,6 +955,275 @@
             };
         }
 
+        function refreshNeuralPanel() {
+            neuralMetrics.innerHTML = "";
+            const debug = state.autoplay.neuralLastDebug;
+            const training = state.autoplay.training || {};
+            const latestSample = training.recentLiveSamples && training.recentLiveSamples.length
+                ? training.recentLiveSamples[training.recentLiveSamples.length - 1]
+                : null;
+            const rows = [
+                { label: "Mode", value: state.autoplay.liveMode || "heuristic" },
+                { label: "Samples", value: state.autoplay.neuralSampleCount || 0 },
+                { label: "Loss", value: state.autoplay.neuralLastLoss == null ? "-" : round(state.autoplay.neuralLastLoss, 5) },
+                { label: "Collect", value: training.collecting ? "yes" : "no" },
+                { label: "Collected", value: (training.rawTotal || training.total || 0) + " raw / " + (training.usedTotal || 0) + " used" },
+                { label: "N/L/R", value: (training.none || 0) + "/" + (training.left || 0) + "/" + (training.right || 0) },
+                { label: "Live actions", value: training.liveActionSamples || 0 },
+                { label: "Rate", value: training.samplesPerSec ? round(training.samplesPerSec, 1) + "/s" : "-" },
+                { label: "Action", value: debug && debug.action ? debug.action : "-" },
+                { label: "None", value: debug && debug.outputs ? round(debug.outputs.none, 3) : "-" },
+                { label: "Left", value: debug && debug.outputs ? round(debug.outputs.left, 3) : "-" },
+                { label: "Right", value: debug && debug.outputs ? round(debug.outputs.right, 3) : "-" },
+                { label: "Confidence", value: debug && typeof debug.confidence === "number" ? round(debug.confidence, 3) : "-" },
+                { label: "Out L/R/Launch", value: debug && debug.controls ? (Number(!!debug.controls.left) + "/" + Number(!!debug.controls.right) + "/" + Number(!!debug.controls.launch)) : "-" },
+                { label: "Pulse L/R", value: debug ? ((debug.pulseLeft || 0) + "/" + (debug.pulseRight || 0)) : "-" },
+                { label: "Cooldown", value: debug && Number.isFinite(debug.cooldown) ? debug.cooldown : "-" },
+                { label: "Source", value: debug && debug.source ? debug.source : "-" },
+                { label: "Model", value: debug && debug.model ? (debug.model.inputSize + " -> " + debug.model.hiddenSize + " -> 3") : "-" },
+                { label: "Last sample", value: latestSample ? (latestSample.action + " bx " + round(latestSample.ballX, 3) + " by " + round(latestSample.ballY, 3) + " vy " + round(latestSample.vy, 3)) : "-" }
+            ];
+            rows.forEach(function each(row) {
+                const key = create("div", "label", row.label);
+                const val = create("div", "value", String(row.value));
+                neuralMetrics.appendChild(key);
+                neuralMetrics.appendChild(val);
+            });
+            const trained = !!state.autoplay.neuralModel;
+            neuralStatus.textContent = trained
+                ? "Neural policy ready. " + (state.autoplay.liveMode === "neural" ? "Live control active." : "Heuristic mode active.")
+                : "Neural policy: untrained.";
+            neuralStatus.className = "lab-eval-summary" + (trained ? " pass" : "");
+            neuralTrainingStatus.textContent = training.collecting
+                ? "Training data: collecting (" + (training.total || 0) + " samples)."
+                : ("Training data: idle. live buffer " + ((training.liveSamples && training.liveSamples.length) || 0) + ".");
+            neuralTrainingStatus.className = "lab-eval-summary" + (training.collecting ? " warn" : "");
+            autoplayNeuralStartButton.disabled = !trained || state.eval.running || (state.autoplay.liveRunning && state.autoplay.liveMode === "neural");
+            autoplayLiveStartButton.disabled = state.eval.running || (state.autoplay.liveRunning && state.autoplay.liveMode === "heuristic");
+            autoplayCompareButton.disabled = !trained || state.eval.running;
+            autoplayLiveStartButton.className = state.autoplay.liveMode === "heuristic" && state.autoplay.liveRunning ? "active" : "";
+            autoplayNeuralStartButton.className = state.autoplay.liveMode === "neural" && state.autoplay.liveRunning ? "active" : "";
+            state.runtime.dirty = true;
+        }
+
+        function pickTrainingActionFromControls(controls) {
+            if (controls && controls.left && !controls.right) return "left";
+            if (controls && controls.right && !controls.left) return "right";
+            return "none";
+        }
+
+        function rebalanceTrainingSamples(samples) {
+            const all = Array.isArray(samples) ? samples.slice(0) : [];
+            const left = all.filter(function filter(sample) { return sample && sample.action === "left"; });
+            const right = all.filter(function filter(sample) { return sample && sample.action === "right"; });
+            const none = all.filter(function filter(sample) { return sample && sample.action === "none"; });
+            const flipTotal = left.length + right.length;
+            if (!all.length || !flipTotal) return all;
+            const maxNone = Math.max(120, flipTotal);
+            const trimmedNone = none.slice(0, maxNone);
+            const minority = Math.max(1, Math.min(left.length, right.length));
+            const targetPerSide = Math.max(minority, Math.floor((left.length + right.length) / 2));
+            const leftBalanced = [];
+            const rightBalanced = [];
+            for (let i = 0; i < targetPerSide; i++) {
+                leftBalanced.push(left[i % left.length]);
+                rightBalanced.push(right[i % right.length]);
+            }
+            return leftBalanced.concat(rightBalanced, trimmedNone);
+        }
+
+        function collectAutoplayTrainingSamples() {
+            if (!Pin.tableAutoplayLearning || typeof Pin.tableAutoplayLearning.extractFeatures !== "function") return [];
+            if (!Pin.tableAutoplay || typeof Pin.tableAutoplay.createController !== "function") return [];
+            const maxSamples = clamp(Math.round(Number(state.autoplay.neuralMaxSamples) || 3000), 200, 20000);
+            const trainingBalls = clamp(Math.round(Number(state.autoplay.neuralTrainingBalls) || 10), 1, 64);
+            const maxTicks = clamp(Math.round(Number(state.eval.autoplayMaxTicksPerBall) || 12000), 120, 120000);
+            const sandboxOptions = {
+                includeDefaultBounds: includeDefaultSandboxBounds(),
+                baseTable: state.sandbox.baseTable ? clone(state.sandbox.baseTable) : null,
+                playfield: clone(state.sandbox.playfield),
+                physics: clone(state.sandbox.physics),
+                elements: clone(state.sandbox.elements),
+                spawn: clone(state.sandbox.spawn)
+            };
+            const sim = Pin.physicsHarness.createSimulation("sandbox", { sandbox: sandboxOptions });
+            const controller = Pin.tableAutoplay.createController(sim.world, autoplayOptionsFromEvalState());
+            const samples = [];
+            state.autoplay.training.collecting = true;
+            state.autoplay.training.total = 0;
+            state.autoplay.training.rawTotal = 0;
+            state.autoplay.training.usedTotal = 0;
+            state.autoplay.training.none = 0;
+            state.autoplay.training.left = 0;
+            state.autoplay.training.right = 0;
+            state.autoplay.training.liveActionSamples = 0;
+            state.autoplay.training.recentLiveSamples = [];
+            state.autoplay.training.startedAt = Date.now();
+            state.autoplay.training.samplesPerSec = 0;
+            refreshNeuralPanel();
+            let launchHeldPrev = false;
+            let served = 0;
+            let wasInLane = true;
+            for (let tick = 0; tick < maxTicks * trainingBalls && samples.length < maxSamples; tick++) {
+                const controls = controller.update();
+                const target = controller.getTarget && typeof controller.getTarget === "function" ? controller.getTarget() : null;
+                const features = Pin.tableAutoplayLearning.extractFeatures(sim.world, { target: target });
+                const action = pickTrainingActionFromControls(controls);
+                samples.push({ features: features, action: action });
+                state.autoplay.training.total += 1;
+                state.autoplay.training.rawTotal += 1;
+                if (action === "left") state.autoplay.training.left += 1;
+                else if (action === "right") state.autoplay.training.right += 1;
+                else state.autoplay.training.none += 1;
+                if (state.autoplay.training.total % 120 === 0) {
+                    const elapsedMs = Math.max(1, Date.now() - state.autoplay.training.startedAt);
+                    state.autoplay.training.samplesPerSec = (state.autoplay.training.total * 1000) / elapsedMs;
+                    refreshNeuralPanel();
+                }
+                sim.world.controls.left = !!controls.left;
+                sim.world.controls.right = !!controls.right;
+                sim.world.launchCharging = !!controls.launch;
+                if (launchHeldPrev && !controls.launch && Pin.physics && Pin.physics.releaseLauncher) Pin.physics.releaseLauncher(sim.world);
+                launchHeldPrev = !!controls.launch;
+                sim.step(1);
+                const ball = sim.world.balls && sim.world.balls[0] ? sim.world.balls[0] : null;
+                const inLane = ball ? !!ball.inLaunchLane : false;
+                if (!inLane && wasInLane) served += 1;
+                wasInLane = inLane;
+                if (served >= trainingBalls) break;
+            }
+            state.autoplay.training.collecting = false;
+            const elapsedMs = Math.max(1, Date.now() - state.autoplay.training.startedAt);
+            state.autoplay.training.samplesPerSec = (state.autoplay.training.total * 1000) / elapsedMs;
+            const balanced = rebalanceTrainingSamples(samples);
+            state.autoplay.training.usedTotal = balanced.length;
+            refreshNeuralPanel();
+            return balanced;
+        }
+
+        function trainNeuralAutoplay() {
+            if (!Pin.tableAutoplayLearning || typeof Pin.tableAutoplayLearning.createModel !== "function") {
+                autoplayLiveStatus.textContent = "Neural training: runtime unavailable.";
+                return;
+            }
+            let samples = [];
+            if (state.autoplay.training.liveSamples && state.autoplay.training.liveSamples.length >= 120) {
+                const maxSamples = clamp(Math.round(Number(state.autoplay.neuralMaxSamples) || 3000), 200, 20000);
+                const live = state.autoplay.training.liveSamples.slice(-maxSamples);
+                const liveFlip = live.filter(function filter(sample) { return sample.action !== "none"; });
+                samples = rebalanceTrainingSamples(live);
+                state.autoplay.training.rawTotal = live.length;
+                state.autoplay.training.usedTotal = samples.length;
+                state.autoplay.training.liveActionSamples = liveFlip.length;
+            } else {
+                samples = collectAutoplayTrainingSamples();
+            }
+            if (!samples.length) {
+                autoplayLiveStatus.textContent = "Neural training: no samples collected.";
+                return;
+            }
+            const model = Pin.tableAutoplayLearning.createModel(samples[0].features.length, 12);
+            const result = Pin.tableAutoplayLearning.trainModel(model, samples, {
+                epochs: clamp(Math.round(Number(state.autoplay.neuralEpochs) || 4), 1, 24),
+                learningRate: 0.05
+            });
+            const noneCount = samples.filter(function filter(sample) { return sample.action === "none"; }).length;
+            const leftCount = samples.filter(function filter(sample) { return sample.action === "left"; }).length;
+            const rightCount = samples.filter(function filter(sample) { return sample.action === "right"; }).length;
+            state.autoplay.neuralModel = model;
+            state.autoplay.neuralLastLoss = result.finalLoss;
+            state.autoplay.neuralSampleCount = result.samples;
+            saveNeuralModel();
+            autoplayLiveStatus.textContent =
+                "Neural training complete. raw " + (state.autoplay.training.rawTotal || result.samples) + " -> used " + result.samples + " (N/L/R " + noneCount + "/" + leftCount + "/" + rightCount + ") | loss " + round(result.finalLoss, 5);
+            refreshNeuralPanel();
+        }
+
+        function compareControllerStats(mode) {
+            if (!state.eval.selectedTable) return { score: 0, hits: 0, balls: 0 };
+            const balls = clamp(Math.round(Number(state.autoplay.neuralTrainingBalls) || 10), 1, 64);
+            const maxTicks = clamp(Math.round(Number(state.eval.autoplayMaxTicksPerBall) || 12000), 120, 120000);
+            const sandboxOptions = {
+                includeDefaultBounds: includeDefaultSandboxBounds(),
+                baseTable: state.sandbox.baseTable ? clone(state.sandbox.baseTable) : null,
+                playfield: clone(state.sandbox.playfield),
+                physics: clone(state.sandbox.physics),
+                elements: clone(state.sandbox.elements),
+                spawn: clone(state.sandbox.spawn)
+            };
+            const sim = Pin.physicsHarness.createSimulation("sandbox", { sandbox: sandboxOptions });
+            const controller = mode === "neural"
+                ? Pin.tableAutoplayLearning.createController(sim.world, {
+                    model: state.autoplay.neuralModel,
+                    pulseTicks: state.eval.autoplayAimPulseTicks,
+                    cooldownTicks: state.eval.autoplayAimCooldownTicks
+                })
+                : Pin.tableAutoplay.createController(sim.world, autoplayOptionsFromEvalState());
+            const sources = (sim.world.table && sim.world.table.elements ? sim.world.table.elements : []).filter(function filter(el) {
+                return el && (el.type === "lane" || el.type === "dropTarget" || el.type === "trough" || el.type === "kicker" || el.type === "spinner" || el.type === "scoreZone");
+            });
+            let launchHeldPrev = false;
+            let score = 0;
+            let hits = 0;
+            let served = 0;
+            let wasInLane = true;
+            const hitCooldown = Object.create(null);
+            for (let tick = 0; tick < maxTicks * balls; tick++) {
+                const controls = controller.update();
+                sim.world.controls.left = !!controls.left;
+                sim.world.controls.right = !!controls.right;
+                sim.world.launchCharging = !!controls.launch;
+                if (launchHeldPrev && !controls.launch && Pin.physics && Pin.physics.releaseLauncher) Pin.physics.releaseLauncher(sim.world);
+                launchHeldPrev = !!controls.launch;
+                sim.step(1);
+                score = Number(sim.world.score) || 0;
+                const ball = sim.world.balls && sim.world.balls[0] ? sim.world.balls[0] : null;
+                if (ball) {
+                    sources.forEach(function each(el) {
+                        if (!Number.isFinite(el.x) || !Number.isFinite(el.y)) return;
+                        const dx = ball.x - el.x;
+                        const dy = ball.y - el.y;
+                        const d2 = dx * dx + dy * dy;
+                        const key = String(el.id || "");
+                        hitCooldown[key] = Math.max(0, (hitCooldown[key] || 0) - 1);
+                        if (d2 <= (18 * 18) && hitCooldown[key] === 0) {
+                            hits += 1;
+                            hitCooldown[key] = 8;
+                        }
+                    });
+                    const inLane = !!ball.inLaunchLane;
+                    if (!inLane && wasInLane) served += 1;
+                    wasInLane = inLane;
+                }
+                if (served >= balls) break;
+            }
+            return { score: score, hits: hits, balls: served || balls };
+        }
+
+        function runAutoplayCompare() {
+            if (!state.eval.selectedTable) {
+                autoplayLiveStatus.textContent = "Compare: load a table first.";
+                return;
+            }
+            if (!state.autoplay.neuralModel) {
+                autoplayLiveStatus.textContent = "Compare: train neural model first.";
+                return;
+            }
+            const heuristic = compareControllerStats("heuristic");
+            const neural = compareControllerStats("neural");
+            const deltaScore = neural.score - heuristic.score;
+            const deltaHits = neural.hits - heuristic.hits;
+            autoplayLiveStatus.textContent =
+                "Compare " + neural.balls + " balls | score H " + heuristic.score + " vs N " + neural.score + " (" + (deltaScore >= 0 ? "+" : "") + deltaScore + ")" +
+                " | hits H " + heuristic.hits + " vs N " + neural.hits + " (" + (deltaHits >= 0 ? "+" : "") + deltaHits + ")";
+            state.autoplay.neuralLastDebug = {
+                action: "compare",
+                confidence: 1,
+                outputs: { none: 0, left: 0, right: 0 }
+            };
+            refreshNeuralPanel();
+        }
+
         function createLiveAutoplayHeatmap() {
             const table = state.sim && state.sim.world ? state.sim.world.table : null;
             const playfield = table && table.playfield ? table.playfield : {};
@@ -910,46 +1255,107 @@
         function stopLiveAutoplay() {
             state.autoplay.liveRunning = false;
             state.autoplay.liveController = null;
+            state.autoplay.liveMode = "heuristic";
             state.autoplay.liveHeatmap = null;
             state.autoplay.livePath = [];
             state.autoplay.liveTrajectories = [];
             state.autoplay.liveServeIndex = 0;
             state.autoplay.liveWasInLaunchLane = true;
+            state.autoplay.liveSampleCounter = 0;
             state.eval.liveCheck = null;
             autoplayLiveStatus.textContent = "Autoplay live: stopped.";
             autoplayLiveStartButton.disabled = false;
+            autoplayLiveStartButton.className = "";
+            autoplayNeuralStartButton.className = "";
+            autoplayNeuralStartButton.disabled = !state.autoplay.neuralModel;
             autoplayLiveStopButton.disabled = true;
             state.sandbox.controls.left = false;
             state.sandbox.controls.right = false;
             state.sandbox.controls.launch = false;
             state.runtime.dirty = true;
+            refreshNeuralPanel();
         }
 
-        function startLiveAutoplay() {
+        function startLiveAutoplay(mode) {
             if (!state.eval.selectedTable) {
                 autoplayLiveStatus.textContent = "Autoplay live: load a table first.";
                 return;
             }
+            if (state.scenarioId !== "sandbox" || !state.sim || !state.sim.world) {
+                autoplayLiveStatus.textContent = "Autoplay live: switch to Sandbox first (no auto-switch).";
+                return;
+            }
+            const nextMode = mode === "neural" ? "neural" : "heuristic";
             if (!Pin.tableAutoplay || typeof Pin.tableAutoplay.createController !== "function") {
                 autoplayLiveStatus.textContent = "Autoplay live: runtime unavailable.";
                 return;
             }
-            state.scenarioId = "sandbox";
-            scenarioSelect.value = "sandbox";
-            setActiveTab("sandbox");
-            reloadControls();
-            rebuildSimulation();
-            state.autoplay.liveController = Pin.tableAutoplay.createController(state.sim.world, autoplayOptionsFromEvalState());
+            if (nextMode === "neural") {
+                if (!Pin.tableAutoplayLearning || typeof Pin.tableAutoplayLearning.createController !== "function") {
+                    autoplayLiveStatus.textContent = "Neural live: runtime unavailable.";
+                    return;
+                }
+                if (!state.autoplay.neuralModel) {
+                    autoplayLiveStatus.textContent = "Neural live: train the model first.";
+                    return;
+                }
+            }
+
+            function buildLiveController() {
+                if (nextMode === "neural") {
+                    const fallbackController = Pin.tableAutoplay.createController(state.sim.world, autoplayOptionsFromEvalState());
+                    return Pin.tableAutoplayLearning.createController(state.sim.world, {
+                        model: state.autoplay.neuralModel,
+                        pulseTicks: state.eval.autoplayAimPulseTicks,
+                        cooldownTicks: state.eval.autoplayAimCooldownTicks,
+                        minConfidence: 0.54,
+                        minActionProbability: 0.22,
+                        indecisiveGap: 0.1,
+                        fallbackController: fallbackController,
+                        targetProvider: function targetProvider() {
+                            return fallbackController && typeof fallbackController.getTarget === "function"
+                                ? fallbackController.getTarget()
+                                : null;
+                        }
+                    });
+                }
+                return Pin.tableAutoplay.createController(state.sim.world, autoplayOptionsFromEvalState());
+            }
+
+            if (state.autoplay.liveRunning) {
+                if (state.sim && state.sim.world) {
+                    if (state.sandbox.launchHeldPrev && Pin.physics && Pin.physics.releaseLauncher) {
+                        Pin.physics.releaseLauncher(state.sim.world);
+                    }
+                    state.sandbox.launchHeldPrev = false;
+                    state.sandbox.controls.launch = false;
+                    state.sim.world.launchCharging = false;
+                }
+                state.autoplay.liveController = buildLiveController();
+                state.autoplay.liveMode = nextMode;
+                autoplayLiveStatus.textContent = (nextMode === "neural" ? "Neural" : "Heuristic") + " live: controller switched.";
+                autoplayLiveStartButton.className = nextMode === "heuristic" ? "active" : "";
+                autoplayNeuralStartButton.className = nextMode === "neural" ? "active" : "";
+                refreshNeuralPanel();
+                return;
+            }
+            state.autoplay.liveController = buildLiveController();
             state.autoplay.liveRunning = true;
+            state.autoplay.liveMode = nextMode;
             state.autoplay.liveHeatmap = createLiveAutoplayHeatmap();
             state.autoplay.livePath = [];
             state.autoplay.liveTrajectories = [];
             state.autoplay.liveServeIndex = 0;
             state.autoplay.liveWasInLaunchLane = true;
-            autoplayLiveStatus.textContent = "Autoplay live: running.";
-            autoplayLiveStartButton.disabled = true;
+            state.autoplay.liveSampleCounter = 0;
+            autoplayLiveStatus.textContent = (nextMode === "neural" ? "Neural" : "Heuristic") + " live: running.";
+            autoplayLiveStartButton.disabled = nextMode === "heuristic";
+            autoplayNeuralStartButton.disabled = nextMode === "neural";
+            autoplayLiveStartButton.className = nextMode === "heuristic" ? "active" : "";
+            autoplayNeuralStartButton.className = nextMode === "neural" ? "active" : "";
             autoplayLiveStopButton.disabled = false;
             state.runtime.dirty = true;
+            refreshNeuralPanel();
         }
 
         /* What: Keep eval-run controls consistent with selection/run state.
@@ -1135,6 +1541,70 @@
             return ref;
         }
 
+        function neuralModelStorageKey() {
+            const tableRef = state.eval.selectedRef || state.eval.selectedName || "sandbox";
+            return "pin.autoplay.neural." + String(tableRef).toLowerCase();
+        }
+
+        function saveNeuralModel() {
+            if (!state.autoplay.neuralModel || !window.localStorage) return;
+            try {
+                window.localStorage.setItem(neuralModelStorageKey(), JSON.stringify({
+                    model: state.autoplay.neuralModel,
+                    trainedAt: Date.now()
+                }));
+            } catch (err) {
+                console.warn("Neural model save failed:", err);
+            }
+        }
+
+        function loadNeuralModel() {
+            state.autoplay.neuralModel = null;
+            state.autoplay.neuralLastLoss = null;
+            state.autoplay.neuralSampleCount = 0;
+            if (!window.localStorage) {
+                refreshNeuralPanel();
+                return;
+            }
+            try {
+                const raw = window.localStorage.getItem(neuralModelStorageKey());
+                if (!raw) {
+                    refreshNeuralPanel();
+                    return;
+                }
+                const parsed = JSON.parse(raw);
+                const model = parsed && parsed.model ? parsed.model : null;
+                const valid =
+                    !!(model &&
+                    Number.isFinite(model.inputSize) &&
+                    Number.isFinite(model.hiddenSize) &&
+                    model.inputSize >= 4 &&
+                    model.inputSize <= 64 &&
+                    model.hiddenSize >= 4 &&
+                    model.hiddenSize <= 64 &&
+                    Array.isArray(model.w1) &&
+                    Array.isArray(model.w2) &&
+                    Array.isArray(model.b1) &&
+                    Array.isArray(model.b2) &&
+                    model.w1.length === model.hiddenSize &&
+                    model.b1.length === model.hiddenSize &&
+                    model.w2.length === 3 &&
+                    model.b2.length === 3 &&
+                    model.w1.every(function everyRow(row) { return Array.isArray(row) && row.length === model.inputSize; }) &&
+                    model.w2.every(function everyOut(row2) { return Array.isArray(row2) && row2.length === model.hiddenSize; }));
+                if (!valid) {
+                    window.localStorage.removeItem(neuralModelStorageKey());
+                    refreshNeuralPanel();
+                    return;
+                }
+                state.autoplay.neuralModel = model;
+                refreshNeuralPanel();
+            } catch (err) {
+                console.warn("Neural model load failed:", err);
+                refreshNeuralPanel();
+            }
+        }
+
         function buildTableSelect() {
             const refs = tableRefEntries();
             evalTableSelect.innerHTML = "";
@@ -1182,6 +1652,7 @@
             state.sandbox.spawn.vy = 0;
 
             state.sandbox.elements = clone(table.elements || []).map(normalizeSandboxFlipper);
+            state.sandbox.baseTable = clone(table);
             state.sandbox.selectedElementId = "";
             state.sandbox.dragSelection = null;
             state.sandbox.draftWall = null;
@@ -1214,13 +1685,13 @@
                     state.eval.selectedTable = Pin.table.normalizeTable(json);
                     state.eval.selectedName = state.eval.selectedTable.name || normalizedRef;
                     applyLoadedTableToSandbox(state.eval.selectedTable);
-                    state.scenarioId = "sandbox";
-                    scenarioSelect.value = "sandbox";
-                    setActiveTab("sandbox");
                     state.eval.loadError = "";
                     state.eval.report = null;
-                    reloadControls();
-                    rebuildSimulation();
+                    if (state.scenarioId === "sandbox") {
+                        reloadControls();
+                        rebuildSimulation();
+                    }
+                    loadNeuralModel();
                     setEvalStatus("Loaded " + state.eval.selectedName + ".", "pass");
                     renderEvalReport(null);
                     return state.eval.selectedTable;
@@ -2165,6 +2636,7 @@
             state.sim = Pin.physicsHarness.createSimulation("sandbox", {
                 sandbox: {
                     includeDefaultBounds: includeDefaultSandboxBounds(),
+                    baseTable: state.sandbox.baseTable ? clone(state.sandbox.baseTable) : null,
                     playfield: clone(state.sandbox.playfield),
                     physics: clone(state.sandbox.physics),
                     elements: clone(state.sandbox.elements),
@@ -2172,8 +2644,26 @@
                 }
             });
             state.sandbox.launchHeldPrev = false;
-            if (state.autoplay.liveRunning && Pin.tableAutoplay && typeof Pin.tableAutoplay.createController === "function") {
-                state.autoplay.liveController = Pin.tableAutoplay.createController(state.sim.world, autoplayOptionsFromEvalState());
+            if (state.autoplay.liveRunning) {
+                if (state.autoplay.liveMode === "neural" && state.autoplay.neuralModel && Pin.tableAutoplayLearning && typeof Pin.tableAutoplayLearning.createController === "function") {
+                    const fallbackController = Pin.tableAutoplay.createController(state.sim.world, autoplayOptionsFromEvalState());
+                    state.autoplay.liveController = Pin.tableAutoplayLearning.createController(state.sim.world, {
+                        model: state.autoplay.neuralModel,
+                        pulseTicks: state.eval.autoplayAimPulseTicks,
+                        cooldownTicks: state.eval.autoplayAimCooldownTicks,
+                        minConfidence: 0.54,
+                        minActionProbability: 0.22,
+                        indecisiveGap: 0.1,
+                        fallbackController: fallbackController,
+                        targetProvider: function targetProvider() {
+                            return fallbackController && typeof fallbackController.getTarget === "function"
+                                ? fallbackController.getTarget()
+                                : null;
+                        }
+                    });
+                } else if (Pin.tableAutoplay && typeof Pin.tableAutoplay.createController === "function") {
+                    state.autoplay.liveController = Pin.tableAutoplay.createController(state.sim.world, autoplayOptionsFromEvalState());
+                }
             }
             applySandboxControlsToWorld();
             exportBox.value = JSON.stringify(state.sim.toFragment(), null, 2);
@@ -2886,12 +3376,31 @@
             runTableEvaluation(null, "all");
         };
         autoplayLiveStartButton.onclick = function autoplayLiveStart() {
-            startLiveAutoplay();
+            startLiveAutoplay("heuristic");
+        };
+        autoplayNeuralStartButton.onclick = function autoplayNeuralStart() {
+            startLiveAutoplay("neural");
+        };
+        autoplayNeuralTrainButton.onclick = function autoplayNeuralTrain() {
+            trainNeuralAutoplay();
+        };
+        autoplayCompareButton.onclick = function autoplayCompareRuns() {
+            runAutoplayCompare();
+        };
+        autoplayCollectToggleButton.onclick = function toggleLiveCollect() {
+            state.autoplay.training.liveCollectEnabled = !state.autoplay.training.liveCollectEnabled;
+            autoplayCollectToggleButton.className = state.autoplay.training.liveCollectEnabled ? "active" : "";
+            autoplayCollectToggleButton.textContent = state.autoplay.training.liveCollectEnabled ? "Collect Live On" : "Collect Live Off";
+            refreshNeuralPanel();
         };
         autoplayLiveStopButton.onclick = function autoplayLiveStop() {
             stopLiveAutoplay();
         };
         autoplayLiveStopButton.disabled = true;
+        autoplayNeuralStartButton.disabled = !state.autoplay.neuralModel;
+        autoplayCompareButton.disabled = !state.autoplay.neuralModel;
+        autoplayCollectToggleButton.className = state.autoplay.training.liveCollectEnabled ? "active" : "";
+        autoplayCollectToggleButton.textContent = state.autoplay.training.liveCollectEnabled ? "Collect Live On" : "Collect Live Off";
         evalSelectAllButton.onclick = function selectAllEvalChecks() {
             (state.eval.runChecks || []).forEach(function each(check) {
                 if (!check || typeof check.id !== "string") return;
@@ -3113,6 +3622,21 @@
             state.eval.autoplayMinScore = Number.isFinite(next) ? clamp(next, 0, 1000000000) : 0;
             autoplayMinScoreInput.value = String(state.eval.autoplayMinScore);
         };
+        neuralTrainBallsInput.onchange = function onNeuralTrainBallsChange() {
+            const next = Math.round(Number(neuralTrainBallsInput.value));
+            state.autoplay.neuralTrainingBalls = Number.isFinite(next) ? clamp(next, 1, 64) : 10;
+            neuralTrainBallsInput.value = String(state.autoplay.neuralTrainingBalls);
+        };
+        neuralTrainSamplesInput.onchange = function onNeuralMaxSamplesChange() {
+            const next = Math.round(Number(neuralTrainSamplesInput.value));
+            state.autoplay.neuralMaxSamples = Number.isFinite(next) ? clamp(next, 200, 20000) : 3000;
+            neuralTrainSamplesInput.value = String(state.autoplay.neuralMaxSamples);
+        };
+        neuralTrainEpochInput.onchange = function onNeuralEpochsChange() {
+            const next = Math.round(Number(neuralTrainEpochInput.value));
+            state.autoplay.neuralEpochs = Number.isFinite(next) ? clamp(next, 1, 24) : 4;
+            neuralTrainEpochInput.value = String(state.autoplay.neuralEpochs);
+        };
         evalTableSelect.onchange = function onEvalTableChange() {
             state.eval.selectedRef = evalTableSelect.value;
         };
@@ -3121,6 +3645,7 @@
         buildTableSelect();
         renderEvalRunChecksList();
         renderEvalReport(null);
+        refreshNeuralPanel();
         renderAiAttempts();
         aiLabPopulateSettingsForm();
         aiLabRefreshProviderStatus(false);
@@ -3321,15 +3846,47 @@
             const frameStart = performance.now ? performance.now() : Date.now();
             let renderMs = 0;
             let metricsMs = 0;
-            if (state.playing && !state.sim.done) {
-                if (state.scenarioId === "sandbox") {
-                    if (state.autoplay.liveRunning && state.autoplay.liveController && state.sim && state.sim.world) {
-                        const autoControls = state.autoplay.liveController.update();
-                        state.sandbox.controls.left = !!autoControls.left;
-                        state.sandbox.controls.right = !!autoControls.right;
-                        state.sandbox.controls.launch = !!autoControls.launch;
-                        autoplayLiveStatus.textContent = "Autoplay live: running.";
-                    }
+                if (state.playing && !state.sim.done) {
+                    if (state.scenarioId === "sandbox") {
+                        if (state.autoplay.liveRunning && state.autoplay.liveController && state.sim && state.sim.world) {
+                            const autoControls = state.autoplay.liveController.update();
+                            if (state.autoplay.liveMode === "heuristic" &&
+                                state.autoplay.training.liveCollectEnabled &&
+                                Pin.tableAutoplayLearning &&
+                                typeof Pin.tableAutoplayLearning.extractFeatures === "function") {
+                                const target = state.autoplay.liveController && typeof state.autoplay.liveController.getTarget === "function"
+                                    ? state.autoplay.liveController.getTarget()
+                                    : null;
+                                const features = Pin.tableAutoplayLearning.extractFeatures(state.sim.world, { target: target });
+                                const action = pickTrainingActionFromControls(autoControls);
+                                const entry = { features: features, action: action };
+                                state.autoplay.training.liveSamples.push(entry);
+                                if (action !== "none") state.autoplay.training.liveActionSamples += 1;
+                                if (features && features.length >= 4) {
+                                    const preview = {
+                                        action: action,
+                                        ballX: features[0],
+                                        ballY: features[1],
+                                        vx: features[2],
+                                        vy: features[3]
+                                    };
+                                    state.autoplay.training.recentLiveSamples.push(preview);
+                                    if (state.autoplay.training.recentLiveSamples.length > 12) state.autoplay.training.recentLiveSamples.shift();
+                                }
+                                const maxLive = 20000;
+                                if (state.autoplay.training.liveSamples.length > maxLive) {
+                                    state.autoplay.training.liveSamples.splice(0, state.autoplay.training.liveSamples.length - maxLive);
+                                }
+                                if (state.autoplay.training.liveSamples.length % 120 === 0) {
+                                    state.autoplay.training.rawTotal = state.autoplay.training.liveSamples.length;
+                                    refreshNeuralPanel();
+                                }
+                            }
+                            state.sandbox.controls.left = !!autoControls.left;
+                            state.sandbox.controls.right = !!autoControls.right;
+                            state.sandbox.controls.launch = !!autoControls.launch;
+                            autoplayLiveStatus.textContent = "Autoplay live: running.";
+                        }
                     applySandboxControlsToWorld();
                 }
                 state.sim.step(2);
@@ -3358,16 +3915,48 @@
                         }
                         state.autoplay.liveWasInLaunchLane = inLane;
                         stampLiveAutoplayHeatmap(liveBall);
-                        if (state.autoplay.livePath.length < 400 || state.autoplay.livePath.length % 4 === 0) {
+                        state.autoplay.liveSampleCounter += 1;
+                        if (state.autoplay.livePath.length < 400 || state.autoplay.liveSampleCounter % 4 === 0) {
                             state.autoplay.livePath.push({ x: liveBall.x, y: liveBall.y });
                         }
                         const aimDebug = state.autoplay.liveController && typeof state.autoplay.liveController.getAimDebug === "function" ?
                             state.autoplay.liveController.getAimDebug() : null;
+                        if (state.autoplay.liveMode === "neural") state.autoplay.neuralLastDebug = aimDebug || null;
                         const aimSegments = [];
-                        const aimLabels = [{ text: "Live autoplay sampling", x: 14, y: 20 }];
+                        const aimLabels = [{ text: (state.autoplay.liveMode === "neural" ? "Neural" : "Heuristic") + " live autoplay sampling", x: 14, y: 20 }];
                         const aimPoints = [];
                         const aimCircles = [];
                         const aimTrajectories = [];
+                        if (state.autoplay.liveMode === "neural" && aimDebug && aimDebug.outputs) {
+                            aimLabels.push({ text: "policy " + String(aimDebug.action || "none") + " conf " + String(round(aimDebug.confidence || 0, 3)), x: 14, y: 38 });
+                            aimLabels.push({ text: "none " + String(round(aimDebug.outputs.none || 0, 3)) + " left " + String(round(aimDebug.outputs.left || 0, 3)) + " right " + String(round(aimDebug.outputs.right || 0, 3)), x: 14, y: 54 });
+                            if (aimDebug.controls) {
+                                aimLabels.push({
+                                    text: "out L/R/Launch " + Number(!!aimDebug.controls.left) + "/" + Number(!!aimDebug.controls.right) + "/" + Number(!!aimDebug.controls.launch) +
+                                        " | src " + String(aimDebug.source || "model") + " | pulse " + (aimDebug.pulseLeft || 0) + "/" + (aimDebug.pulseRight || 0),
+                                    x: 14,
+                                    y: 70
+                                });
+                            }
+                            if (aimDebug.model) {
+                                aimLabels.push({
+                                    text: "model " + String(aimDebug.model.inputSize || "-") + "->" + String(aimDebug.model.hiddenSize || "-") + "->3",
+                                    x: 14,
+                                    y: 86
+                                });
+                            }
+                            if (Array.isArray(aimDebug.features) && aimDebug.features.length >= 4) {
+                                aimLabels.push({
+                                    text: "f bx/by/vx/vy " +
+                                        String(round(aimDebug.features[0] || 0, 3)) + "/" +
+                                        String(round(aimDebug.features[1] || 0, 3)) + "/" +
+                                        String(round(aimDebug.features[2] || 0, 3)) + "/" +
+                                        String(round(aimDebug.features[3] || 0, 3)),
+                                    x: 14,
+                                    y: 102
+                                });
+                            }
+                        }
                         if (aimDebug && aimDebug.target && Number.isFinite(aimDebug.target.x) && Number.isFinite(aimDebug.target.y)) {
                             const scheduledAction = aimDebug.scheduled ?
                                 (String(aimDebug.chosen || "none") + "@" + String(aimDebug.scheduled.delay || 0) + "/" + String(aimDebug.scheduled.pulse || 0)) :
@@ -3449,6 +4038,7 @@
                                 circles: aimCircles
                             }
                         };
+                        if (state.autoplay.liveMode === "neural") refreshNeuralPanel();
                     } else {
                         autoplayLiveStatus.textContent = "Autoplay live: waiting for ball.";
                     }
