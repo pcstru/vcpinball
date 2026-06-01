@@ -114,7 +114,7 @@
 
     function createModel(inputSize, hiddenSize) {
         const inN = Math.max(4, Math.round(inputSize || 16));
-        const hidN = Math.max(4, Math.round(hiddenSize || 12));
+        const hidN = Math.max(4, Math.round(hiddenSize || 24));
         const w1 = [];
         for (let h = 0; h < hidN; h++) {
             const row = [];
@@ -152,43 +152,56 @@
         return 0;
     }
 
+    function sampleWeight(sample) {
+        /* What: Resolve a bounded per-sample training weight.
+         * Why: reward-aware lab training needs stronger gradient signal from
+         * successful outcomes without destabilizing browser-side SGD.
+         */
+        if (!sample) return 1;
+        return clamp(Number(sample.weight) || 1, 0.05, 32);
+    }
+
     function trainModel(model, samples, options) {
         const epochs = clamp(Math.round((options && options.epochs) || 4), 1, 40);
         const learningRate = clamp(Number((options && options.learningRate) || 0.05), 0.0005, 1.2);
         const size = Array.isArray(samples) ? samples.length : 0;
         if (!size) return { epochs: 0, samples: 0, finalLoss: 0 };
         let loss = 0;
+        let weightTotal = 0;
         for (let epoch = 0; epoch < epochs; epoch++) {
             loss = 0;
+            weightTotal = 0;
             for (let s = 0; s < samples.length; s++) {
                 const sample = samples[s];
                 if (!sample || !Array.isArray(sample.features)) continue;
                 const input = sample.features;
                 const targetIdx = actionIndex(sample.action);
+                const weight = sampleWeight(sample);
                 const pass = forward(model, input);
                 const p = pass.probs;
-                loss += -Math.log(Math.max(1e-8, p[targetIdx]));
+                loss += weight * -Math.log(Math.max(1e-8, p[targetIdx]));
+                weightTotal += weight;
                 const dLogits = [p[0], p[1], p[2]];
                 dLogits[targetIdx] -= 1;
                 for (let o = 0; o < 3; o++) {
                     for (let h = 0; h < model.hiddenSize; h++) {
-                        model.w2[o][h] -= learningRate * dLogits[o] * pass.hidden[h];
+                        model.w2[o][h] -= learningRate * weight * dLogits[o] * pass.hidden[h];
                     }
-                    model.b2[o] -= learningRate * dLogits[o];
+                    model.b2[o] -= learningRate * weight * dLogits[o];
                 }
                 for (let h2 = 0; h2 < model.hiddenSize; h2++) {
                     let dh = 0;
                     for (let o2 = 0; o2 < 3; o2++) dh += dLogits[o2] * model.w2[o2][h2];
                     const gradHidden = dh * pass.hidden[h2] * (1 - pass.hidden[h2]);
                     for (let i = 0; i < model.inputSize; i++) {
-                        model.w1[h2][i] -= learningRate * gradHidden * (input[i] || 0);
+                        model.w1[h2][i] -= learningRate * weight * gradHidden * (input[i] || 0);
                     }
-                    model.b1[h2] -= learningRate * gradHidden;
+                    model.b1[h2] -= learningRate * weight * gradHidden;
                 }
             }
-            loss /= Math.max(1, size);
+            loss /= Math.max(1e-6, weightTotal);
         }
-        return { epochs: epochs, samples: size, finalLoss: loss };
+        return { epochs: epochs, samples: size, weightedSamples: weightTotal, finalLoss: loss };
     }
 
     function createController(world, options) {
@@ -226,6 +239,8 @@
             debug: null,
             launchHold: 0,
             serve: 0,
+            launchReleased: false,
+            prevInLaunchLane: false,
             lastFeatures: null
         };
         const launcher = findLauncher(world);
@@ -260,10 +275,30 @@
         function update() {
             const ball = liveBall(world);
             const controls = { left: false, right: false, launch: false };
+            if (!ball) state.launchHold = 0;
             if (!ball || !validModel) {
-                if (!ball) state.launchHold = 0;
+                if (!ball) {
+                    state.launchReleased = false;
+                    state.prevInLaunchLane = false;
+                }
                 const emergency = ball ? simpleFallbackAction(ball) : { left: false, right: false };
                 const inLaneFallback = ballSeemsInLaunchLane(ball, launcher);
+                if (inLaneFallback && !state.prevInLaunchLane) {
+                    state.launchHold = 14 + (state.serve % 8) * 2;
+                    state.launchReleased = false;
+                    state.serve += 1;
+                }
+                state.prevInLaunchLane = !!inLaneFallback;
+                if (inLaneFallback && !state.launchReleased) {
+                    controls.launch = state.launchHold > 0;
+                    state.launchHold -= 1;
+                    if (state.launchHold <= 0) {
+                        controls.launch = false;
+                        state.launchReleased = true;
+                    }
+                } else if (!inLaneFallback) {
+                    state.launchHold = 0;
+                }
                 state.debug = {
                     action: "fallback",
                     confidence: 1,
@@ -278,25 +313,31 @@
                     controls: {
                         left: !!emergency.left,
                         right: !!emergency.right,
-                        launch: !!inLaneFallback
+                        launch: !!controls.launch
                     },
                     model: validModel ? { inputSize: model.inputSize, hiddenSize: model.hiddenSize } : null
                 };
                 return {
                     left: !!emergency.left,
                     right: !!emergency.right,
-                    launch: !!inLaneFallback
+                    launch: !!controls.launch
                 };
             }
             const inLane = ballSeemsInLaunchLane(ball, launcher);
-            if (inLane) {
-                if (state.launchHold <= 0) {
-                    state.serve += 1;
-                    state.launchHold = 14 + (state.serve % 8) * 2;
-                }
+            if (inLane && !state.prevInLaunchLane) {
+                state.launchHold = 14 + (state.serve % 8) * 2;
+                state.launchReleased = false;
+                state.serve += 1;
+            }
+            state.prevInLaunchLane = !!inLane;
+            if (inLane && !state.launchReleased) {
                 controls.launch = state.launchHold > 0;
                 state.launchHold -= 1;
-            } else {
+                if (state.launchHold <= 0) {
+                    controls.launch = false;
+                    state.launchReleased = true;
+                }
+            } else if (!inLane) {
                 state.launchHold = 0;
             }
             const target = opts.targetProvider ? opts.targetProvider() : null;

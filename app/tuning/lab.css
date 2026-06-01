@@ -12,7 +12,7 @@ body {
 
 #app {
     height: 100%;
-    min-width: 1320px;
+    min-width: 0;
 }
 
 .lab-shell {
@@ -33,6 +33,41 @@ body {
 .lab-panel.right {
     border-right: 0;
     border-left: 1px solid rgba(120, 140, 190, 0.18);
+}
+
+.lab-right-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 0 10px;
+}
+
+.lab-right-tabs button {
+    background: #131d31;
+    color: #e8eeff;
+    border: 1px solid rgba(120, 140, 190, 0.3);
+    border-radius: 6px;
+    padding: 7px 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.lab-right-tabs button.active {
+    border-color: #9fc1ff;
+    background: #2c4471;
+}
+
+.lab-detail-body {
+    min-height: 0;
+    overflow: auto;
+}
+
+.lab-detail-pane {
+    display: none;
+}
+
+.lab-detail-pane.active {
+    display: block;
 }
 
 .lab-panel h1,
@@ -430,4 +465,38 @@ body {
 
 .lab-panel.right {
     overflow: auto;
+}
+
+@media (max-width: 1360px) {
+    .lab-shell {
+        grid-template-columns: 320px minmax(0, 1fr) 340px;
+    }
+}
+
+@media (max-width: 1100px) {
+    body {
+        overflow: auto;
+    }
+
+    .lab-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .lab-panel {
+        border-right: 0;
+        border-bottom: 1px solid rgba(120, 140, 190, 0.18);
+    }
+
+    .lab-panel.right {
+        border-left: 0;
+    }
+
+    .lab-canvas {
+        width: min(100%, 860px);
+        height: auto;
+        max-height: none;
+    }
 }

@@ -232,6 +232,13 @@
         return el && (el.type === "lane" || el.type === "dropTarget");
     }
 
+    function isFoundationalTarget(world, el) {
+        if (!el) return false;
+        if (el.type === "lane" || el.type === "dropTarget") return true;
+        if (el.type === "trough") return resolveElementActive(world, el);
+        return false;
+    }
+
     function isCollectableTarget(world, el) {
         if (!el) return false;
         if (el.type === "trough") return resolveElementActive(world, el);
@@ -248,9 +255,13 @@
         const hasUnlitPrimary = primary.some(function some(el) {
             return !resolveLampLit(world, el);
         });
+        const hasFoundational = candidates.some(function some(el) {
+            return isFoundationalTarget(world, el);
+        });
         const ranked = candidates.map(function map(el) {
             const lit = resolveLampLit(world, el);
             const primaryTarget = isPrimaryTarget(el);
+            const foundational = isFoundationalTarget(world, el);
             const collectable = isCollectableTarget(world, el);
             const center = sourceCenterForElement(el) || el;
             let distance = 999999;
@@ -263,11 +274,13 @@
                 el: Object.assign({}, el, { x: center.x, y: center.y }),
                 lit: lit,
                 primary: primaryTarget,
+                foundational: foundational,
                 collectable: collectable,
                 distance: distance
             };
         });
         ranked.sort(function sort(a, b) {
+            if (hasFoundational && a.foundational !== b.foundational) return a.foundational ? -1 : 1;
             if (preferUnlit && hasUnlitPrimary && a.primary !== b.primary) return a.primary ? -1 : 1;
             if (preferUnlit && hasUnlitPrimary && a.primary && b.primary && a.lit !== b.lit) return a.lit ? 1 : -1;
             if (!hasUnlitPrimary && a.collectable !== b.collectable) return a.collectable ? -1 : 1;

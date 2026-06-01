@@ -1,5 +1,157 @@
 # Change Log
 
+## 2026-06-01 14:24:40 +01:00
+
+### Before Change
+- **User intent:** Ensure Brain view reflects the new reward/drain behavior so operators can see it happening.
+- **Scope before implementation:** Reward/drain telemetry existed in Autoplay Neural metrics, but Brain tab remained focused on model internals and did not show outcome counters or reward summaries.
+
+### After Change
+- Updated `app/tuning/lab.js`:
+  - Extended `refreshBrainPanel(...)` to consume training telemetry (`weightedSuccessSampleCount`, hit/score/miss counts, quick-drain misses, average reward).
+  - Added reward/outcome values into Brain output metric rows (`shot_hit`, `shot_score`, `shot_miss`, `shot_quick_drain`, `avg_reward`).
+  - Updated Brain run status text to include weighted success for immediate training-impact visibility.
+- Updated `tests/smoke.test.js`:
+  - Added assertions that Brain rendering includes weighted-success and reward/outcome fields (`shot_quick_drain`, `avg_reward`).
+
+### Verification
+- `npm test` (smoke tests ok; eval-agent smoke ok).
+
+## 2026-06-01 14:15:20 +01:00
+
+### Before Change
+- **User intent:** Discourage autoplay shots that quickly end in drain.
+- **Scope before implementation:** Miss outcomes were penalized uniformly and mostly at timeout, so fast post-flip drains were not explicitly identified or penalized more strongly than other misses.
+
+### After Change
+- Updated `app/tuning/lab.js`:
+  - Added `shotDrainLookup(...)` so shot attribution can identify drain switch sources.
+  - Added explicit drain-event attribution path in `attributeShotOutcomes(...)` that converts recent flipper attempts into immediate miss samples when drain fires soon after a shot.
+  - Added stronger reward penalties for drain misses in `rewardForShotOutcome(...)`, with the harshest penalty for very quick drains.
+  - Added stronger miss weights for drain-driven misses in `trainingWeightForShot(...)` so training updates learn away from those actions faster.
+  - Added `quickDrainSampleCount` training telemetry and surfaced it in the Neural panel as `Quick drain misses`.
+  - Reset shot attribution lookups (`shotTargetLookup`, `shotDrainLookup`) when live autoplay stops/starts to avoid stale-table mapping.
+- Updated `tests/smoke.test.js`:
+  - Added assertions for drain lookup creation, drain event detection branch, fast-drain penalty rule, and quick-drain telemetry row.
+
+### Verification
+- `npm test` (smoke tests ok; eval-agent smoke ok).
+
+## 2026-06-01 14:06:42 +01:00
+
+### Before Change
+- **User intent:** Revisit Lab autoplay/neural behavior so training encourages target hits or points and reduces non-productive flipper behavior.
+- **Scope before implementation:** Neural training used a 3-class supervised loop with duplicated success samples from attributed hits, but lacked explicit reward metadata, conservative miss penalties, and weighted gradient training. Event processing also did not expose per-switch score deltas for attribution.
+
+### After Change
+- Updated `app/events.js`:
+  - Added `event.scoreDelta` metadata for processed `score` and `switchClosed` events so lab attribution can consume points from switch outcomes.
+- Updated `app/tableAutoplayLearning.js`:
+  - Raised default hidden-size fallback from `12` to `24`.
+  - Added bounded per-sample training weight support and applied weights to loss/gradient updates.
+  - Added `weightedSamples` in training result metadata.
+- Updated `app/tuning/lab.js`:
+  - Expanded neural training state for reward telemetry (`weightedSuccessSampleCount`, hit/score/miss counters, accumulated reward).
+  - Upgraded shot-attribution pipeline:
+    - records `scoreAtFlip` on each pending shot attempt,
+    - attributes `hit` / `hit_score` outcomes from `switchClosed` events using `event.scoreDelta`,
+    - emits conservative timeout outcomes (`score` or `miss`) after attribution window expiry.
+  - Added explicit reward and weight functions (`rewardForShotOutcome`, `trainingWeightForShot`) and materialized `sample.reward`/`sample.weight` for shot samples.
+  - Changed outcome->training conversion to weighted samples (including conservative `none` labels for misses) instead of pure duplication.
+  - Updated neural panel telemetry to expose outcome mix, weighted success, average reward, and richer last/recent shot detail.
+  - Raised lab neural hidden-size fallback defaults from `12` to `24`.
+- Updated `tests/smoke.test.js`:
+  - Added assertions for `event.scoreDelta` metadata in events processing.
+  - Added assertions for weighted training support and new hidden-size default.
+  - Added assertions for score-baseline/miss timeout attribution behavior and new neural telemetry fields.
+
+### Verification
+- `npm test` (smoke tests ok; eval-agent smoke ok).
+
+## 2026-06-01 10:55:00 +01:00
+
+### Before Change
+- **User intent:** Fix new runtime errors after Lab UI rework and prevent recurrence with regression tests.
+- **Scope before implementation:** `refreshBrainPanel` referenced undeclared brain metric DOM nodes (`brainFeatureRows`, `brainHiddenRows`, `brainOutputRows`), and browser emitted a warning because the AI API key password input was not inside a form.
+
+### After Change
+- Updated `app/tuning/lab.js`:
+  - Restored Brain detail DOM construction for telemetry rows/canvas/status blocks so `refreshBrainPanel` has valid bound nodes.
+  - Wrapped AI provider credential controls in `aiProviderForm`, including API key input.
+  - Hardened provider buttons inside the form as `type="button"` and prevented default submit behavior.
+- Updated `tests/smoke.test.js`:
+  - Added assertions that brain metric row nodes are declared before `refreshBrainPanel` uses them.
+  - Added assertions that AI provider settings create/use a form containing the API key row.
+
+### Verification
+- `npm test` (pending run after patch set).
+
+## 2026-06-01 10:40:00 +01:00
+
+### Before Change
+- **User intent:** Fix runtime crash in Physics Lab after UI reorganization and ensure regression coverage.
+- **Scope before implementation:** `app/tuning/lab.js` referenced `autoplayWrap` before initialization inside `mount`, causing `ReferenceError` and preventing lab bootstrap.
+
+### After Change
+- Updated `app/tuning/lab.js`:
+  - Moved `Autoplay & Neural` panel wrapper creation (`autoplayWrap`) so it is declared before first use.
+  - Removed duplicate later declaration block to keep one clear construction path.
+- Updated `tests/smoke.test.js`:
+  - Added declaration-order regression assertion to enforce `autoplayWrap` creation appears before first `appendChild` usage.
+
+### Verification
+- `npm test` (pending run after patch set).
+
+## 2026-06-01 10:25:00 +01:00
+
+### Before Change
+- **User intent:** Review and remediate Physics Lab UI organization so users can access controls/data with minimal navigation and without long-scroll hunting.
+- **Scope before implementation:** Lab UI concentrated many workflows in mixed long panels (especially Eval + Autoplay/Neural) and used a continuously stacked right rail for metrics, eval detail, AI detail, and export.
+
+### After Change
+- Updated `app/tuning/lab.js` workflow information architecture:
+  - Re-labeled top workflow tabs to `Tune`, `Sandbox`, `Evaluate`, `Autoplay`, and `AI Patch`.
+  - Split Autoplay/Neural controls out of `Evaluate` into a dedicated `Autoplay` workflow panel.
+  - Added right-rail detail tabs (`Metrics`, `Eval`, `Brain`, `AI`, `Export`) with contextual panes to remove long mixed-purpose scrolling.
+- Updated `app/tuning/lab.css` layout behavior:
+  - Removed hard app min-width floor.
+  - Added right-rail detail tab/pane styling.
+  - Added responsive breakpoints so panels stack for narrower screens instead of forcing fixed desktop width.
+- Updated `tests/smoke.test.js` to align expected lab tab label with the new `Autoplay` workflow tab.
+
+### Verification
+- `npm test` (pending run after patch set).
+
+## 2026-05-31 22:09:52 +01:00
+
+### Before Change
+- **User intent:** Fix unreliable launch behavior in Lab `Neural Live`.
+- **Scope before implementation:** Neural controller launch charging depended on immediate launch-lane detection each tick and reset quickly on lane-state flicker, causing inconsistent charge/release cycles compared with heuristic live autoplay.
+
+### After Change
+- Updated `app/tableAutoplayLearning.js` neural live controller:
+  - Added explicit serve-cycle launch state: `prevInLaunchLane`, `launchReleased`.
+  - Detects lane entry edges to start a single launch hold countdown per serve.
+  - Releases launcher once per serve and avoids re-arming until a new lane entry.
+  - Applied the same launch-cycle behavior to fallback path inside neural controller for consistency when model confidence gates to fallback.
+- Impact:
+  - `Neural Live` launch behavior now follows the same resilient charge/release pattern used by heuristic autoplay, reducing missed or stalled serves.
+
+## 2026-05-31 21:56:49 +01:00
+
+### Before Change
+- **User intent:** In Lab autoplay, treat spinners like bumpers/kickers and only target them when no lanes, drop targets, or active troughs are available.
+- **Scope before implementation:** Target ranking could promote spinner-style collectable shots as soon as unlit primaries were exhausted, even when foundational shots (lanes/targets/troughs) still existed.
+
+### After Change
+- Updated `app/tableAutoplay.js` target ranking:
+  - Added explicit foundational-target classification (`lane`, `dropTarget`, and active `trough`).
+  - Forced foundational targets to rank above spinner/kicker/bumper-style fallback targets.
+  - Kept existing unlit-primary and collectable sorting behavior inside each class.
+- Impact:
+  - Heuristic targeting now keeps spinner shots as fallback opportunities instead of early preferred goals.
+  - Neural live feedback that consumes heuristic target context now inherits the same target-priority policy.
+
 ## 2026-05-31 21:39:17 +01:00
 
 ### Before Change
@@ -653,3 +805,258 @@
   - brain graph refresh hooks,
   - hidden-unit control exposure,
   - debug telemetry fields (`hidden`, `logits`, `featureNames`).
+## 2026-06-01 - Logic Visual Builder Prototype (Visual Tab)
+
+- **User intent:** Implement the Pinball Logic Editor visual-builder spec as a safe prototype that projects existing schema, keeps JSON as source of truth, and integrates as a separate tab.
+- **Scope before implementation:** The `#logic` workspace was feature-first but did not have the requested desktop-style visual builder layout with grouped projection cards, feature tree panel, inspector/playfield split, and bottom JSON/schema/validation tabs in one surface.
+
+- Added `app/logic/visualProjection.js`:
+  - Implemented pure projection helpers: `buildVisualModel`, `detectCompletionGroups`, `detectClaimGroups`, `detectDrainBehaviour`, and `detectMultiplierLadders`.
+  - Added `validateVisualModel` to preserve unknown effect types while warning instead of mutating/dropping them.
+- Added `app/logic/visualBuilder.js`:
+  - Implemented `Pin.logicVisualBuilder.mount(container, options)` prototype view.
+  - Added top toolbar, left nav rail, feature tree, grouped logic canvas, right inspector + playfield reference mini-map, and bottom JSON/schema/validation tabs.
+  - Added safe first-pass edits for action rules (`name`, `enabled`, `trigger`, `condition`, editable effect values) and feature membership toggles (`objects`, `states`, `rules`, `lamps`).
+  - Ensured edits write directly to existing `table.logicDocument` and `table.features`.
+- Added `app/logic/visualBuilder.css` for isolated visual-builder styling.
+- Updated `app/logic/page.js`:
+  - Added a new `Visual Builder` section in the existing `#logic` workspace.
+  - Mounted visual builder as a separate tab and kept legacy sections intact.
+  - Reused existing persistence/validation flow via `commitDocChange`.
+- Updated `index.html`:
+  - Added `app/logic/visualBuilder.css`.
+  - Added `app/logic/visualProjection.js` and `app/logic/visualBuilder.js` before `app/logic/page.js`.
+- Updated `tests/smoke.test.js`:
+  - Added script-order assertions for the new visual modules.
+  - Added projection detector tests for completion/drain group detection and score-multiplier ladder detection.
+
+- **Impact after change:** The app now has a working visual logic-builder tab that improves inspectability and safe editing without introducing a new persisted runtime model; existing logic schema remains canonical and round-trippable.
+## 2026-06-01 - Visual Builder Playfield Reference Upgrade
+
+- **User intent:** Replace the visual builder playfield reference placeholder with something that actually shows the table.
+- **Scope before implementation:** The panel rendered only a gradient mini-map with dots, which made object context hard to understand and looked like visual noise.
+
+- Updated `app/logic/page.js`:
+  - Passed `tableAssetBaseHref` through to visual builder mount so relative image paths resolve correctly.
+- Updated `app/logic/visualBuilder.js`:
+  - Added playfield image URL resolution from `table.images[]` (prefers `mode: play|both`).
+  - Applied resolved image as mini-map background with safe CSS URL escaping.
+  - Added object/lamp visibility toggles and retained click-to-select marker behavior.
+  - Increased marker cap and differentiated marker type styling (`object` vs `lamp`).
+- Updated `app/logic/visualBuilder.css`:
+  - Styled toggle row and improved mini-map image treatment.
+  - Added marker variants and image overlay treatment for contrast/readability.
+
+- **Impact after change:** The playfield reference now renders an actual table thumbnail when art is available, with usable overlays for logic-oriented object/lamp selection.
+## 2026-06-01 - Visual Builder Reference UI Pass
+
+- **User intent:** Move the Logic Visual Builder toward the provided reference image so the workspace looks and reads like a production desktop logic tool.
+- **Scope before implementation:** The prior prototype proved projection/editing mechanics, but canvas cards, density, inspector richness, and overall layout hierarchy were still simplified and not visually aligned with the target.
+
+- Updated `app/logic/visualBuilder.js`:
+  - Reworked the full render pipeline into a denser four-column workspace with a structured top toolbar, left nav rail, feature tree, grouped logic canvas, right inspector/playfield stack, and bottom JSON/schema/validation panel.
+  - Added richer group renderers:
+    - completion flow cards (switch -> latch/state -> computed -> rule),
+    - claim-flow cards,
+    - drain behaviour split into `Engine Flow` (synthetic) and `Table Reset` (real drain-triggered rules),
+    - multiplier ladder step cards,
+    - improved generic rule grouping.
+  - Expanded selection model (`rule`, `feature`, `group`, `switch`, `state`, `computed`, `object`) and added feature-driven group highlighting/muting.
+  - Upgraded inspector behavior:
+    - rule editing for name/enabled/trigger/condition/effects with add-effect action,
+    - related objects/states/lamps chips,
+    - feature membership editing with chips,
+    - object/state/switch/computed read-only inspectors.
+  - Kept writeback constrained to existing `table.logicDocument` + `table.features` through existing commit hooks.
+- Updated `app/logic/visualBuilder.css`:
+  - Replaced prototype styles with a denser, reference-oriented visual system (desktop panel rhythm, tighter cards, clearer hierarchy, node accents by type, stronger bottom validation presentation, responsive fallbacks).
+  - Improved playfield marker readability and selection visibility.
+
+- **Impact after change:** The Visual Builder now presents as an intentional, high-density logic workspace much closer to the reference direction while preserving the core guardrail: visual groups are projections and persisted JSON schema remains unchanged.
+## 2026-06-01 - Playfield Marker Numbering Consistency
+
+- **User intent:** Ensure playfield reference markers are consistently labeled, not only a subset.
+- **Scope before implementation:** Marker text was intentionally sparse (every fourth marker), which made numbering appear inconsistent and confusing during selection.
+
+- Updated `app/logic/visualBuilder.js`:
+  - Changed playfield marker labeling so every visible marker receives a numeric badge (`1..N`) instead of sparse sampling.
+
+- **Impact after change:** Marker labeling is now predictable and consistent for all rendered markers in the playfield reference panel.
+## 2026-06-01 - Logic Canvas Icon Parity + Playfield Cross-Highlight
+
+- **User intent:** Reuse the same icon language as Designer on Logic canvas cards, and when selecting canvas items show involved object(s) highlighted in Playfield Reference.
+- **Scope before implementation:** Logic node cards used custom/simple labels without Designer icon parity, and playfield highlighting only activated for directly selected marker objects, not for rule/group/state-driven selections.
+
+- Updated `app/logic/visualBuilder.js`:
+  - Added Designer palette SVG mapping (`designerPaletteSvgForType`) to logic canvas node cards.
+  - Updated node card rendering to include icon cells matching Designer vocabulary.
+  - Added selection-to-playfield cross-reference resolver (`highlightedObjectIds`) so canvas/inspector selections now highlight related playfield objects:
+    - rule -> related trigger/effect objects,
+    - switch -> source element,
+    - state/computed -> objects from related rules,
+    - feature -> explicit objects + objects implied by feature rules,
+    - group -> objects implied by group rules,
+    - object -> direct active marker.
+  - Updated marker class assignment to distinguish direct selection (`active`) from related involvement (`involved`).
+- Updated `app/logic/visualBuilder.css`:
+  - Added node icon layout/style primitives for embedded SVG icons.
+  - Added `involved` marker styling so related objects are visibly indicated even when not directly selected.
+
+- **Impact after change:** Logic canvas now shares icon semantics with Designer, and playfield reference consistently reflects object involvement for canvas/inspector-driven selections.
+## 2026-06-01 - Sticky Inspector Rail While Scrolling Canvas
+
+- **User intent:** Keep Inspector visible when scrolling down the Logic Canvas so details are immediately visible after selecting deep items.
+- **Scope before implementation:** The right column (Inspector + Playfield Reference) scrolled away with the page, forcing users to scroll back up after selecting lower canvas cards.
+
+- Updated `app/logic/visualBuilder.js`:
+  - Marked the right workspace column with a dedicated sticky-rail class (`logic-vb-col-right`).
+- Updated `app/logic/visualBuilder.css`:
+  - Added sticky side-rail behavior for the right column (`position: sticky`, top anchor, viewport-bounded internal scrolling).
+  - Added responsive fallback to disable sticky behavior on narrow layouts (`max-width: 1260px`) so stacked mobile/tablet layout remains natural.
+
+- **Impact after change:** The Inspector/Playfield rail now stays in view while users scroll through large canvas groups, removing the “scroll up to inspect” workflow interruption.
+
+### Follow-up (2026-06-01)
+
+- **User feedback:** Sticky behavior still appeared unreliable in practice.
+- **Root cause identified:** `.logic-vb-shell` used `overflow: hidden`, which can break viewport-based sticky behavior by creating a non-visible overflow ancestor.
+- Updated `app/logic/visualBuilder.css`:
+  - Changed `.logic-vb-shell` overflow to `visible` so sticky can anchor to page scroll.
+  - Added `z-index` to `.logic-vb-col-right` to keep the side rail on top during scroll.
+- **Impact after follow-up:** Right rail sticky behavior is now aligned with browser sticky mechanics and should remain visible while scrolling the canvas.
+## 2026-06-01 - Logic Canvas Group Reflow (Horizontal Density)
+
+- **User intent:** Improve arrangement inside Logic Canvas groups with better horizontal space usage.
+- **Scope before implementation:** Completion/claim groups used mostly row/wrap flow with wider minimum cards, causing avoidable vertical growth and less efficient desktop scanning.
+
+- Updated `app/logic/visualBuilder.js`:
+  - Reworked completion group rendering into a two-column structure:
+    - feeder switch->latch rows in a left grid,
+    - computed + follow-up rule stack in a right column.
+  - Updated claim group to use a dedicated horizontal layout class for stable trigger -> condition -> rule flow.
+- Updated `app/logic/visualBuilder.css`:
+  - Added horizontal-first group layout rules (`logic-vb-completion-layout`, `logic-vb-feeder-grid`, `logic-vb-claim-layout`).
+  - Reduced node card minimum width and generic rule-card minimum width to fit more cards per row.
+  - Added responsive fallbacks so narrow screens still stack cleanly.
+
+- **Impact after change:** Canvas groups now use desktop width more effectively, reduce unnecessary vertical scrolling, and preserve readability of trigger/condition/effect flow.
+
+### Follow-up (2026-06-01)
+
+- **User intent:** Proceed with stronger in-group alignment so groups feel more grid-structured and less wrap-driven.
+- Updated `app/logic/visualBuilder.js`:
+  - Added group-kind CSS class tagging on each rendered group section (`logic-vb-group-<kind>`).
+- Updated `app/logic/visualBuilder.css`:
+  - Tightened completion layout into a stable two-column split with fixed feeder row columns (`switch -> arrow -> latch`).
+  - Tuned claim row to a fixed five-column flow (`trigger -> arrow -> condition -> arrow -> rule`).
+  - Increased generic rule-grid minimum width for cleaner horizontal packing.
+  - Added group-kind-specific sizing tweaks (drain two-column balance, consistent node heights in completion/claim cards).
+
+- **Impact after follow-up:** Group internals now align more consistently across rows, improving scanability and horizontal space usage on desktop.
+## 2026-06-01 - PinLogic as Primary Logic Surface + Working Rail Navigation
+
+- **User intent:** Remove the nested “screen within a screen” effect, reclaim space, and make the new PinLogic rail navigation actually work.
+- **Scope before implementation:** The new visual builder was mounted as one tab inside the old three-pane logic workspace, with duplicate navigation chrome and static rail items in PinLogic.
+
+- Updated `app/logic/page.js`:
+  - Changed default logic section to `visual` so `#logic` opens directly into PinLogic.
+  - Added mode-route navigation helper for Play/Design transitions from PinLogic.
+  - Added mapping from PinLogic rail ids to existing logic sections.
+  - When in `visual` section:
+    - bypasses legacy left-nav/right-inspector rendering,
+    - mounts PinLogic as the primary workspace,
+    - removes the extra right-side “this is new” note card.
+  - Passed navigation callbacks and active rail id into PinLogic mount:
+    - `onNavigateMode` (play/design route),
+    - `onNavigateSection` (features/rules/state/feedback/simulator/diagnostics),
+    - `activeNavId` (rail highlight state).
+- Updated `app/logic/visualBuilder.js`:
+  - Added callback-driven rail routing so nav items are functional.
+  - Wired toolbar `Test in Simulator` to navigate to simulator section.
+  - Converted rail rows to buttons and active state driven by host-provided `activeNavId`.
+- Updated `app/logic/visualBuilder.css`:
+  - Added button-safe styling for rail items (full width, transparent background, pointer cursor, explicit border/text alignment).
+- Updated `app/editor/editor.css`:
+  - Added `logic-workbench-visual` mode to collapse legacy 3-column shell to full-width main canvas.
+  - Hides legacy nav/inspector and removes extra main padding in visual mode.
+
+- **Impact after change:** PinLogic now uses the full available logic workspace, avoids duplicate nested UI chrome, and provides working in-rail navigation for top-level mode hops and logic subsections.
+
+### Follow-up (2026-06-01)
+
+- **User intent:** Keep non-visual logic areas within the PinLogic shell so navigation style stays consistent.
+- Updated `app/logic/visualBuilder.js`:
+  - Added internal `workspaceSection` handling so rail clicks (`Features`, `Rules`, `State`, `Feedback`, `Simulator`, `Diagnostics`) switch views inside PinLogic instead of requiring legacy layout.
+  - Added in-shell canvas renderers for those sections:
+    - feature summary grid,
+    - dense rules grid,
+    - combined state/computed grid,
+    - lamp binding grid,
+    - simulator entry panel,
+    - diagnostics issue list.
+  - Added lamp-binding selection/inspector support for the feedback section.
+- Updated `app/logic/page.js`:
+  - Added `visualWorkspaceSection` state and passed it through to PinLogic mount.
+  - Updated section callback wiring so rail section changes stay inside visual mode and simply switch PinLogic subsection.
+- Updated `app/logic/visualBuilder.css`:
+  - Added state grid layout class for subsection rendering consistency.
+
+- **Impact after follow-up:** Most logic navigation now remains within one cohesive PinLogic shell, with consistent rail behavior and no fallback to legacy chrome for standard subsection browsing.
+
+### Follow-up (2026-06-01) - Simulator Access Regression Fix
+
+- **User intent:** Restore access to simulator and check for orphaned navigation behavior.
+- **Regression identified:** PinLogic rail `Simulator` switched only the visual sub-section state and did not flip `activeSection` to legacy simulator renderer, making the full simulator workspace inaccessible.
+- Updated `app/logic/page.js`:
+  - PinLogic `Simulator` navigation now sets `activeSection = "simulator"` so `renderTest()` is reachable again.
+  - Added reset rule when returning to visual mode: if visual sub-section was `simulator`, it is normalized back to `logic` to avoid stale sub-view state.
+
+- **Orphaned/stale behavior audit:** Found a visual-shell simulator placeholder branch (`renderSimulatorCanvas`) that is now effectively a fallback-only path; it does not block simulator access after this fix.
+- **Impact after follow-up:** Simulator workspace is reachable again from PinLogic navigation, and returning to visual mode re-enters the main logic canvas predictably.
+
+### Follow-up (2026-06-01) - Orphaned Simulator Path Cleanup
+
+- **User intent:** Proceed with orphan cleanup after simulator restoration.
+- Updated `app/logic/visualBuilder.js`:
+  - Removed the in-shell `renderSimulatorCanvas` placeholder branch.
+  - Updated rail routing so `Simulator` is a direct host handoff (`onNavigateSection("simulator")`) without mutating visual subsection state first.
+
+- **Impact after follow-up:** There is now a single simulator navigation path (PinLogic rail -> legacy simulator workspace), removing ambiguous/fallback simulator behavior inside PinLogic.
+## 2026-06-01 - PinLogic Visual Builder Authoring (In Progress/Complete)
+
+### User Intent / Scope Before Change
+- Move the new PinLogic editor from display-only to actual authoring.
+- Keep JSON schema canonical and write through existing `logicDocument` + `features` arrays.
+- Add guided build flows, role-based assignment from playfield/canvas clicks, and minimal generic rule creation.
+
+### Changes Implemented
+- `app/logic/visualBuilder.js`
+  - Added canvas Build panel for guided creation:
+    - `Create Switch -> Lamp`
+    - `Create Target Bank + Collect`
+    - `Create Drain Reset`
+    - minimal `Add Rule` creation
+  - Added role-mode assignment (`trigger/target/collect/drain/lamp`) and click-to-assign from playfield/canvas selections.
+  - Added creation helpers that mutate only existing schema arrays:
+    - `switchRegistry`, `stateTable`, `computedState`, `lampBindings`, `actionRules`, `resetRules`, `features`
+  - Added effect removal in rule inspector to make created rules editable without leaving visual shell.
+- `app/logic/visualBuilder.css`
+  - Added styling for Build panel, role chips, summary panel, action row, and build error text.
+
+### Impact / Notes After Change
+- PinLogic now supports creating logic, not just inspecting it.
+- No new persisted logic model was introduced; visual authoring writes directly into existing table schema.
+- Existing unknown effect payloads remain preserved (still rendered as raw JSON when unsupported).
+- Validation and projection continue to run through existing commit path after each create/edit action.
+
+### Verification
+- `npm test` passed:
+  - `smoke tests ok`
+  - `eval-agent smoke ok`
+
+### Follow-up (Same Date): Feature Membership Linking
+- Updated guided flow generation in `app/logic/visualBuilder.js` so created features now carry stronger membership metadata:
+  - `Create Switch -> Lamp` now fills `feature.objects` from trigger source object and lamp host object when resolvable.
+  - `Create Target Bank + Collect` now fills `feature.objects` from selected target/collect switch source objects and `feature.lamps` from related lamp-capable objects.
+  - `Create Drain Reset` now also creates a feature row with reset-related object/state/rule membership, improving discoverability in tree/inspector.
+- Verification rerun: `npm test` passed (`smoke tests ok`, `eval-agent smoke ok`).

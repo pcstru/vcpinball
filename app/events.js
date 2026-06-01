@@ -132,9 +132,12 @@
             processed.push.apply(processed, events);
             events.forEach(function apply(event) {
                 if (event.type === "score") {
-                    world.score = (world.score || 0) + (event.points || 0);
+                    const points = Number(event.points) || 0;
+                    world.score = (world.score || 0) + points;
+                    event.scoreDelta = points;
                 }
                 if (event.type === "switchClosed" && Pin.logicSim) {
+                    const worldScoreBefore = Number(world.score || 0);
                     ensureLogicRuntime();
                     if (!world.logicRuntime) return;
                     const previous = Number(world.logicRuntime.score || 0);
@@ -145,6 +148,7 @@
                     const after = Number(world.logicRuntime.score || 0);
                     const delta = after - previous;
                     if (delta) world.score = (world.score || 0) + delta;
+                    event.scoreDelta = Number(world.score || 0) - worldScoreBefore;
                     syncLogicLamps(world.logicRuntime);
                     syncRuleElementPropertiesIfChanged(world.logicRuntime);
                 }

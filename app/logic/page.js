@@ -23,11 +23,13 @@
         root.innerHTML = "";
 
         var table = Pin.table.cloneTable(options.table || Pin.table.createEmptyTable());
+        var tableAssetBaseHref = typeof options.tableAssetBaseHref === "string" ? options.tableAssetBaseHref : "";
         var assets = Pin.logicAssets.extractAssets(table);
         var doc = Pin.logicCompile.extractFromTable(table);
         var selected = { collection: "", index: -1 };
         var selectedFeatureId = "";
-        var activeSection = "features";
+        var activeSection = "visual";
+        var visualWorkspaceSection = "logic";
         var featureDraft = null;
         var visualBuilder = {
             selectedObjectId: "",
@@ -139,6 +141,7 @@
              */
             return [
                 { id: "features", label: "Features" },
+                { id: "visual", label: "Visual Builder" },
                 { id: "rules", label: "Rules" },
                 { id: "state", label: "State" },
                 { id: "feedback", label: "Feedback" },
@@ -1018,8 +1021,40 @@
              * Why: Each section has its own human grouping and inspector context.
              */
             activeSection = section;
+            if (activeSection === "visual" && visualWorkspaceSection === "simulator") {
+                /* What: Reset visual sub-view when returning from legacy simulator.
+                 * Why: Simulator is rendered by legacy section; visual shell should re-open on main logic canvas.
+                 */
+                visualWorkspaceSection = "logic";
+            }
             selected = { collection: "", index: -1 };
             render();
+        }
+
+        function routeToMode(mode) {
+            /* What: Navigate from logic workspace to another top-level mode for the same table.
+             * Why: PinLogic rail Play/Design actions should be real route transitions, not placeholders.
+             */
+            var safeMode = String(mode || "");
+            if (!safeMode) return;
+            location.hash = "#" + safeMode + "&t=" + Pin.storage.url.encode(table);
+        }
+
+        function sectionFromVisualNav(id) {
+            /* What: Map PinLogic rail ids to legacy logic section ids.
+             * Why: The visual builder owns navigation UI while existing logic sections remain available.
+             */
+            var key = String(id || "");
+            if (key === "logic" || key === "visual") return "logic";
+            if (key === "features" || key === "rules" || key === "state" || key === "feedback" || key === "simulator" || key === "diagnostics") return key;
+            return "logic";
+        }
+
+        function visualNavActiveId() {
+            /* What: Report currently active PinLogic rail target.
+             * Why: Nav highlight should track the real section when moving between legacy subsections.
+             */
+            return visualWorkspaceSection || "logic";
         }
 
         function addRow(collection) {
@@ -3789,11 +3824,65 @@
             URL.revokeObjectURL(a.href);
         }
 
+        function renderVisualBuilder(validation) {
+            /* What: Mount the visual projection tab over existing logic JSON arrays.
+             * Why: This keeps authored schema canonical while giving designers grouped cards.
+             */
+            main.innerHTML = "";
+            inspector.innerHTML = "";
+            if (!Pin.logicVisualBuilder || typeof Pin.logicVisualBuilder.mount !== "function") {
+                var missing = document.createElement("div");
+                missing.className = "logic-issue error";
+                missing.textContent = "Logic visual builder module failed to load.";
+                main.appendChild(missing);
+                return;
+            }
+            Pin.logicVisualBuilder.mount(main, {
+                table: table,
+                doc: doc,
+                assets: assets,
+                tableAssetBaseHref: tableAssetBaseHref,
+                workspaceSection: visualWorkspaceSection,
+                activeNavId: visualNavActiveId(),
+                onNavigateMode: function onNavigateMode(mode) {
+                    routeToMode(mode);
+                },
+                onNavigateSection: function onNavigateSection(nextSection) {
+                    var section = sectionFromVisualNav(nextSection);
+                    if (section === "simulator") {
+                        visualWorkspaceSection = "simulator";
+                        activeSection = "simulator";
+                        selected = { collection: "", index: -1 };
+                        render();
+                        return;
+                    }
+                    visualWorkspaceSection = section;
+                    activeSection = "visual";
+                    selected = { collection: "", index: -1 };
+                    render();
+                },
+                validation: validation,
+                onCommit: function onCommit() {
+                    commitDocChange({ render: false });
+                    render();
+                }
+            });
+        }
+
         function render() {
             /* What: Render the active logic workspace.
              * Why: The route is a single static page without a framework.
              */
             var validation = rerunValidation();
+            if (activeSection === "visual") {
+                layout.classList.add("logic-workbench-visual");
+                nav.innerHTML = "";
+                inspector.innerHTML = "";
+                renderVisualBuilder(validation);
+                return;
+            }
+
+            layout.classList.remove("logic-workbench-visual");
             renderNav(validation);
             if (activeSection === "features") renderFeatures();
             else if (activeSection === "rules") renderRules();

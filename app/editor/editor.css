@@ -1632,6 +1632,16 @@ canvas.dragging { cursor: grabbing; }
     min-height: 100dvh;
     height: 100dvh;
 }
+.logic-workbench.logic-workbench-visual {
+    grid-template-columns: minmax(0, 1fr);
+}
+.logic-workbench.logic-workbench-visual .logic-nav,
+.logic-workbench.logic-workbench-visual .logic-inspector {
+    display: none;
+}
+.logic-workbench.logic-workbench-visual .logic-main {
+    padding: 0;
+}
 .logic-nav,
 .logic-main,
 .logic-inspector {

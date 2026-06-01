@@ -298,6 +298,9 @@ function testIndexScriptsExistAndOrderCoreBeforeMain() {
     assert(sources.indexOf("app/tableCatalog.js") > sources.indexOf("app/storage.js"), "table catalog should load after storage helpers");
     assert(sources.indexOf("app/editor/assistantTools.js") > sources.indexOf("app/editor/model.js"), "assistant tools should load after editor model");
     assert(sources.indexOf("app/editor/assistant.js") > sources.indexOf("app/editor/assistantTools.js"), "assistant runtime should load after assistant tools");
+    assert(sources.indexOf("app/logic/visualProjection.js") > sources.indexOf("app/logic/compile.js"), "logic visual projection should load after core logic compile helpers");
+    assert(sources.indexOf("app/logic/visualBuilder.js") > sources.indexOf("app/logic/visualProjection.js"), "logic visual builder should load after projection helpers");
+    assert(sources.indexOf("app/logic/page.js") > sources.indexOf("app/logic/visualBuilder.js"), "logic page should mount after visual builder module");
     assert(sources.indexOf("app/performance.js") > sources.indexOf("app/logic/page.js"), "performance helpers should load after logic scripts");
     assert(sources.indexOf("app/performance.js") < sources.indexOf("app/main.js"), "performance helpers should load before app bootstrap");
     assert(sources.indexOf("app/main.js") > sources.indexOf("app/tableCatalog.js"), "table catalog should load before app bootstrap");
@@ -433,10 +436,28 @@ function testLabEvalControlsExposeAutoplayOptions() {
     assert(/Last sample/.test(source), "neural panel should show a recent live-sample preview");
     assert(/Shot L\/R/.test(source), "neural panel should show shot-side distribution");
     assert(/Success used/.test(source), "neural panel should show success-sample usage count");
-    assert(/const tabBrain = create\(\"button\", \"\", \"Brain\"\)/.test(source), "lab should expose a dedicated Brain tab");
+    assert(/Shot hit\/score\/miss/.test(source), "neural panel should show hit/score/miss outcome distribution");
+    assert(/Quick drain misses/.test(source), "neural panel should show quick-drain miss count");
+    assert(/Weighted success/.test(source), "neural panel should show weighted-success contribution");
+    assert(/Avg reward/.test(source), "neural panel should show average reward over shot outcomes");
+    assert(/const tabAutoplay = create\(\"button\", \"\", \"Autoplay\"\)/.test(source), "lab should expose a dedicated Autoplay workflow tab");
     assert(/Neural Brain/.test(source), "lab should expose a dedicated neural brain panel title");
+    const autoplayWrapDecl = source.indexOf("const autoplayWrap = create(\"div\", \"lab-group\")");
+    const autoplayWrapUse = source.indexOf("autoplayWrap.appendChild(autoplayBallRow)");
+    assert(autoplayWrapDecl >= 0 && autoplayWrapUse >= 0 && autoplayWrapDecl < autoplayWrapUse, "autoplay panel wrapper should be declared before use");
+    assert(/const brainFeatureRows = create\(\"div\", \"lab-metric-list\"\)/.test(source), "brain panel should define feature metric rows");
+    assert(/const brainHiddenRows = create\(\"div\", \"lab-metric-list\"\)/.test(source), "brain panel should define hidden metric rows");
+    assert(/const brainOutputRows = create\(\"div\", \"lab-metric-list\"\)/.test(source), "brain panel should define output metric rows");
+    const brainRowsDecl = source.indexOf("const brainFeatureRows = create(\"div\", \"lab-metric-list\")");
+    const brainRowsUse = source.indexOf("brainFeatureRows.innerHTML = \"\";");
+    assert(brainRowsDecl >= 0 && brainRowsUse >= 0 && brainRowsDecl < brainRowsUse, "brain metric rows should be declared before refresh usage");
+    assert(/const aiProviderForm = document\.createElement\(\"form\"\)/.test(source), "AI provider settings should be wrapped in a form for password-field semantics");
+    assert(/aiProviderForm\.appendChild\(aiApiKeyRow\)/.test(source), "AI provider form should include API key row");
     assert(/drawBrainGraph\(/.test(source), "lab should render a neural brain graph view");
     assert(/refreshBrainPanel\(/.test(source), "lab should refresh dedicated brain telemetry");
+    assert(/weighted success/.test(source), "brain status should surface weighted success totals");
+    assert(/shot_quick_drain/.test(source), "brain output metrics should include quick-drain outcome count");
+    assert(/avg_reward/.test(source), "brain output metrics should include average reward");
 }
 
 function testNeuralAutoplayLearningModuleExports() {
@@ -449,6 +470,9 @@ function testNeuralAutoplayLearningModuleExports() {
     assert(/minConfidence/.test(source), "neural autoplay controller should support confidence threshold fallback");
     assert(/maxInput = 64/.test(source), "neural autoplay controller should cap model input dimensions");
     assert(/maxHidden = 64/.test(source), "neural autoplay controller should cap model hidden dimensions");
+    assert(/const hidN = Math\.max\(4, Math\.round\(hiddenSize \|\| 24\)\);/.test(source), "neural autoplay model should default to the expanded hidden size");
+    assert(/const weight = sampleWeight\(sample\);/.test(source), "neural autoplay trainer should consume per-sample weights");
+    assert(/weightedSamples: weightTotal/.test(source), "neural autoplay trainer should report weighted sample usage");
     assert(/if \(!ball\) state\.launchHold = 0;/.test(source), "neural autoplay controller should clear launch hold when no ball is active");
     assert(/source:\s*usedFallback \? "fallback" : "model"/.test(source), "neural autoplay controller debug should expose model vs fallback source");
     assert(/controls:\s*\{\s*left:\s*!!controls\.left,\s*right:\s*!!controls\.right,\s*launch:\s*!!controls\.launch\s*\}/.test(source), "neural autoplay controller debug should expose final controls");
@@ -485,9 +509,12 @@ function testAutoplayWorldBuildIncludesBroadPhaseAndSamplingCounter() {
 
 function testPhysicsHarnessSandboxProcessesRulesAndSupportsBaseTable() {
     const source = read("app/physicsHarness.js");
+    const eventsSource = read("app/events.js");
     assert(/const baseTable = options && options\.baseTable \? clone\(options\.baseTable\) : null;/.test(source), "sandbox table builder should support baseTable cloning");
     assert(/if \(Pin\.events && typeof Pin\.events\.processRules === \"function\"\)/.test(source), "physics harness step should process rule events");
     assert(/world\.lastProcessedEvents = Pin\.events\.processRules\(world, world\.lastPhysicsDt\) \|\| \[\];/.test(source), "physics harness step should retain processed events for lab attribution");
+    assert(/event\.scoreDelta = points;/.test(eventsSource), "event processing should preserve score-event delta metadata");
+    assert(/event\.scoreDelta = Number\(world\.score \|\| 0\) - worldScoreBefore;/.test(eventsSource), "event processing should expose switch outcome score delta metadata");
 }
 
 function testLabLiveAutoplayKeepsBaseTableAndContinuousSampling() {
@@ -499,6 +526,12 @@ function testLabLiveAutoplayKeepsBaseTableAndContinuousSampling() {
     assert(/function recordShotAttempt\(/.test(source), "lab should capture flipper press transitions as shot attempts");
     assert(/function attributeShotOutcomes\(/.test(source), "lab should attribute switch hits to recent flipper attempts");
     assert(/function shotOutcomeSamplesToActionSamples\(/.test(source), "lab should transform shot outcomes into action-training samples");
+    assert(/function shotDrainLookup\(/.test(source), "lab should build a drain-source lookup for fast-drain attribution");
+    assert(/const isDrainSource = !!\(training\.shotDrainLookup && training\.shotDrainLookup\[sourceId\]\);/.test(source), "shot attribution should detect drain switch events");
+    assert(/if \(ticks <= 45\) return -1\.3;/.test(source), "shot reward should penalize fast drains more strongly");
+    assert(/scoreAtFlip:\s*Number\(world && world\.score\) \|\| 0/.test(source), "shot attempts should retain score baseline for timeout attribution");
+    assert(/const outcome = scoreGain > 0 \? \"score\" : \"miss\";/.test(source), "shot attribution should produce conservative timeout score/miss outcomes");
+    assert(/sample\.weight = clampSampleWeight\(sample\.weight \|\| trainingWeightForShot\(sample\)\);/.test(source), "shot attribution should materialize bounded reward weights");
     assert(/attributeShotOutcomes\(state\.sim\.world, state\.sim\.world\.lastProcessedEvents \|\| \[\]\);/.test(source), "lab live loop should consume processed events for shot attribution");
     assert(/Shot samples/.test(source), "neural panel should expose shot sample count");
     assert(/Pending shots/.test(source), "neural panel should expose pending shot-attempt count");
@@ -2083,6 +2116,16 @@ function loadLogicModules() {
     return ctx.window.Pin;
 }
 
+function loadLogicVisualProjectionModules() {
+    // What: Load visual projection helpers with core logic dependencies.
+    // Why: Group detectors should be testable without browser DOM mounting.
+    const pin = loadLogicModules();
+    const ctx = { window: { Pin: pin }, Pin: pin, console: console };
+    vm.createContext(ctx);
+    vm.runInContext(read("app/logic/visualProjection.js"), ctx, { filename: "app/logic/visualProjection.js" });
+    return ctx.window.Pin;
+}
+
 function loadTroughLogicHarness() {
     // What: Load trough, rules, events, and logic simulation together.
     // Why: Cobra bonus troughs must behave like physical switches for multiplier rules.
@@ -2663,6 +2706,58 @@ function testCobraBonusTroughAdvancesScoreMultiplier() {
     assert.strictEqual(pin.rules.resolveElementScore(world, target, target.score), 100, "Cobra target default score should resolve at 2x after multiplier collect");
 }
 
+function testVisualProjectionDetectsCompletionAndDrainGroups() {
+    const pin = loadLogicVisualProjectionModules();
+    const doc = {
+        logicVersion: 1,
+        switchRegistry: [
+            { id: "s_a1", sourceElementId: "dt_a1", kind: "switch" },
+            { id: "s_a2", sourceElementId: "dt_a2", kind: "switch" },
+            { id: "s_a3", sourceElementId: "dt_a3", kind: "switch" },
+            { id: "ball_drain", sourceElementId: "drain", kind: "switch" }
+        ],
+        stateTable: [
+            { id: "a1_lit", type: "bool", initial: false, volatile: true },
+            { id: "a2_lit", type: "bool", initial: false, volatile: true },
+            { id: "a3_lit", type: "bool", initial: false, volatile: true }
+        ],
+        computedState: [{ id: "group_a_complete", type: "bool", expr: "a1_lit && a2_lit && a3_lit" }],
+        lampBindings: [],
+        actionRules: [
+            { id: "A_A1", trigger: "s_a1", condition: "", effects: [{ type: "set", target: "a1_lit", value: true }], enabled: true },
+            { id: "A_A2", trigger: "s_a2", condition: "", effects: [{ type: "set", target: "a2_lit", value: true }], enabled: true },
+            { id: "A_A3", trigger: "s_a3", condition: "", effects: [{ type: "set", target: "a3_lit", value: true }], enabled: true },
+            { id: "A_ARM", trigger: "s_a1", condition: "group_a_complete", effects: [{ type: "score", value: 1000 }], enabled: true },
+            { id: "A_DRAIN_RESET", trigger: "ball_drain", condition: "", effects: [{ type: "reset", target: "a1_lit" }], enabled: true }
+        ],
+        resetRules: []
+    };
+    const completion = pin.logicVisualProjection.detectCompletionGroups(doc);
+    const drain = pin.logicVisualProjection.detectDrainBehaviour(doc);
+    assert.strictEqual(completion.length > 0, true, "visual projection should detect completion groups from && computed states");
+    assert.strictEqual(drain.length, 1, "visual projection should detect one drain behaviour group");
+}
+
+function testVisualProjectionDetectsScoreMultiplierLadder() {
+    const pin = loadLogicVisualProjectionModules();
+    const doc = {
+        logicVersion: 1,
+        switchRegistry: [{ id: "collect", sourceElementId: "collect", kind: "switch" }],
+        stateTable: [{ id: "score_multiplier", type: "int", initial: 1, volatile: false }],
+        computedState: [],
+        lampBindings: [],
+        actionRules: [
+            { id: "A_MUL_1", trigger: "collect", condition: "score_multiplier == 1", effects: [{ type: "set", target: "score_multiplier", value: 2 }], enabled: true },
+            { id: "A_MUL_2", trigger: "collect", condition: "score_multiplier == 2", effects: [{ type: "set", target: "score_multiplier", value: 3 }], enabled: true }
+        ],
+        resetRules: []
+    };
+    const ladders = pin.logicVisualProjection.detectMultiplierLadders(doc);
+    assert.strictEqual(ladders.length, 1, "visual projection should detect multiplier ladder transitions");
+    assert.strictEqual(Array.isArray(ladders[0].transitions), true, "multiplier ladder should include transition list");
+    assert.strictEqual(ladders[0].transitions[0].from, 1, "multiplier ladder should keep numeric source values");
+}
+
 Promise.resolve()
     .then(function run() { testIndexScriptsExistAndOrderCoreBeforeMain(); })
     .then(function run() { testIndexLocalAssetsAreVersioned(); })
@@ -2749,6 +2844,8 @@ Promise.resolve()
     .then(function run() { testTimerSwitchValidationAndSimulation(); })
     .then(function run() { testLogicSimulationScoreEffectsAccumulate(); })
     .then(function run() { testCobraBonusTroughAdvancesScoreMultiplier(); })
+    .then(function run() { testVisualProjectionDetectsCompletionAndDrainGroups(); })
+    .then(function run() { testVisualProjectionDetectsScoreMultiplierLadder(); })
     .then(function done() {
         console.log("smoke tests ok");
     })
